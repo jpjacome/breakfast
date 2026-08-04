@@ -44,6 +44,16 @@ test('the portal is closed to guests', function () {
     $this->get('/portal')->assertRedirect('/login');
 });
 
+test('the root url routes by who you are', function () {
+    $this->get('/')->assertRedirect('/login');
+
+    $this->actingAs(User::factory()->admin()->create())
+        ->get('/')->assertRedirect(route('admin.home'));
+
+    $this->actingAs(User::factory()->clientOwner()->create())
+        ->get('/')->assertRedirect(route('portal.home'));
+});
+
 test('registration is disabled by design', function () {
     // Breakfast invites its clients; there is no open sign-up.
     $this->get('/register')->assertNotFound();

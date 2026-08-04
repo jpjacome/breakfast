@@ -182,6 +182,183 @@
 
 
 /* --------------------------------------------------------------------------
+   Admin shell extras
+   -------------------------------------------------------------------------- */
+
+/* Nav entries for sections that don't exist yet — visible but inert, so the
+   shape of the product is legible without pretending the links work. */
+.nav-soon { color: var(--color-text-subtle); cursor: default; }
+.nav-soon:hover { background: transparent; color: var(--color-text-subtle); }
+.nav-soon::after {
+  content: "pronto";
+  margin-left: auto;
+  font-size: var(--fs-3xs);
+  letter-spacing: var(--ls-wide);
+  text-transform: uppercase;
+  color: var(--bkf-gray-300);
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bkf-gray-50);
+}
+.user-card__avatar {
+  display: grid;
+  place-items: center;
+  width: 34px; height: 34px;
+  flex: none;
+  border-radius: var(--radius-full);
+  background: var(--bkf-yellow);
+  color: var(--bkf-black);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
+}
+.user-card__meta { display: grid; min-width: 0; }
+.user-card__meta b {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.user-card__meta span { font-size: var(--fs-3xs); color: var(--color-text-muted); }
+
+/* --- stat tiles on the dashboard --- */
+
+.stats { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+
+.stat {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+.stat--accent { background: var(--bkf-yellow); border-color: transparent; }
+.stat__value {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--fs-4xl);
+  font-weight: var(--fw-bold);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.stat__note { display: block; margin-top: var(--space-2); font-size: var(--fs-2xs); color: var(--color-text-muted); }
+.stat--accent .stat__note { color: var(--bkf-brown); }
+
+/* --- brand monogram tile --- */
+
+.monogram {
+  display: grid; place-items: center;
+  width: 40px; height: 40px; flex: none;
+  border-radius: var(--radius-md);
+  background: var(--bkf-black);
+  color: var(--bkf-yellow);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.02em;
+}
+.monogram--lg { width: 60px; height: 60px; font-size: var(--fs-lg); border-radius: var(--radius-lg); }
+
+/* --- context document rows --- */
+
+.doclist { display: flex; flex-direction: column; }
+.doc {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.doc:last-child { border-bottom: 0; }
+.doc__kind {
+  display: grid; place-items: center;
+  width: 44px; height: 44px; flex: none;
+  border-radius: var(--radius-md);
+  background: var(--bkf-gray-50);
+  border-left: 3px solid var(--doc-color, var(--bkf-gray-400));
+  font-size: 9px;
+  font-weight: var(--fw-bold);
+  letter-spacing: .04em;
+  color: var(--color-text-muted);
+}
+.doc__main { min-width: 0; flex: 1; }
+/* These are spans (so .doc can be an <a>), so they need explicit block
+   display or the title and its metadata run together on one line. */
+.doc__title { display: block; font-size: var(--fs-sm); font-weight: var(--fw-medium); }
+.doc__meta { display: block; font-size: var(--fs-2xs); color: var(--color-text-muted); margin-top: 2px; }
+.doc__actions { display: flex; gap: var(--space-2); flex: none; }
+
+/* --- file input --- */
+
+.filefield input[type="file"] {
+  width: 100%;
+  font-size: var(--fs-sm);
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1.5px dashed var(--bkf-gray-300);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.filefield input[type="file"]:hover { border-color: var(--bkf-black); }
+.filefield input[type="file"]::file-selector-button {
+  margin-right: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--bkf-black);
+  color: var(--bkf-white);
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+}
+
+/* --- empty states --- */
+
+.empty {
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-7) var(--space-5);
+  text-align: center;
+}
+.empty p { font-size: var(--fs-sm); color: var(--color-text-muted); max-width: 44ch; margin-inline: auto; }
+
+/* --- page header row --- */
+
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-6);
+}
+
+/* --- filter bar --- */
+
+.filters { display: flex; gap: var(--space-3); flex-wrap: wrap; align-items: flex-end; }
+.filters .bkf-input, .filters .bkf-select { min-width: 200px; width: auto; }
+
+/* --- pagination --- */
+
+.pager { display: flex; align-items: center; gap: var(--space-4); }
+.pager__link {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  transition: border-color var(--dur-fast) var(--ease);
+}
+.pager__link:hover { border-color: var(--bkf-black); }
+.pager__link.is-disabled { opacity: .4; pointer-events: none; }
+.pager__count { font-size: var(--fs-2xs); color: var(--color-text-muted); }
+
+
+/* --------------------------------------------------------------------------
    Status / validation messaging
    -------------------------------------------------------------------------- */
 

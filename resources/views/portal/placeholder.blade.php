@@ -10,6 +10,8 @@
 </head>
 <body>
 
+@php $user = auth()->user(); @endphp
+
 <header class="bkf-topbar">
     <img src="{{ asset('img/logo.png') }}" alt="Breakfast" style="height:26px;width:auto;">
     <form method="POST" action="{{ route('logout') }}">
@@ -19,13 +21,13 @@
 </header>
 
 <main class="bkf-container bkf-section">
-    <p class="bkf-eyebrow">Sesión iniciada</p>
+    <p class="bkf-eyebrow">{{ $user->client?->name ?? 'Sin marca asignada' }}</p>
     <h1 class="bkf-h1" style="margin-top:var(--space-3);">
-        Hola, {{ auth()->user()->name }}.
+        Hola, {{ Str::of($user->name)->explode(' ')->first() }}.
     </h1>
     <p class="bkf-lead" style="margin-top:var(--space-4);max-width:52ch;">
-        El login funciona. El portal se construye en la siguiente fase:
-        proyecto por etapas, estrategia, entregas, reuniones y el IA Studio.
+        Tu portal se construye en la siguiente fase: avance del proyecto por etapas,
+        estrategia, entregas, reuniones y el IA Studio.
     </p>
 
     <div class="bkf-card" style="margin-top:var(--space-7);max-width:520px;">
@@ -33,11 +35,19 @@
         <dl style="margin-top:var(--space-3);display:grid;gap:var(--space-2);">
             <div class="bkf-row bkf-row--between">
                 <dt class="bkf-text-muted bkf-body">Nombre</dt>
-                <dd class="bkf-body">{{ auth()->user()->name }}</dd>
+                <dd class="bkf-body">{{ $user->name }}</dd>
             </div>
             <div class="bkf-row bkf-row--between">
                 <dt class="bkf-text-muted bkf-body">Correo</dt>
-                <dd class="bkf-body">{{ auth()->user()->email }}</dd>
+                <dd class="bkf-body">{{ $user->email }}</dd>
+            </div>
+            <div class="bkf-row bkf-row--between">
+                <dt class="bkf-text-muted bkf-body">Rol</dt>
+                <dd class="bkf-body">{{ $user->role->label() }}</dd>
+            </div>
+            <div class="bkf-row bkf-row--between">
+                <dt class="bkf-text-muted bkf-body">Marca</dt>
+                <dd class="bkf-body">{{ $user->client?->name ?? '—' }}</dd>
             </div>
         </dl>
     </div>
