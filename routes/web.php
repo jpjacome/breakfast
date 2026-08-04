@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ClientController;
+use App\Http\Controllers\Admin\ClientUserController;
 use App\Http\Controllers\Admin\ContextDocumentController;
 use App\Http\Controllers\Admin\DashboardController;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +38,13 @@ Route::middleware(['auth', 'breakfast'])
         Route::get('clientes/nueva', [ClientController::class, 'create'])->name('clients.create');
         Route::post('clientes', [ClientController::class, 'store'])->name('clients.store');
         Route::get('clientes/{client}', [ClientController::class, 'show'])->name('clients.show');
+
+        Route::post('clientes/{client}/usuarios', [ClientUserController::class, 'store'])
+            ->name('clients.users.store');
+        Route::post('clientes/{client}/usuarios/{user}/reenviar', [ClientUserController::class, 'resend'])
+            ->name('clients.users.resend');
+        Route::delete('clientes/{client}/usuarios/{user}', [ClientUserController::class, 'destroy'])
+            ->name('clients.users.destroy');
 
         Route::post('clientes/{client}/contexto', [ContextDocumentController::class, 'store'])
             ->name('clients.context.store');

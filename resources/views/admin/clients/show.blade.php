@@ -1,4 +1,7 @@
-@php use App\Enums\ContextDocumentKind; @endphp
+@php
+    use App\Enums\ContextDocumentKind;
+    use App\Enums\UserRole;
+@endphp
 
 <x-layouts.app :title="$client->name" heading="marca">
 
@@ -159,20 +162,98 @@
             </div>
 
             <div class="bkf-card">
-                <p class="bkf-eyebrow">Usuarios</p>
+                <div class="bkf-row bkf-row--between">
+                    <p class="bkf-eyebrow">Usuarios</p>
+                    <span class="bkf-meta">{{ $client->users->count() }}</span>
+                </div>
+
+                {{-- One-time reveal. Flashed, so a refresh loses it for good. --}}
+                @if (session('temp_password'))
+                    <div class="alert alert--info" style="margin-top:var(--space-4);">
+                        <b>Contraseña temporal</b>
+                        <p style="margin-top:var(--space-1);font-size:var(--fs-2xs);">
+                            Para {{ session('temp_password_for') }}. Solo se muestra ahora.
+                        </p>
+                        <code class="temp-pass">{{ session('temp_password') }}</code>
+                        <p style="margin-top:var(--space-2);font-size:var(--fs-2xs);">
+                            Mejor que la cambie con el enlace que le enviamos.
+                        </p>
+                    </div>
+                @endif
+
                 @forelse($client->users as $user)
-                    <div class="bkf-row" style="margin-top:var(--space-3);gap:var(--space-3);">
+                    <div class="userrow">
                         <span class="user-card__avatar">{{ $user->initials() }}</span>
-                        <span>
-                            <b class="bkf-body">{{ $user->name }}</b><br>
-                            <span class="bkf-meta">{{ $user->role->label() }}</span>
+
+                        <span class="userrow__main">
+                            <b class="doc__title">{{ $user->name }}</b>
+                            <span class="doc__meta">{{ $user->email }}</span>
+                            <span class="doc__meta">
+                                {{ $user->role->label() }}
+                                @unless($user->email_verified_at)
+                                    · <span class="bkf-text-accent">sin verificar</span>
+                                @endunless
+                            </span>
+                        </span>
+
+                        <span class="userrow__actions">
+                            <form method="POST" action="{{ route('admin.clients.users.resend', [$client, $user]) }}">
+                                @csrf
+                                <button type="submit" class="bkf-btn bkf-btn--ghost bkf-btn--sm"
+                                        title="Reenviar enlace para crear contraseña">Reenviar</button>
+                            </form>
+                            <form method="POST" action="{{ route('admin.clients.users.destroy', [$client, $user]) }}"
+                                  onsubmit="return confirm('¿Quitar el acceso de {{ $user->name }}?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="bkf-btn bkf-btn--ghost bkf-btn--sm">Quitar</button>
+                            </form>
                         </span>
                     </div>
                 @empty
                     <p class="bkf-meta" style="margin-top:var(--space-3);">
-                        Nadie de esta marca tiene acceso todavía. Las invitaciones llegan en la siguiente fase.
+                        Nadie de esta marca tiene acceso todavía.
                     </p>
                 @endforelse
+
+                {{-- add user --}}
+                <details class="adduser" @if($errors->hasAny(['name','email','role'])) open @endif>
+                    <summary>+ Dar acceso a alguien</summary>
+
+                    <form method="POST" action="{{ route('admin.clients.users.store', $client) }}" novalidate>
+                        @csrf
+
+                        <div class="bkf-field">
+                            <label class="bkf-label" for="u_name">Nombre</label>
+                            <input class="bkf-input" id="u_name" name="name" type="text"
+                                   value="{{ old('name') }}" placeholder="María García" required>
+                        </div>
+
+                        <div class="bkf-field">
+                            <label class="bkf-label" for="u_email">Correo</label>
+                            <input class="bkf-input" id="u_email" name="email" type="email"
+                                   value="{{ old('email') }}" placeholder="maria@lamarca.com" required>
+                        </div>
+
+                        <div class="bkf-field">
+                            <label class="bkf-label" for="u_role">Rol</label>
+                            <select class="bkf-select" id="u_role" name="role" required>
+                                @foreach(UserRole::clientRoles() as $case)
+                                    <option value="{{ $case->value }}" @selected(old('role') === $case->value)>
+                                        {{ $case->label() }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <span class="bkf-hint">
+                                El dueño de marca verá facturación; el miembro solo el portal.
+                            </span>
+                        </div>
+
+                        <button type="submit" class="bkf-btn bkf-btn--secondary bkf-btn--block">
+                            Crear cuenta
+                        </button>
+                    </form>
+                </details>
             </div>
 
             @if($client->notes)
