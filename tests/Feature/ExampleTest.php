@@ -2,18 +2,21 @@
 
 namespace Tests\Feature;
 
-// use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
     /**
-     * A basic test example.
+     * The root URL currently forwards to the portal, which in turn bounces
+     * guests to the login screen. This changes once the marketing site
+     * (home, servicios, blog) is built.
      */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_the_root_url_sends_guests_to_the_login_screen(): void
     {
-        $response = $this->get('/');
+        $this->get('/')
+            ->assertRedirect('/portal');
 
-        $response->assertStatus(200);
+        $this->get('/portal')
+            ->assertRedirect('/login');
     }
 }

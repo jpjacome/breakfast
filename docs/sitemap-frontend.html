@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breakfast · The Brand Therapist — Sitemap Frontend</title>
+<link rel="stylesheet" href="../resources/css/general.css">
+<style>
+  /* Doc-specific styles only. Everything else comes from general.css. */
+  .doc-head {
+    background: var(--bkf-yellow);
+    padding: var(--space-9) 0 var(--space-8);
+  }
+  .doc-head .bkf-container { max-width: 1180px; }
+  .logo-mark {
+    display: inline-block;
+    background: var(--bkf-black);
+    color: var(--bkf-yellow);
+    font-weight: 900;
+    font-size: var(--fs-xl);
+    letter-spacing: -0.04em;
+    padding: 6px 14px;
+    border-radius: 6px;
+    box-shadow: 0 0 0 4px #fff;
+  }
+  .doc-body { max-width: 1180px; margin-inline: auto; padding: var(--space-8) var(--space-5) var(--space-10); }
+
+  .zone { margin-top: var(--space-8); }
+  .zone-head {
+    display: flex; align-items: baseline; gap: var(--space-3);
+    padding-bottom: var(--space-3);
+    border-bottom: 2px solid var(--bkf-black);
+    margin-bottom: var(--space-5);
+    flex-wrap: wrap;
+  }
+  .zone-num {
+    font-family: var(--font-mono);
+    font-size: var(--fs-2xs);
+    color: var(--color-text-subtle);
+  }
+
+  .tree { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .tree--wide { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+
+  .node {
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4) var(--space-5);
+    border-left: 4px solid var(--node-color, var(--bkf-gray-300));
+  }
+  .node-route {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    color: var(--bkf-gray-600);
+    display: block;
+    margin-bottom: 2px;
+  }
+  .node-name { font-weight: 700; font-size: var(--fs-base); }
+  .node-desc { font-size: var(--fs-sm); color: var(--color-text-muted); margin-top: var(--space-2); }
+
+  .kids { margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px dashed var(--color-border); }
+  .kids li {
+    font-size: var(--fs-xs);
+    color: var(--bkf-gray-600);
+    padding: 3px 0 3px var(--space-4);
+    position: relative;
+  }
+  .kids li::before {
+    content: "└";
+    position: absolute; left: 0;
+    color: var(--color-text-subtle);
+    font-family: var(--font-mono);
+  }
+  .kids code { font-family: var(--font-mono); font-size: .95em; color: var(--bkf-gray-500); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-5); }
+  .legend .bkf-badge { font-size: var(--fs-2xs); }
+
+  .callout {
+    background: #fff;
+    border: 2px solid var(--bkf-black);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5) var(--space-6);
+    margin-top: var(--space-8);
+  }
+
+  .flow {
+    display: flex; align-items: stretch; gap: var(--space-3); flex-wrap: wrap;
+    margin-top: var(--space-4);
+  }
+  .flow-step {
+    flex: 1 1 180px;
+    background: var(--bkf-gray-50);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+  }
+  .flow-step b { display: block; font-size: var(--fs-sm); margin-bottom: var(--space-1); }
+  .flow-step span { font-size: var(--fs-xs); color: var(--color-text-muted); }
+  .flow-step em {
+    font-style: normal;
+    font-family: var(--font-mono);
+    font-size: var(--fs-3xs);
+    color: var(--color-text-subtle);
+    display: block; margin-bottom: var(--space-2);
+  }
+</style>
+</head>
+<body>
+
+<header class="doc-head">
+  <div class="bkf-container">
+    <span class="logo-mark">BREAKFAST</span>
+    <h1 class="bkf-h1" style="margin-top:var(--space-6);max-width:20ch;">Sitemap Frontend</h1>
+    <p class="bkf-lead" style="color:var(--bkf-brown);max-width:60ch;margin-top:var(--space-3);">
+      The Brand Therapist — arquitectura de navegación de cara al cliente.
+      Sitio público, portal autenticado y IA Studio.
+    </p>
+  </div>
+</header>
+
+<main class="doc-body">
+
+  <div class="legend">
+    <span class="bkf-badge">Público · sin sesión</span>
+    <span class="bkf-badge bkf-badge--accent">Cliente · autenticado</span>
+    <span class="bkf-badge bkf-badge--info">IA Studio</span>
+    <span class="bkf-badge bkf-badge--warning">Suscripción / pago</span>
+    <span class="bkf-badge bkf-badge--solid">Admin BKF</span>
+    <span class="bkf-badge bkf-badge--danger">v2 · futuro</span>
+  </div>
+
+  <!-- ================================================================ -->
+  <section class="zone">
+    <div class="zone-head">
+      <span class="zone-num">01</span>
+      <h2 class="bkf-dot">público</h2>
+      <span class="bkf-badge">sin sesión</span>
+    </div>
+
+    <div class="tree">
+      <div class="node" style="--node-color:var(--bkf-yellow)">
+        <span class="node-route">/</span>
+        <span class="node-name">Home</span>
+        <p class="node-desc">Qué es Breakfast, qué es The Brand Therapist, prueba social, CTA a diagnóstico.</p>
+        <ul class="kids">
+          <li>Hero editorial + wordmark</li>
+          <li>Qué hacemos · 3 pilares</li>
+          <li>Casos / marcas</li>
+          <li>CTA → <code>/contacto</code></li>
+        </ul>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-brown)">
+        <span class="node-route">/nosotros</span>
+        <span class="node-name">Nosotros</span>
+        <p class="node-desc">Personalidad de marca en primera persona. Foto real, no stock.</p>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-green)">
+        <span class="node-route">/servicios</span>
+        <span class="node-name">Servicios</span>
+        <p class="node-desc">Estrategia de marca, identidad, acompañamiento. Las 5 etapas del proceso.</p>
+        <ul class="kids">
+          <li><code>/servicios/{slug}</code> — detalle</li>
+        </ul>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-orange)">
+        <span class="node-route">/precios</span>
+        <span class="node-name">Precios &amp; Suscripción</span>
+        <p class="node-desc">Planes del portal. MVP gratis, después suscripción mensual vía Stripe.</p>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-blue)">
+        <span class="node-route">/blog</span>
+        <span class="node-name">Blog</span>
+        <p class="node-desc">Formato lectura larga, justificado, medida angosta. El "artículo bien escrito en WSJ".</p>
+        <ul class="kids">
+          <li><code>/blog/{slug}</code> — artículo</li>
+          <li><code>/blog/categoria/{slug}</code></li>
+          <li><code>/blog/feed</code> — RSS</li>
+        </ul>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-red)">
+        <span class="node-route">/videos</span>
+        <span class="node-name">Videos</span>
+        <p class="node-desc">Embeds de YouTube de Breakfast. Grid editorial 16:9.</p>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-yellow)">
+        <span class="node-route">/podcast</span>
+        <span class="node-name">Podcast</span>
+        <p class="node-desc">Embeds de Spotify. Listado de episodios + reproductor.</p>
+        <ul class="kids">
+          <li><code>/podcast/{episodio}</code></li>
+        </ul>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-navy)">
+        <span class="node-route">/contacto</span>
+        <span class="node-name">Contacto</span>
+        <p class="node-desc">Formulario corto. Sin lenguaje marketero. Va a leads + notificación.</p>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-gray-400)">
+        <span class="node-route">/legal/*</span>
+        <span class="node-name">Legal</span>
+        <ul class="kids">
+          <li><code>/legal/terminos</code></li>
+          <li><code>/legal/privacidad</code></li>
+          <li><code>/legal/cookies</code></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="zone">
+    <div class="zone-head">
+      <span class="zone-num">02</span>
+      <h2 class="bkf-dot">acceso</h2>
+      <span class="bkf-badge">guest / invitación</span>
+    </div>
+
+    <div class="tree">
+      <div class="node" style="--node-color:var(--bkf-black)">
+        <span class="node-route">/login</span>
+        <span class="node-name">Iniciar sesión</span>
+        <p class="node-desc">Pantalla dividida: mitad amarilla con wordmark, mitad formulario.</p>
+      </div>
+      <div class="node" style="--node-color:var(--bkf-black)">
+        <span class="node-route">/registro/{token}</span>
+        <span class="node-name">Activar cuenta</span>
+        <p class="node-desc">Solo por invitación — BKF crea el cliente, el cliente activa. No hay registro abierto.</p>
+      </div>
+      <div class="node" style="--node-color:var(--bkf-black)">
+        <span class="node-route">/recuperar-clave</span>
+        <span class="node-name">Recuperar clave</span>
+        <ul class="kids">
+          <li><code>/restablecer/{token}</code></li>
+        </ul>
+      </div>
+      <div class="node" style="--node-color:var(--bkf-black)">
+        <span class="node-route">/verificar-email</span>
+        <span class="node-name">Verificación</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="zone">
+    <div class="zone-head">
+      <span class="zone-num">03</span>
+      <h2 class="bkf-dot">portal del cliente</h2>
+      <span class="bkf-badge bkf-badge--accent">auth · role:cliente</span>
+    </div>
+
+    <div class="tree tree--wide">
+      <div class="node" style="--node-color:var(--bkf-yellow)">
+        <span class="node-route">/portal</span>
+        <span class="node-name">Inicio</span>
+        <p class="node-desc">Saludo + estado del proyecto de un vistazo. Es la pantalla que define el producto.</p>
+        <ul class="kids">
+          <li>Avance del proyecto — % + etapa actual (x de 5)</li>
+          <li>Próxima reunión / taller</li>
+          <li>Próxima entrega</li>
+          <li>Actividad reciente</li>
+          <li>Accesos rápidos a IA Studio</li>
+          <li>Inspiración para hoy</li>
+        </ul>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-blue)">
+        <span class="node-route">/portal/proyecto</span>
+        <span class="node-name">Mi proyecto</span>
+        <p class="node-desc">Avance en tiempo real dividido por las 5 etapas. Timeline vertical editorial.</p>
+        <ul class="kids">
+          <li><code>/portal/proyecto/etapa/{n}</code> — detalle de etapa</li>
+          <li>Hitos, responsables, fechas</li>
+          <li>Estado: pendiente · en curso · entregado · aprobado</li>
+        </ul>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-green)">
+        <span class="node-route">/portal/estrategia</span>
+        <span class="node-name">Mi estrategia</span>
+        <p class="node-desc">La estrategia que BKF construyó. Es también el contexto que alimenta a la IA.</p>
+        <ul class="kids">
+          <li>Personalidad de marca</li>
+          <li>Tono de voz</li>
+          <li>Audiencia principal</li>
+          <li>Arquetipo</li>
+          <li>Pilares de contenido</li>
+          <li>Campaña vigente</li>
+        </ul>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-brown)">
+        <span class="node-route">/portal/entregas</span>
+        <span class="node-name">Entregas &amp; archivos</span>
+        <p class="node-desc">Informes, PDFs de estrategia, brandbooks. Subidos por BKF, descargables.</p>
+        <ul class="kids">
+          <li>Filtro por etapa / tipo</li>
+          <li>Vista previa en línea (PDF)</li>
+          <li><code>/portal/entregas/{id}/descargar</code></li>
+        </ul>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-orange)">
+        <span class="node-route">/portal/reuniones</span>
+        <span class="node-name">Reuniones &amp; talleres</span>
+        <p class="node-desc">Calendario de talleres y sesiones. Fecha, hora, link, agenda, notas posteriores.</p>
+        <ul class="kids">
+          <li><code>/portal/reuniones/{id}</code></li>
+          <li>Descarga .ics</li>
+        </ul>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-navy)">
+        <span class="node-route">/portal/brand-assets</span>
+        <span class="node-name">Brand Assets</span>
+        <p class="node-desc">Logos, paleta, tipografías, plantillas. Descarga individual o en zip.</p>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-red)">
+        <span class="node-route">/portal/cronopost</span>
+        <span class="node-name">Cronopost</span>
+        <p class="node-desc">Calendario de contenido generado por la IA. Vista mes / semana. Exporta a PDF.</p>
+        <ul class="kids">
+          <li><code>/portal/cronopost/{id}</code> — calendario guardado</li>
+          <li><code>/portal/cronopost/{id}/pdf</code></li>
+        </ul>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-blue)">
+        <span class="node-route">/portal/contenido</span>
+        <span class="node-name">Mi contenido</span>
+        <p class="node-desc">Biblioteca de todo lo generado en IA Studio. Guardado, editado, aprobado.</p>
+        <ul class="kids">
+          <li>Filtro por canal / tipo / fecha</li>
+          <li>Estados: borrador · guardado · publicado</li>
+        </ul>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-green)">
+        <span class="node-route">/portal/reportes</span>
+        <span class="node-name">Reportes</span>
+        <p class="node-desc">Informes de avance y de desempeño que sube BKF.</p>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-black)">
+        <span class="node-route">/portal/perfil</span>
+        <span class="node-name">Perfil &amp; equipo</span>
+        <ul class="kids">
+          <li>Datos de la marca</li>
+          <li>Usuarios del equipo cliente</li>
+          <li>Notificaciones</li>
+          <li>Seguridad</li>
+        </ul>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-orange)">
+        <span class="node-route">/portal/suscripcion</span>
+        <span class="node-name">Suscripción</span>
+        <span class="bkf-badge bkf-badge--warning" style="margin-left:6px">Stripe</span>
+        <p class="node-desc">Plan actual, método de pago, historial de facturas. Botón de pago / portal de Stripe.</p>
+        <ul class="kids">
+          <li><code>/portal/suscripcion/checkout</code></li>
+          <li><code>/portal/suscripcion/facturas</code></li>
+        </ul>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-yellow)">
+        <span class="node-route">/portal/ayuda</span>
+        <span class="node-name">Contacto humano</span>
+        <p class="node-desc">Botón de emergencia para hablar con alguien de BKF. <b>Con usos limitados por plan</b> — el contador es visible.</p>
+        <ul class="kids">
+          <li>Contador: 2 de 3 usos disponibles</li>
+          <li>Abre ticket + notifica al equipo</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="zone">
+    <div class="zone-head">
+      <span class="zone-num">04</span>
+      <h2 class="bkf-dot">ia studio</h2>
+      <span class="bkf-badge bkf-badge--info">el corazón del producto</span>
+    </div>
+
+    <p class="bkf-lead" style="max-width:70ch;margin-bottom:var(--space-5);">
+      Un espacio donde el cliente idea <b>en base a su estrategia</b>. No es un chat genérico:
+      es un dashboard de botones donde cada acción ya viene cargada con el contexto de la marca.
+    </p>
+
+    <div class="flow">
+      <div class="flow-step"><em>paso 1</em><b>Elige el canal</b><span>Instagram · TikTok · YouTube · LinkedIn · Facebook · Web · Email · Podcast</span></div>
+      <div class="flow-step"><em>paso 2</em><b>Elige qué necesitas</b><span>Publicación, historias, reel/guion, copy publicitario, carrusel, copy web, branded content, campaña, ideas de contenido, repurpose, email marketing, checklist de lanzamiento</span></div>
+      <div class="flow-step"><em>paso 3</em><b>La IA usa tu estrategia</b><span>Personalidad, tono, audiencia, arquetipo y campaña vigente entran como contexto automático</span></div>
+      <div class="flow-step"><em>paso 4</em><b>Recibe, edita, guarda</b><span>Resultado en streaming, editable en línea, se guarda en Mi contenido o se exporta</span></div>
+    </div>
+
+    <div class="tree tree--wide" style="margin-top:var(--space-6)">
+      <div class="node" style="--node-color:var(--bkf-yellow)">
+        <span class="node-route">/portal/ia</span>
+        <span class="node-name">IA Studio · Inicio</span>
+        <p class="node-desc">Selector de canal + grid de tipos de contenido. Panel lateral derecho: "Tu marca, nuestra guía".</p>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-red)">
+        <span class="node-route">/portal/ia/generar/{tipo}</span>
+        <span class="node-name">Generador</span>
+        <p class="node-desc">Formulario corto → salida en streaming. Regenerar, ajustar tono, acortar, alargar.</p>
+        <ul class="kids">
+          <li><code>?canal=instagram</code></li>
+          <li>Variantes A / B / C</li>
+          <li>Guardar · Copiar · Exportar</li>
+        </ul>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-orange)">
+        <span class="node-route">/portal/ia/cronopost</span>
+        <span class="node-name">Crear cronopost</span>
+        <p class="node-desc">La IA recomienda cuántas veces por semana publicar y arma el calendario del mes. Salida: PDF.</p>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-green)">
+        <span class="node-route">/portal/ia/ideas</span>
+        <span class="node-name">Ideas de contenido</span>
+        <p class="node-desc">Lote de ideas basadas en los pilares de la estrategia.</p>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-blue)">
+        <span class="node-route">/portal/ia/historial</span>
+        <span class="node-name">Historial de generaciones</span>
+        <p class="node-desc">Todo lo pedido, con su prompt y su resultado. Reutilizable.</p>
+      </div>
+
+      <div class="node" style="--node-color:var(--bkf-gray-400)">
+        <span class="node-route">/portal/ia/revisor</span>
+        <span class="node-name">Revisor de posts</span>
+        <span class="bkf-badge bkf-badge--danger" style="margin-left:6px">v2</span>
+        <p class="node-desc">Subes un post (texto o imagen) y la IA lo aprueba o te pide cambios contra tu estrategia.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="zone">
+    <div class="zone-head">
+      <span class="zone-num">05</span>
+      <h2 class="bkf-dot">admin bkf</h2>
+      <span class="bkf-badge bkf-badge--solid">role:admin · equipo</span>
+    </div>
+
+    <div class="tree">
+      <div class="node" style="--node-color:var(--bkf-black)">
+        <span class="node-route">/admin</span>
+        <span class="node-name">Panel</span>
+        <p class="node-desc">Estado de todos los clientes, entregas pendientes, uso de IA, alertas.</p>
+      </div>
+      <div class="node" style="--node-color:var(--bkf-black)">
+        <span class="node-route">/admin/clientes</span>
+        <span class="node-name">Clientes</span>
+        <ul class="kids">
+          <li><code>/admin/clientes/{id}</code></li>
+          <li><code>/admin/clientes/{id}/estrategia</code> — editar el contexto de la IA</li>
+          <li><code>/admin/clientes/{id}/etapas</code> — mover el avance</li>
+          <li><code>/admin/clientes/{id}/invitar</code></li>
+        </ul>
+      </div>
+      <div class="node" style="--node-color:var(--bkf-black)">
+        <span class="node-route">/admin/entregas</span>
+        <span class="node-name">Entregas</span>
+        <p class="node-desc">Subir PDFs, brandbooks, informes. Asignar a etapa y cliente.</p>
+      </div>
+      <div class="node" style="--node-color:var(--bkf-black)">
+        <span class="node-route">/admin/reuniones</span>
+        <span class="node-name">Reuniones</span>
+      </div>
+      <div class="node" style="--node-color:var(--bkf-black)">
+        <span class="node-route">/admin/blog</span>
+        <span class="node-name">Blog / Videos / Podcast</span>
+        <p class="node-desc">CMS ligero para las tres secciones de contenido público.</p>
+      </div>
+      <div class="node" style="--node-color:var(--bkf-black)">
+        <span class="node-route">/admin/soporte</span>
+        <span class="node-name">Tickets de emergencia</span>
+        <p class="node-desc">Bandeja de los "contacto humano" que abren los clientes.</p>
+      </div>
+      <div class="node" style="--node-color:var(--bkf-black)">
+        <span class="node-route">/admin/ia</span>
+        <span class="node-name">Uso &amp; costos de IA</span>
+        <p class="node-desc">Tokens por cliente, costo estimado, límites por plan.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <section class="zone">
+    <div class="zone-head">
+      <span class="zone-num">06</span>
+      <h2 class="bkf-dot">back-office</h2>
+      <span class="bkf-badge bkf-badge--danger">v2 · reemplaza Excel + Notion</span>
+    </div>
+
+    <div class="tree">
+      <div class="node" style="--node-color:var(--bkf-gray-400)">
+        <span class="node-route">/admin/crm</span>
+        <span class="node-name">CRM</span>
+        <p class="node-desc">Leads, pipeline, propuestas, conversión.</p>
+      </div>
+      <div class="node" style="--node-color:var(--bkf-gray-400)">
+        <span class="node-route">/admin/facturacion</span>
+        <span class="node-name">Facturación mensual</span>
+      </div>
+      <div class="node" style="--node-color:var(--bkf-gray-400)">
+        <span class="node-route">/admin/cobrar</span>
+        <span class="node-name">Clientes por cobrar</span>
+      </div>
+      <div class="node" style="--node-color:var(--bkf-gray-400)">
+        <span class="node-route">/admin/proveedores</span>
+        <span class="node-name">Proveedores por pagar</span>
+      </div>
+      <div class="node" style="--node-color:var(--bkf-gray-400)">
+        <span class="node-route">/admin/flujo-caja</span>
+        <span class="node-name">Flujo de caja</span>
+        <p class="node-desc">Entradas vs. salidas, proyección. Es lo que hoy vive en el Excel.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================ -->
+  <div class="callout">
+    <h3 class="bkf-dot bkf-dot--sm">criterio</h3>
+    <p class="bkf-body" style="margin-top:var(--space-3);max-width:72ch;">
+      El brief pide que sea <i>"tan linda y útil que sea difícil de copiar"</i>. Lo que la hace
+      difícil de copiar no son las funciones — es que cada pantalla esté construida sobre
+      <b>la estrategia real de la marca</b>. Un competidor puede clonar el grid de botones;
+      no puede clonar el contexto que Breakfast produce en los talleres.
+    </p>
+    <p class="bkf-body" style="margin-top:var(--space-4);max-width:72ch;">
+      Por eso <code style="font-family:var(--font-mono);font-size:.9em">/portal/estrategia</code>
+      no es una pantalla más: es el nodo del que cuelga todo el IA Studio.
+    </p>
+  </div>
+
+  <p class="bkf-meta" style="margin-top:var(--space-8);text-align:center;">
+    Breakfast · dirección creativa @nathalia.pinero · sitemap frontend v1
+  </p>
+
+</main>
+</body>
+</html>

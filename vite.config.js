@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
-import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
     plugins: [
@@ -9,12 +8,14 @@ export default defineConfig({
             input: ['resources/css/app.css', 'resources/js/app.js'],
             refresh: true,
             fonts: [
-                bunny('Instrument Sans', {
-                    weights: [400, 500, 600],
+                // Neo-grotesque stand-in for the brand face. Swap for a
+                // licensed Helvetica Now / ABC Diatype / Söhne when one is
+                // acquired — only --font-sans in general.css needs to change.
+                bunny('Inter', {
+                    weights: [400, 500, 700, 900],
                 }),
             ],
         }),
-        tailwindcss(),
     ],
     server: {
         watch: {

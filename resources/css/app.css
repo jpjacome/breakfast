@@ -1,9 +1,201 @@
-@import 'tailwindcss';
+/* ==========================================================================
+   Breakfast — app entry stylesheet
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
+   general.css is the ONLY design system in this project. No Tailwind, no
+   utility framework. Everything is authored against the tokens and component
+   classes defined there.
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+   Rules of engagement:
+   · Never hardcode a hex value in a component — use a var(--color-*) role.
+   · Never hardcode a px value for spacing — use var(--space-*).
+   · New shared components belong in general.css, not here.
+   · This file is for app-level glue only.
+   ========================================================================== */
+
+@import './general.css';
+
+
+/* --------------------------------------------------------------------------
+   Auth screens — split layout shared by login, forgot, reset, 2FA.
+
+   Left half: solid Breakfast yellow with the sticker wordmark and a line of
+   brand voice. Right half: the form, on off-white, generously empty.
+   Below 900px the yellow panel collapses to a slim header band.
+   -------------------------------------------------------------------------- */
+
+.auth {
+  display: grid;
+  /* minmax(0, 1fr) rather than 1fr: a bare 1fr is minmax(auto, 1fr), whose
+     auto minimum is min-content — that lets a long token in either column
+     push the track wider than the viewport. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 100vh;
+  min-height: 100dvh;
 }
+
+.auth-brand,
+.auth-panel { min-width: 0; }
+
+/* --- the yellow half --- */
+
+.auth-brand {
+  background: var(--bkf-yellow);
+  color: var(--bkf-black);
+  padding: var(--space-8) var(--space-8) var(--space-7);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.auth-brand__logo { width: 232px; max-width: 60%; }
+
+.auth-brand__say {
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--ls-tight);
+  max-width: 16ch;
+}
+
+.auth-brand__note {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-relaxed);
+  color: var(--bkf-brown);
+  max-width: 34ch;
+}
+
+.auth-brand__foot {
+  font-size: var(--fs-2xs);
+  color: var(--bkf-brown);
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.auth-brand__foot a { border-bottom: 1px solid currentColor; }
+
+/* --- the form half --- */
+
+.auth-panel {
+  background: var(--color-bg);
+  display: grid;
+  place-items: center;
+  padding: var(--space-7) var(--space-6);
+}
+
+.auth-form {
+  width: 100%;
+  max-width: 380px;
+}
+
+.auth-form__head { margin-bottom: var(--space-7); }
+
+.auth-form__title {
+  font-size: var(--fs-3xl);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tight);
+  text-transform: lowercase;
+}
+.auth-form__title::before { content: "."; }
+
+.auth-form__sub {
+  margin-top: var(--space-3);
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+  line-height: var(--lh-relaxed);
+  max-width: 38ch;
+}
+
+.auth-form__fields { display: flex; flex-direction: column; gap: var(--space-5); }
+
+/* White inputs on the off-white panel need a stronger edge than the default
+   --color-border, which is tuned for white surfaces. */
+.auth-form .bkf-input { border-color: var(--bkf-gray-300); }
+.auth-form .bkf-input:hover:not(:focus) { border-color: var(--bkf-gray-400); }
+
+.auth-form__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.auth-form__foot {
+  margin-top: var(--space-7);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border);
+  font-size: var(--fs-2xs);
+  color: var(--color-text-muted);
+  line-height: var(--lh-relaxed);
+}
+.auth-form__foot a { font-weight: var(--fw-medium); color: var(--color-text); border-bottom: 2px solid var(--bkf-yellow); }
+
+/* Remember-me checkbox — square, black, no rounded blue default */
+.auth-check { display: inline-flex; align-items: center; gap: var(--space-2); cursor: pointer; }
+.auth-check input {
+  appearance: none;
+  width: 16px; height: 16px;
+  border: 1.5px solid var(--bkf-gray-400);
+  border-radius: var(--radius-xs);
+  background: var(--color-surface);
+  display: grid; place-content: center;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.auth-check input::after {
+  content: "";
+  width: 8px; height: 8px;
+  transform: scale(0);
+  transition: transform var(--dur-fast) var(--ease-out);
+  box-shadow: inset 8px 8px var(--bkf-black);
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+.auth-check input:checked { border-color: var(--bkf-black); background: var(--bkf-yellow); }
+.auth-check input:checked::after { transform: scale(1); }
+.auth-check span { font-size: var(--fs-sm); color: var(--color-text-muted); user-select: none; }
+
+/* Link that sits inline with a label */
+.auth-link {
+  font-size: var(--fs-2xs);
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.auth-link:hover { color: var(--color-text); border-color: var(--bkf-black); }
+
+/* --- responsive: collapse the yellow half into a band --- */
+
+@media (max-width: 900px) {
+  .auth { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+  .auth-brand {
+    padding: var(--space-5) var(--space-5) var(--space-6);
+    gap: var(--space-5);
+  }
+  .auth-brand__logo { width: 180px; }
+  .auth-brand__say { font-size: var(--fs-xl); }
+  .auth-brand__note, .auth-brand__foot { display: none; }
+  .auth-panel { padding: var(--space-7) var(--space-5) var(--space-8); place-items: start center; }
+  .auth-form__title { font-size: var(--fs-2xl); }
+}
+
+
+/* --------------------------------------------------------------------------
+   Status / validation messaging
+   -------------------------------------------------------------------------- */
+
+.alert {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-normal);
+  border-left: 3px solid transparent;
+}
+.alert--success { background: var(--color-success-soft); color: var(--color-success); border-left-color: var(--color-success); }
+.alert--danger  { background: var(--color-danger-soft);  color: var(--color-danger);  border-left-color: var(--color-danger); }
+.alert--info    { background: var(--color-info-soft);    color: #2E5C78;              border-left-color: var(--color-info); }
+
+.alert ul { margin-top: var(--space-1); }
+.alert li { padding-left: var(--space-3); position: relative; }
+.alert li::before { content: "·"; position: absolute; left: 2px; }

@@ -25,3 +25,10 @@ _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Brand source files — binaries too large for git.
+# Originals live in OneDrive\Documents\Dr Pixel\Breakfast.
+*.ai
+*.psd
+*.sketch
+*.fig

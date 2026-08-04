@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breakfast · The Brand Therapist — Dev Wireframe &amp; Architecture</title>
+<link rel="stylesheet" href="../resources/css/general.css">
+<style>
+  /* ------------------------------------------------------------------
+     Wireframe doc: deliberately grayscale. The brand lives in the app,
+     not in the spec. Yellow only marks "this is the primary action".
+     ------------------------------------------------------------------ */
+  body { background: #fff; }
+
+  .doc-head {
+    border-bottom: 3px solid #000;
+    padding: var(--space-7) 0 var(--space-5);
+    background: #fff;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .doc-wrap { max-width: 1240px; margin-inline: auto; padding-inline: var(--space-5); }
+  .doc-body { max-width: 1240px; margin-inline: auto; padding: var(--space-6) var(--space-5) var(--space-10); }
+
+  .tag {
+    display: inline-block; font-family: var(--font-mono); font-size: 11px;
+    padding: 2px 7px; border: 1px solid #000; border-radius: 3px; margin-right: 4px;
+  }
+  .tag--fill { background: #000; color: #fff; }
+  .tag--y { background: var(--bkf-yellow); border-color: var(--bkf-yellow); }
+  .tag--muted { border-color: #c4c9cf; color: #6e767f; }
+
+  .toc { display: flex; flex-wrap: wrap; gap: 6px; margin-top: var(--space-4); }
+  .toc a { font-family: var(--font-mono); font-size: 12px; padding: 4px 9px; border: 1px solid #dee1e5; border-radius: 4px; }
+  .toc a:hover { border-color: #000; }
+
+  h2.sec {
+    font-size: var(--fs-2xl); font-weight: 700; letter-spacing: -.02em;
+    text-transform: lowercase; margin-top: var(--space-9); padding-bottom: var(--space-2);
+    border-bottom: 2px solid #000;
+  }
+  h2.sec::before { content: "."; }
+  h3.sub { font-size: var(--fs-lg); font-weight: 700; margin-top: var(--space-6); margin-bottom: var(--space-3); }
+  p.note { font-size: var(--fs-sm); color: #4C535A; max-width: 78ch; margin-top: var(--space-2); }
+
+  code, .m { font-family: var(--font-mono); font-size: .88em; }
+  code { background: #f2f3f5; padding: 1px 5px; border-radius: 3px; }
+
+  table.spec { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: var(--space-3); }
+  table.spec th {
+    text-align: left; font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: #6e767f; padding: 8px 10px; border-bottom: 2px solid #000; white-space: nowrap;
+  }
+  table.spec td { padding: 8px 10px; border-bottom: 1px solid #eaecee; vertical-align: top; }
+  table.spec td:first-child { font-family: var(--font-mono); font-size: 12px; white-space: nowrap; }
+  table.spec tr:hover td { background: #fafbfb; }
+  .tbl-wrap { overflow-x: auto; }
+
+  /* ---- wireframe primitives ---- */
+  .wf {
+    border: 2px solid #000; border-radius: 6px; background: #fff;
+    margin-top: var(--space-4); overflow: hidden;
+  }
+  .wf-cap {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+    background: #000; color: #fff; padding: 6px 12px;
+  }
+  .wf-body { padding: 14px; background: #f7f8f9; }
+  .wf-grid { display: grid; gap: 10px; }
+  .box {
+    border: 1px dashed #9BA2AB; background: #fff; border-radius: 4px;
+    padding: 10px 12px; min-height: 40px;
+  }
+  .box b { display: block; font-size: 12px; font-weight: 700; }
+  .box span { display: block; font-size: 11px; color: #6e767f; margin-top: 3px; line-height: 1.4; }
+  .box--solid { border-style: solid; border-color: #000; }
+  .box--fill { background: #eaecee; }
+  .box--y { border-color: var(--bkf-yellow); border-style: solid; border-width: 2px; background: #FCF4DA; }
+  .box--ghost { background: repeating-linear-gradient(45deg,#fff,#fff 6px,#f2f3f5 6px,#f2f3f5 12px); }
+  .box--tall { min-height: 90px; }
+  .box--xtall { min-height: 150px; }
+  .box.c { display: grid; place-items: center; text-align: center; }
+
+  .shell { display: grid; grid-template-columns: 180px 1fr; gap: 10px; }
+  @media (max-width: 760px) { .shell { grid-template-columns: 1fr; } }
+
+  .flowchart { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: var(--space-4); }
+  .fc {
+    border: 1px solid #000; border-radius: 4px; padding: 8px 12px; background: #fff;
+    font-size: 12px; font-family: var(--font-mono);
+  }
+  .fc--y { background: var(--bkf-yellow); }
+  .fc--muted { border-color: #c4c9cf; color: #6e767f; }
+  .arrow { font-family: var(--font-mono); color: #9BA2AB; }
+
+  pre.tree {
+    font-family: var(--font-mono); font-size: 12px; line-height: 1.65;
+    background: #f7f8f9; border: 1px solid #dee1e5; border-radius: 6px;
+    padding: 16px; overflow-x: auto; margin-top: var(--space-3);
+  }
+  pre.tree .c1 { color: #6e767f; }
+
+  .erd { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); margin-top: var(--space-4); }
+  .ent { border: 1px solid #000; border-radius: 5px; overflow: hidden; background: #fff; }
+  .ent-h { background: #000; color: #fff; font-family: var(--font-mono); font-size: 12px; padding: 6px 10px; }
+  .ent-h.y { background: var(--bkf-yellow); color: #000; }
+  .ent-h.g { background: #4C535A; }
+  .ent ul { padding: 8px 10px; }
+  .ent li { font-family: var(--font-mono); font-size: 11.5px; line-height: 1.7; color: #33383D; }
+  .ent li .k { color: #A1120F; }
+  .ent li .fk { color: #2E5C78; }
+  .ent li .t { color: #9BA2AB; }
+
+  .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
+  @media (max-width: 900px) { .cols2 { grid-template-columns: 1fr; } }
+
+  .card2 { border: 1px solid #dee1e5; border-radius: 8px; padding: var(--space-4) var(--space-5); }
+  .card2 h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+  .card2 li { font-size: 13px; line-height: 1.7; color: #33383D; padding-left: 14px; position: relative; }
+  .card2 li::before { content: "·"; position: absolute; left: 4px; color: #9BA2AB; }
+
+  .warn {
+    border-left: 4px solid var(--bkf-red); background: #FBF4F4;
+    padding: var(--space-4) var(--space-5); border-radius: 0 6px 6px 0; margin-top: var(--space-4);
+  }
+  .warn b { color: var(--bkf-red); }
+  .tip {
+    border-left: 4px solid var(--bkf-yellow); background: #FDF9EC;
+    padding: var(--space-4) var(--space-5); border-radius: 0 6px 6px 0; margin-top: var(--space-4);
+  }
+</style>
+</head>
+<body>
+
+<header class="doc-head">
+  <div class="doc-wrap">
+    <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">
+      <span class="tag tag--y" style="font-weight:700;">BREAKFAST</span>
+      <h1 style="font-size:var(--fs-xl);font-weight:700;letter-spacing:-.02em;">The Brand Therapist — Arquitectura &amp; Wireframes</h1>
+      <span class="tag tag--muted">Laravel · doc para desarrollo</span>
+    </div>
+    <nav class="toc">
+      <a href="#stack">01 stack</a>
+      <a href="#map">02 mapa de sistema</a>
+      <a href="#routes">03 rutas</a>
+      <a href="#db">04 base de datos</a>
+      <a href="#screens">05 wireframes</a>
+      <a href="#ai">06 capa IA</a>
+      <a href="#jobs">07 jobs &amp; colas</a>
+      <a href="#pay">08 pagos</a>
+      <a href="#files">09 archivos</a>
+      <a href="#authz">10 roles</a>
+      <a href="#tree">11 estructura</a>
+      <a href="#phases">12 fases</a>
+    </nav>
+  </div>
+</header>
+
+<main class="doc-body">
+
+<!-- ================================================================== -->
+<h2 class="sec" id="stack">stack</h2>
+<p class="note">
+  Elección optimizada para un equipo chico, entrega rápida y una UI muy cuidada. Todo Blade — sin
+  build de SPA, sin API duplicada, sin estado sincronizado a mano.
+</p>
+
+<div class="tbl-wrap">
+<table class="spec">
+  <thead><tr><th>Capa</th><th>Elección</th><th>Por qué</th></tr></thead>
+  <tbody>
+    <tr><td>Framework</td><td>Laravel 12 (PHP 8.3+)</td><td>Base del proyecto.</td></tr>
+    <tr><td>UI</td><td>Livewire 3 + Alpine.js + Tailwind v4</td><td>Reactividad server-side. <code>wire:stream</code> resuelve el streaming de la IA sin escribir un cliente SSE. Alternativa: Inertia + React si el equipo prefiere front JS.</td></tr>
+    <tr><td>Estilos</td><td><code>resources/css/general.css</code> + Tailwind</td><td>Los tokens de marca viven en general.css; Tailwind consume las variables CSS.</td></tr>
+    <tr><td>DB</td><td>MySQL 8 / PostgreSQL 16</td><td>Postgres si se quiere JSONB fuerte para el contexto de estrategia.</td></tr>
+    <tr><td>Cola</td><td>Redis + Laravel Horizon</td><td>Generación IA, PDFs, emails, webhooks. Nada de IA en el ciclo request.</td></tr>
+    <tr><td>Auth</td><td>Laravel Fortify + <code>spatie/laravel-permission</code></td><td>Sin registro abierto: acceso por invitación.</td></tr>
+    <tr><td>Archivos</td><td>S3 (o R2) + <code>spatie/laravel-medialibrary</code></td><td>PDFs, brandbooks, assets. URLs firmadas temporales.</td></tr>
+    <tr><td>PDF</td><td><code>spatie/laravel-pdf</code> (Browsershot)</td><td>El cronopost se renderiza desde Blade → HTML fiel a la marca → PDF. dompdf no aguanta el diseño.</td></tr>
+    <tr><td>Pagos</td><td><code>laravel/cashier-stripe</code></td><td>Suscripciones + portal de cliente + webhooks ya resueltos. Ver §08 sobre "goshop".</td></tr>
+    <tr><td>IA</td><td><code>anthropic-ai/sdk</code> (Claude, PHP oficial)</td><td>Ver §06.</td></tr>
+    <tr><td>Auditoría</td><td><code>spatie/laravel-activitylog</code></td><td>Quién movió una etapa, quién subió qué.</td></tr>
+    <tr><td>Búsqueda</td><td>Scout + DB driver</td><td>Suficiente para blog y biblioteca de contenido.</td></tr>
+    <tr><td>Testing</td><td>Pest + Laravel Dusk</td><td>Feature tests en Pest; Dusk para el flujo de IA Studio.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ================================================================== -->
+<h2 class="sec" id="map">mapa de sistema</h2>
+
+<div class="wf">
+  <div class="wf-cap">arquitectura — request a respuesta</div>
+  <div class="wf-body">
+    <div class="wf-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">
+      <div class="box box--solid"><b>Navegador</b><span>Blade + Livewire 3 + Alpine<br>Tailwind + general.css</span></div>
+      <div class="box box--solid"><b>Laravel HTTP</b><span>Routes → Middleware → Controller / Livewire Component<br>Form Requests, Policies</span></div>
+      <div class="box box--solid"><b>Capa de dominio</b><span>Services, Actions, DTOs<br>Sin lógica de negocio en controllers</span></div>
+      <div class="box box--solid"><b>Persistencia</b><span>Eloquent → MySQL/Postgres<br>Cache Redis</span></div>
+    </div>
+    <div class="wf-grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-top:10px;">
+      <div class="box box--y"><b>Cola (Redis / Horizon)</b><span>GenerateContentJob<br>BuildCronopostPdfJob<br>SendDeliverableNotification</span></div>
+      <div class="box box--fill"><b>Claude API</b><span>anthropic-ai/sdk<br>streaming + prompt caching</span></div>
+      <div class="box box--fill"><b>Stripe</b><span>Cashier · suscripciones<br>webhooks</span></div>
+      <div class="box box--fill"><b>S3 / R2</b><span>PDFs, brandbooks<br>URLs firmadas</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="flowchart">
+  <span class="fc">Cliente pide contenido</span><span class="arrow">→</span>
+  <span class="fc">Livewire component</span><span class="arrow">→</span>
+  <span class="fc">ContentGenerationService</span><span class="arrow">→</span>
+  <span class="fc">BrandContextBuilder</span><span class="arrow">→</span>
+  <span class="fc fc--y">Claude · claude-opus-5</span><span class="arrow">→</span>
+  <span class="fc">wire:stream al navegador</span><span class="arrow">→</span>
+  <span class="fc">generations (persiste)</span>
+</div>
+
+<!-- ================================================================== -->
+<h2 class="sec" id="routes">rutas</h2>
+<p class="note">
+  Tres grupos de rutas en tres archivos: <code>routes/web.php</code> (público),
+  <code>routes/portal.php</code> y <code>routes/admin.php</code>, cargados desde
+  <code>bootstrap/app.php</code>. Los nombres siguen el patrón <code>zona.recurso.acción</code>.
+</p>
+
+<h3 class="sub">Público — <span class="m">routes/web.php</span></h3>
+<div class="tbl-wrap">
+<table class="spec">
+  <thead><tr><th>Verbo</th><th>URI</th><th>Name</th><th>Acción</th><th>Middleware</th></tr></thead>
+  <tbody>
+    <tr><td>GET</td><td>/</td><td>home</td><td>HomeController@index</td><td>web</td></tr>
+    <tr><td>GET</td><td>/nosotros</td><td>about</td><td>PageController@about</td><td>web</td></tr>
+    <tr><td>GET</td><td>/servicios</td><td>services.index</td><td>ServiceController@index</td><td>web</td></tr>
+    <tr><td>GET</td><td>/servicios/{service:slug}</td><td>services.show</td><td>ServiceController@show</td><td>web</td></tr>
+    <tr><td>GET</td><td>/precios</td><td>pricing</td><td>PageController@pricing</td><td>web</td></tr>
+    <tr><td>GET</td><td>/blog</td><td>blog.index</td><td>BlogController@index</td><td>web</td></tr>
+    <tr><td>GET</td><td>/blog/{post:slug}</td><td>blog.show</td><td>BlogController@show</td><td>web</td></tr>
+    <tr><td>GET</td><td>/videos</td><td>videos.index</td><td>VideoController@index</td><td>web</td></tr>
+    <tr><td>GET</td><td>/podcast</td><td>podcast.index</td><td>PodcastController@index</td><td>web</td></tr>
+    <tr><td>GET</td><td>/podcast/{episode:slug}</td><td>podcast.show</td><td>PodcastController@show</td><td>web</td></tr>
+    <tr><td>GET|POST</td><td>/contacto</td><td>contact</td><td>ContactController</td><td>web, throttle:5,1</td></tr>
+    <tr><td>GET</td><td>/legal/{page}</td><td>legal</td><td>LegalController@show</td><td>web</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3 class="sub">Portal del cliente — <span class="m">routes/portal.php</span> · prefijo <span class="m">/portal</span></h3>
+<div class="tbl-wrap">
+<table class="spec">
+  <thead><tr><th>Verbo</th><th>URI</th><th>Name</th><th>Acción / Componente</th><th>Middleware extra</th></tr></thead>
+  <tbody>
+    <tr><td>GET</td><td>/portal</td><td>portal.home</td><td>Livewire: <code>Portal\Dashboard</code></td><td>—</td></tr>
+    <tr><td>GET</td><td>/portal/proyecto</td><td>portal.project</td><td>Livewire: <code>Portal\ProjectTimeline</code></td><td>—</td></tr>
+    <tr><td>GET</td><td>/portal/proyecto/etapa/{stage}</td><td>portal.project.stage</td><td>ProjectController@stage</td><td>can:view,stage</td></tr>
+    <tr><td>GET</td><td>/portal/estrategia</td><td>portal.strategy</td><td>StrategyController@show</td><td>—</td></tr>
+    <tr><td>GET</td><td>/portal/entregas</td><td>portal.deliverables.index</td><td>DeliverableController@index</td><td>—</td></tr>
+    <tr><td>GET</td><td>/portal/entregas/{deliverable}</td><td>portal.deliverables.show</td><td>DeliverableController@show</td><td>can:view,deliverable</td></tr>
+    <tr><td>GET</td><td>/portal/entregas/{deliverable}/descargar</td><td>portal.deliverables.download</td><td>DeliverableController@download</td><td>can:view,deliverable · signed</td></tr>
+    <tr><td>GET</td><td>/portal/reuniones</td><td>portal.meetings.index</td><td>MeetingController@index</td><td>—</td></tr>
+    <tr><td>GET</td><td>/portal/reuniones/{meeting}/ics</td><td>portal.meetings.ics</td><td>MeetingController@ics</td><td>can:view,meeting</td></tr>
+    <tr><td>GET</td><td>/portal/brand-assets</td><td>portal.assets</td><td>BrandAssetController@index</td><td>—</td></tr>
+    <tr><td>GET</td><td>/portal/cronopost</td><td>portal.cronopost.index</td><td>Livewire: <code>Portal\CronopostCalendar</code></td><td>—</td></tr>
+    <tr><td>GET</td><td>/portal/cronopost/{calendar}/pdf</td><td>portal.cronopost.pdf</td><td>CronopostController@pdf</td><td>can:view,calendar</td></tr>
+    <tr><td>GET</td><td>/portal/contenido</td><td>portal.content.index</td><td>Livewire: <code>Portal\ContentLibrary</code></td><td>—</td></tr>
+    <tr><td>PATCH</td><td>/portal/contenido/{generation}</td><td>portal.content.update</td><td>GenerationController@update</td><td>can:update,generation</td></tr>
+    <tr><td>GET</td><td>/portal/reportes</td><td>portal.reports</td><td>ReportController@index</td><td>—</td></tr>
+    <tr><td>GET|PATCH</td><td>/portal/perfil</td><td>portal.profile</td><td>ProfileController</td><td>—</td></tr>
+    <tr><td>GET</td><td>/portal/suscripcion</td><td>portal.billing</td><td>BillingController@index</td><td>—</td></tr>
+    <tr><td>POST</td><td>/portal/suscripcion/checkout</td><td>portal.billing.checkout</td><td>BillingController@checkout</td><td>—</td></tr>
+    <tr><td>GET</td><td>/portal/suscripcion/portal</td><td>portal.billing.portal</td><td>BillingController@stripePortal</td><td>—</td></tr>
+    <tr><td>GET|POST</td><td>/portal/ayuda</td><td>portal.support</td><td>SupportController</td><td>throttle:emergency</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3 class="sub">IA Studio — <span class="m">routes/portal.php</span> · prefijo <span class="m">/portal/ia</span></h3>
+<div class="tbl-wrap">
+<table class="spec">
+  <thead><tr><th>Verbo</th><th>URI</th><th>Name</th><th>Acción / Componente</th><th>Middleware extra</th></tr></thead>
+  <tbody>
+    <tr><td>GET</td><td>/portal/ia</td><td>ia.home</td><td>Livewire: <code>Ia\Studio</code></td><td>subscribed</td></tr>
+    <tr><td>GET</td><td>/portal/ia/generar/{type}</td><td>ia.generate</td><td>Livewire: <code>Ia\Generator</code></td><td>subscribed · ai.quota</td></tr>
+    <tr><td>POST</td><td>/portal/ia/generar/{type}</td><td>ia.generate.store</td><td>GenerationController@store</td><td>ai.quota · throttle:ai</td></tr>
+    <tr><td>POST</td><td>/portal/ia/generar/{generation}/regenerar</td><td>ia.regenerate</td><td>GenerationController@regenerate</td><td>ai.quota</td></tr>
+    <tr><td>GET</td><td>/portal/ia/cronopost</td><td>ia.cronopost</td><td>Livewire: <code>Ia\CronopostBuilder</code></td><td>subscribed · ai.quota</td></tr>
+    <tr><td>POST</td><td>/portal/ia/cronopost</td><td>ia.cronopost.store</td><td>CronopostController@store</td><td>ai.quota</td></tr>
+    <tr><td>GET</td><td>/portal/ia/ideas</td><td>ia.ideas</td><td>Livewire: <code>Ia\IdeaBoard</code></td><td>subscribed · ai.quota</td></tr>
+    <tr><td>GET</td><td>/portal/ia/historial</td><td>ia.history</td><td>GenerationController@index</td><td>—</td></tr>
+    <tr><td>GET|POST</td><td>/portal/ia/revisor</td><td>ia.reviewer</td><td>Livewire: <code>Ia\PostReviewer</code></td><td><span class="tag tag--muted">v2</span></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3 class="sub">Admin — <span class="m">routes/admin.php</span> · prefijo <span class="m">/admin</span> · <span class="m">role:admin|equipo</span></h3>
+<div class="tbl-wrap">
+<table class="spec">
+  <thead><tr><th>Verbo</th><th>URI</th><th>Name</th><th>Acción</th></tr></thead>
+  <tbody>
+    <tr><td>GET</td><td>/admin</td><td>admin.home</td><td>Admin\DashboardController</td></tr>
+    <tr><td>resource</td><td>/admin/clientes</td><td>admin.clients.*</td><td>Admin\ClientController</td></tr>
+    <tr><td>GET|PUT</td><td>/admin/clientes/{client}/estrategia</td><td>admin.clients.strategy</td><td>Admin\StrategyController</td></tr>
+    <tr><td>PATCH</td><td>/admin/clientes/{client}/etapas/{stage}</td><td>admin.clients.stage.update</td><td>Admin\StageController@update</td></tr>
+    <tr><td>POST</td><td>/admin/clientes/{client}/invitar</td><td>admin.clients.invite</td><td>Admin\InvitationController@store</td></tr>
+    <tr><td>resource</td><td>/admin/entregas</td><td>admin.deliverables.*</td><td>Admin\DeliverableController</td></tr>
+    <tr><td>resource</td><td>/admin/reuniones</td><td>admin.meetings.*</td><td>Admin\MeetingController</td></tr>
+    <tr><td>resource</td><td>/admin/blog</td><td>admin.posts.*</td><td>Admin\PostController</td></tr>
+    <tr><td>resource</td><td>/admin/videos</td><td>admin.videos.*</td><td>Admin\VideoController</td></tr>
+    <tr><td>resource</td><td>/admin/podcast</td><td>admin.episodes.*</td><td>Admin\EpisodeController</td></tr>
+    <tr><td>GET|PATCH</td><td>/admin/soporte</td><td>admin.support.*</td><td>Admin\SupportTicketController</td></tr>
+    <tr><td>GET</td><td>/admin/ia</td><td>admin.ai.usage</td><td>Admin\AiUsageController@index</td></tr>
+    <tr><td>—</td><td>/admin/crm · /admin/facturacion · /admin/flujo-caja</td><td>admin.backoffice.*</td><td><span class="tag tag--muted">v2 — back-office</span></td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3 class="sub">Webhooks &amp; sistema</h3>
+<div class="tbl-wrap">
+<table class="spec">
+  <thead><tr><th>Verbo</th><th>URI</th><th>Notas</th></tr></thead>
+  <tbody>
+    <tr><td>POST</td><td>/stripe/webhook</td><td>Cashier. <b>Excluir de CSRF.</b> Verificar firma.</td></tr>
+    <tr><td>GET</td><td>/up</td><td>Health check de Laravel.</td></tr>
+    <tr><td>GET</td><td>/horizon</td><td>Protegido por Gate <code>viewHorizon</code>.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ================================================================== -->
+<h2 class="sec" id="db">base de datos</h2>
+<p class="note">
+  Todo cuelga de <code>clients</code> (la marca). Un cliente tiene un proyecto activo, una estrategia
+  y N usuarios. <code>brand_strategies</code> es la tabla más importante del sistema: es el contexto
+  que se le pasa a Claude en cada generación.
+</p>
+
+<div class="erd">
+
+  <div class="ent">
+    <div class="ent-h">users</div>
+    <ul>
+      <li><span class="k">id</span> <span class="t">bigint pk</span></li>
+      <li>name <span class="t">string</span></li>
+      <li>email <span class="t">string uniq</span></li>
+      <li>password <span class="t">string null</span></li>
+      <li><span class="fk">client_id</span> <span class="t">fk null</span></li>
+      <li>email_verified_at <span class="t">ts null</span></li>
+      <li>last_login_at <span class="t">ts null</span></li>
+    </ul>
+  </div>
+
+  <div class="ent">
+    <div class="ent-h y">clients</div>
+    <ul>
+      <li><span class="k">id</span> <span class="t">bigint pk</span></li>
+      <li>name <span class="t">string</span> <span class="t">// The Coffee Club</span></li>
+      <li>slug <span class="t">string uniq</span></li>
+      <li>logo_path <span class="t">string null</span></li>
+      <li>industry <span class="t">string null</span></li>
+      <li>status <span class="t">enum</span> <span class="t">// activo|pausado|cerrado</span></li>
+      <li>onboarded_at <span class="t">ts null</span></li>
+      <li>stripe_id, pm_type, … <span class="t">// Cashier</span></li>
+    </ul>
+  </div>
+
+  <div class="ent">
+    <div class="ent-h y">brand_strategies</div>
+    <ul>
+      <li><span class="k">id</span> <span class="t">pk</span></li>
+      <li><span class="fk">client_id</span> <span class="t">fk uniq</span></li>
+      <li>personality <span class="t">text</span></li>
+      <li>tone_of_voice <span class="t">text</span></li>
+      <li>audience <span class="t">text</span></li>
+      <li>archetype <span class="t">string</span></li>
+      <li>content_pillars <span class="t">json</span></li>
+      <li>value_prop <span class="t">text</span></li>
+      <li>do_not_say <span class="t">json</span></li>
+      <li>current_campaign <span class="t">text null</span></li>
+      <li>version <span class="t">uint</span></li>
+      <li>published_at <span class="t">ts null</span></li>
+    </ul>
+  </div>
+
+  <div class="ent">
+    <div class="ent-h">projects</div>
+    <ul>
+      <li><span class="k">id</span> <span class="t">pk</span></li>
+      <li><span class="fk">client_id</span> <span class="t">fk</span></li>
+      <li>name <span class="t">string</span></li>
+      <li>starts_at / ends_at <span class="t">date</span></li>
+      <li>progress <span class="t">tinyint 0-100</span></li>
+      <li>status <span class="t">enum</span></li>
+    </ul>
+  </div>
+
+  <div class="ent">
+    <div class="ent-h">project_stages</div>
+    <ul>
+      <li><span class="k">id</span> <span class="t">pk</span></li>
+      <li><span class="fk">project_id</span> <span class="t">fk</span></li>
+      <li>order <span class="t">tinyint 1..5</span></li>
+      <li>name <span class="t">string</span></li>
+      <li>summary <span class="t">text</span></li>
+      <li>status <span class="t">enum</span> <span class="t">// pendiente|en_curso|entregado|aprobado</span></li>
+      <li>due_at / completed_at <span class="t">ts null</span></li>
+    </ul>
+  </div>
+
+  <div class="ent">
+    <div class="ent-h">deliverables</div>
+    <ul>
+      <li><span class="k">id</span> <span class="t">pk</span></li>
+      <li><span class="fk">client_id</span> <span class="fk">project_stage_id</span></li>
+      <li>title <span class="t">string</span></li>
+      <li>type <span class="t">enum</span> <span class="t">// informe|estrategia|brandbook|reporte</span></li>
+      <li>disk / path <span class="t">string</span></li>
+      <li>mime, size_bytes</li>
+      <li><span class="fk">uploaded_by</span> <span class="t">fk users</span></li>
+      <li>visible_from <span class="t">ts null</span></li>
+    </ul>
+  </div>
+
+  <div class="ent">
+    <div class="ent-h">meetings</div>
+    <ul>
+      <li><span class="k">id</span> <span class="t">pk</span></li>
+      <li><span class="fk">client_id</span> <span class="fk">project_stage_id</span></li>
+      <li>title, type <span class="t">// taller|revisión|entrega</span></li>
+      <li>starts_at <span class="t">ts</span> · duration_min</li>
+      <li>location_url <span class="t">string null</span></li>
+      <li>agenda / notes <span class="t">text null</span></li>
+    </ul>
+  </div>
+
+  <div class="ent">
+    <div class="ent-h y">generations</div>
+    <ul>
+      <li><span class="k">id</span> <span class="t">pk</span></li>
+      <li><span class="fk">client_id</span> <span class="fk">user_id</span></li>
+      <li>channel <span class="t">enum</span> <span class="t">// instagram|tiktok|…</span></li>
+      <li>type <span class="t">enum</span> <span class="t">// post|reel|copy_ad|…</span></li>
+      <li>brief <span class="t">text</span> <span class="t">// input del cliente</span></li>
+      <li>output <span class="t">longtext</span></li>
+      <li>edited_output <span class="t">longtext null</span></li>
+      <li>status <span class="t">enum</span> <span class="t">// queued|streaming|done|failed</span></li>
+      <li>model <span class="t">string</span> · strategy_version</li>
+      <li>input_tokens · output_tokens · cost_cents</li>
+      <li><span class="fk">parent_id</span> <span class="t">// regeneraciones</span></li>
+    </ul>
+  </div>
+
+  <div class="ent">
+    <div class="ent-h">content_calendars</div>
+    <ul>
+      <li><span class="k">id</span> <span class="t">pk</span></li>
+      <li><span class="fk">client_id</span></li>
+      <li>month <span class="t">date</span></li>
+      <li>cadence <span class="t">json</span> <span class="t">// x veces/semana por canal</span></li>
+      <li>pdf_path <span class="t">string null</span></li>
+      <li>generated_at <span class="t">ts</span></li>
+    </ul>
+  </div>
+
+  <div class="ent">
+    <div class="ent-h">calendar_items</div>
+    <ul>
+      <li><span class="k">id</span> <span class="t">pk</span></li>
+      <li><span class="fk">content_calendar_id</span></li>
+      <li>publish_on <span class="t">date</span> · publish_at <span class="t">time null</span></li>
+      <li>channel · format · pillar</li>
+      <li>title · brief <span class="t">text</span></li>
+      <li><span class="fk">generation_id</span> <span class="t">fk null</span></li>
+    </ul>
+  </div>
+
+  <div class="ent">
+    <div class="ent-h">support_tickets</div>
+    <ul>
+      <li><span class="k">id</span> <span class="t">pk</span></li>
+      <li><span class="fk">client_id</span> <span class="fk">user_id</span></li>
+      <li>subject · body <span class="t">text</span></li>
+      <li>urgency <span class="t">enum</span></li>
+      <li>status <span class="t">enum</span> <span class="t">// abierto|en_curso|cerrado</span></li>
+      <li>resolved_at <span class="t">ts null</span></li>
+    </ul>
+  </div>
+
+  <div class="ent">
+    <div class="ent-h g">ai_usage_logs</div>
+    <ul>
+      <li><span class="k">id</span> <span class="t">pk</span></li>
+      <li><span class="fk">client_id</span> <span class="fk">generation_id</span></li>
+      <li>model · effort</li>
+      <li>input_tokens · cache_read · cache_write</li>
+      <li>output_tokens · cost_cents</li>
+      <li>latency_ms · created_at</li>
+    </ul>
+  </div>
+
+  <div class="ent">
+    <div class="ent-h g">posts · videos · episodes</div>
+    <ul>
+      <li><span class="k">id</span> · slug <span class="t">uniq</span></li>
+      <li>title · excerpt · body <span class="t">// posts</span></li>
+      <li>youtube_id <span class="t">// videos</span></li>
+      <li>spotify_uri <span class="t">// episodes</span></li>
+      <li>cover_path · published_at</li>
+    </ul>
+  </div>
+
+  <div class="ent">
+    <div class="ent-h g">brand_assets</div>
+    <ul>
+      <li><span class="k">id</span> <span class="fk">client_id</span></li>
+      <li>category <span class="t">// logo|color|tipografia|plantilla</span></li>
+      <li>name · path · mime</li>
+    </ul>
+  </div>
+
+  <div class="ent">
+    <div class="ent-h g">invitations</div>
+    <ul>
+      <li><span class="k">id</span> <span class="fk">client_id</span></li>
+      <li>email · token <span class="t">uniq</span></li>
+      <li>role · expires_at · accepted_at</li>
+    </ul>
+  </div>
+
+  <div class="ent">
+    <div class="ent-h g">v2 · back-office</div>
+    <ul>
+      <li>leads · deals · proposals</li>
+      <li>invoices · invoice_items</li>
+      <li>vendors · vendor_bills</li>
+      <li>cash_movements</li>
+    </ul>
+  </div>
+
+</div>
+
+<div class="tip">
+  <b>Decisión clave:</b> guardar <code>strategy_version</code> en cada <code>generation</code>.
+  Cuando BKF actualiza la estrategia de una marca, el historial no se corrompe — se puede
+  ver con qué versión del contexto se generó cada pieza.
+</div>
+
+<!-- ================================================================== -->
+<h2 class="sec" id="screens">wireframes</h2>
+<p class="note">
+  Estructura, no diseño. Los rellenos y colores reales salen de <code>general.css</code>.
+  Las cajas amarillas marcan dónde el amarillo de marca está permitido: acción principal,
+  estado activo, métrica clave. En ningún otro lado.
+</p>
+
+<!-- ---- WF 1: shell ---- -->
+<div class="wf">
+  <div class="wf-cap">wf-01 · shell del portal — todas las pantallas autenticadas</div>
+  <div class="wf-body">
+    <div class="shell">
+      <div class="wf-grid">
+        <div class="box box--solid"><b>Logo BKF</b><span>SVG wordmark</span></div>
+        <div class="box"><b>Selector de proyecto</b><span>dropdown si el cliente tiene &gt;1</span></div>
+        <div class="box box--y"><b>Inicio</b><span>estado activo</span></div>
+        <div class="box"><b>Mi proyecto</b></div>
+        <div class="box"><b>Mi estrategia</b></div>
+        <div class="box"><b>Entregas</b></div>
+        <div class="box"><b>Reuniones</b></div>
+        <div class="box"><b>Cronopost</b></div>
+        <div class="box"><b>Mi contenido</b></div>
+        <div class="box"><b>Brand Assets</b></div>
+        <div class="box"><b>Reportes</b></div>
+        <div class="box box--solid"><b>IA Studio</b><span>badge "Nuevo"</span></div>
+        <div class="box box--ghost c" style="min-height:24px"><span>— espacio —</span></div>
+        <div class="box box--fill"><b>¿Necesitas ayuda?</b><span>Contacto humano · 2 de 3 usos</span></div>
+        <div class="box"><b>Avatar + nombre</b><span>menú perfil / salir</span></div>
+      </div>
+      <div class="wf-grid">
+        <div class="box box--solid" style="display:flex;justify-content:space-between;align-items:center;">
+          <span><b>Topbar</b><span>título de sección · breadcrumb</span></span>
+          <span style="font-size:11px;color:#6e767f;">🔔 notificaciones · [ Ver estrategia → ]</span>
+        </div>
+        <div class="box box--xtall box--ghost c"><span><b>ÁREA DE CONTENIDO</b><br>max-width 1280 · padding generoso<br>el vacío es intencional</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ---- WF 2: dashboard ---- -->
+<div class="wf">
+  <div class="wf-cap">wf-02 · /portal — Inicio</div>
+  <div class="wf-body">
+    <div class="wf-grid">
+      <div class="box box--solid"><b>¡Hola, María! 👋</b><span>Todo listo para crear contenido alineado a tu marca.  ·  [ Ver estrategia de marca → ]</span></div>
+
+      <div class="wf-grid" style="grid-template-columns:1.2fr 1fr 1fr 1.2fr;">
+        <div class="box box--y box--tall"><b>AVANCE DEL PROYECTO</b><span style="font-size:26px;font-weight:700;color:#000;margin-top:6px">82%</span><span>barra de progreso · ¡Vas por buen camino!</span></div>
+        <div class="box box--tall"><b>FASE ACTUAL</b><span>Creación de contenido<br><span style="border:1px solid #000;padding:1px 5px;border-radius:8px;font-size:10px">3 de 5</span><br>Siguiente entrega: 15 ago</span></div>
+        <div class="box box--tall"><b>PRÓXIMA REUNIÓN</b><span>15 de agosto · 10:00<br>[ Ver agenda → ]</span></div>
+        <div class="box box--tall"><b>ACTIVIDAD RECIENTE</b><span>■ Reel: 5 tips de café — 9:41<br>■ Cronopost de julio — Aprobado<br>■ Copy nueva web — Aprobado</span></div>
+      </div>
+
+      <div class="box box--solid"><b>¿Qué quieres crear hoy?</b><span>Elige dónde vas a publicar primero</span></div>
+      <div class="wf-grid" style="grid-template-columns:repeat(8,1fr);">
+        <div class="box c"><span>Instagram</span></div>
+        <div class="box c"><span>Facebook</span></div>
+        <div class="box c"><span>TikTok</span></div>
+        <div class="box c"><span>YouTube</span></div>
+        <div class="box c"><span>LinkedIn</span></div>
+        <div class="box c"><span>Sitio Web</span></div>
+        <div class="box c"><span>Email</span></div>
+        <div class="box c"><span>Podcast</span></div>
+      </div>
+
+      <div class="wf-grid" style="grid-template-columns:repeat(4,1fr);">
+        <div class="box"><b>Publicación</b><span>Copy para atraer y posicionar</span></div>
+        <div class="box"><b>Historias</b><span>Ideas y guion para stories</span></div>
+        <div class="box"><b>Reel / Guion</b><span>Guiones listos para grabar</span></div>
+        <div class="box"><b>Copy publicitario</b><span>Textos persuasivos para ads</span></div>
+        <div class="box"><b>Carrusel</b><span>Contenido en varias diapositivas</span></div>
+        <div class="box"><b>Copy para web</b><span>Textos que convierten</span></div>
+        <div class="box"><b>Branded content</b><span>Collabs, podcasts, YouTube</span></div>
+        <div class="box box--y"><b>Crea mi cronopost</b><span>Plan mensual → PDF · NUEVO</span></div>
+      </div>
+
+      <div class="box box--fill"><b>Inspiración para hoy ✨</b><span>Carrusel horizontal · 4 tarjetas con foto real (no stock) + título · [ Ver más ideas → ]</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ---- WF 3: generator ---- -->
+<div class="wf">
+  <div class="wf-cap">wf-03 · /portal/ia/generar/{type} — Generador (streaming)</div>
+  <div class="wf-body">
+    <div class="wf-grid" style="grid-template-columns:1.4fr 1fr;">
+      <div class="wf-grid">
+        <div class="box box--solid"><b>← Reel / Guion · Instagram</b><span>breadcrumb + canal seleccionado</span></div>
+        <div class="box box--tall"><b>Brief</b><span>textarea · "¿De qué quieres hablar?" · máx 500 car.<br>Chips opcionales: pilar de contenido · objetivo · duración</span></div>
+        <div class="box box--y c"><b>Generar</b><span>disabled mientras streaming · muestra tokens restantes del plan</span></div>
+        <div class="box box--xtall"><b>Salida (wire:stream)</b><span>Texto apareciendo token a token.<br>Skeleton mientras la cola arranca.<br>Al terminar: barra de acciones →</span></div>
+        <div class="wf-grid" style="grid-template-columns:repeat(5,1fr);">
+          <div class="box c"><span>Copiar</span></div>
+          <div class="box c"><span>Guardar</span></div>
+          <div class="box c"><span>Regenerar</span></div>
+          <div class="box c"><span>Ajustar tono</span></div>
+          <div class="box c"><span>Al cronopost</span></div>
+        </div>
+      </div>
+      <div class="wf-grid">
+        <div class="box box--solid"><b>Tu marca, nuestra guía</b><span>Cada recomendación está basada en tu estrategia. Panel de solo lectura.</span></div>
+        <div class="box"><b>Personalidad de marca</b><span>Cercana · Inspiradora · Confiable</span></div>
+        <div class="box"><b>Tono de voz</b><span>Conversacional · Claro · Positivo</span></div>
+        <div class="box"><b>Audiencia principal</b><span>Mujeres 25-40 · Emprendedoras</span></div>
+        <div class="box"><b>Arquetipo</b><span>Cuidadora</span></div>
+        <div class="box"><b>Campaña actual</b><span>Lanzamiento Colección Verano 2026</span></div>
+        <div class="box box--fill c"><span>[ Ver estrategia completa → ]</span></div>
+        <div class="box box--ghost c" style="min-height:60px"><span>— vacío intencional —</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ---- WF 4: timeline ---- -->
+<div class="wf">
+  <div class="wf-cap">wf-04 · /portal/proyecto — Timeline de etapas</div>
+  <div class="wf-body">
+    <div class="wf-grid">
+      <div class="box box--solid"><b>.mi proyecto</b><span>Rebranding The Coffee Club · iniciado 3 mar 2026</span></div>
+      <div class="wf-grid" style="grid-template-columns:repeat(5,1fr);">
+        <div class="box c box--fill"><b>1 Descubrimiento</b><span>✓ aprobado</span></div>
+        <div class="box c box--fill"><b>2 Estrategia</b><span>✓ aprobado</span></div>
+        <div class="box c box--y"><b>3 Identidad</b><span>en curso</span></div>
+        <div class="box c box--ghost"><b>4 Activación</b><span>pendiente</span></div>
+        <div class="box c box--ghost"><b>5 Acompañamiento</b><span>pendiente</span></div>
+      </div>
+      <div class="box box--tall"><b>Etapa 3 · Identidad</b><span>Descripción · responsable BKF · fecha objetivo<br>Hitos con checkbox de estado<br>Entregables asociados (link a /portal/entregas)<br>Reuniones asociadas (link a /portal/reuniones)</span></div>
+      <div class="box box--ghost c"><span>Etapas colapsadas — expandibles</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ---- WF 5: cronopost ---- -->
+<div class="wf">
+  <div class="wf-cap">wf-05 · /portal/cronopost — Calendario + export PDF</div>
+  <div class="wf-body">
+    <div class="wf-grid">
+      <div class="box box--solid" style="display:flex;justify-content:space-between;">
+        <span><b>.cronopost</b><span>Agosto 2026 · 3 publicaciones/semana recomendadas</span></span>
+        <span style="font-size:11px;">[ ← mes ] [ mes → ]  ·  <b style="background:var(--bkf-yellow);padding:2px 8px;border-radius:4px">Descargar PDF</b></span>
+      </div>
+      <div class="wf-grid" style="grid-template-columns:repeat(7,1fr);">
+        <div class="box c" style="min-height:26px"><span>L</span></div><div class="box c" style="min-height:26px"><span>M</span></div>
+        <div class="box c" style="min-height:26px"><span>X</span></div><div class="box c" style="min-height:26px"><span>J</span></div>
+        <div class="box c" style="min-height:26px"><span>V</span></div><div class="box c" style="min-height:26px"><span>S</span></div>
+        <div class="box c" style="min-height:26px"><span>D</span></div>
+      </div>
+      <div class="wf-grid" style="grid-template-columns:repeat(7,1fr);">
+        <div class="box box--tall"><span>1<br>— IG post<br>pilar: educar</span></div>
+        <div class="box box--tall"><span>2</span></div>
+        <div class="box box--tall"><span>3<br>— Reel<br>pilar: mostrar</span></div>
+        <div class="box box--tall"><span>4</span></div>
+        <div class="box box--tall"><span>5<br>— Stories</span></div>
+        <div class="box box--tall box--ghost"><span>6</span></div>
+        <div class="box box--tall box--ghost"><span>7</span></div>
+      </div>
+      <div class="box box--fill"><b>Detalle del item (drawer)</b><span>Canal · formato · pilar · brief · [ Generar este contenido con IA → ] enlaza a /portal/ia/generar</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ---- WF 6: admin ---- -->
+<div class="wf">
+  <div class="wf-cap">wf-06 · /admin/clientes/{id} — Ficha de cliente (lado BKF)</div>
+  <div class="wf-body">
+    <div class="wf-grid">
+      <div class="box box--solid"><b>The Coffee Club</b><span>activo · plan Pro · 3 usuarios · desde mar 2026</span></div>
+      <div class="wf-grid" style="grid-template-columns:repeat(5,1fr);">
+        <div class="box c"><span>Resumen</span></div><div class="box c box--fill"><span>Estrategia</span></div>
+        <div class="box c"><span>Etapas</span></div><div class="box c"><span>Entregas</span></div><div class="box c"><span>Uso IA</span></div>
+      </div>
+      <div class="box box--xtall"><b>Editor de estrategia</b><span>Formulario largo — personalidad, tono, audiencia, arquetipo, pilares, qué NO decir, campaña vigente.<br>Guardar crea una nueva <code>version</code>; no sobrescribe.<br>Preview: "así verá el cliente su panel de contexto"</span></div>
+      <div class="box box--y c"><b>Publicar versión</b><span>Solo al publicar entra al contexto de la IA</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================== -->
+<h2 class="sec" id="ai">capa ia</h2>
+
+<h3 class="sub">SDK y modelo</h3>
+<div class="tbl-wrap">
+<table class="spec">
+  <thead><tr><th>Ítem</th><th>Valor</th><th>Notas</th></tr></thead>
+  <tbody>
+    <tr><td>Paquete</td><td><code>composer require "anthropic-ai/sdk"</code></td><td>SDK oficial de Anthropic para PHP.</td></tr>
+    <tr><td>Modelo por defecto</td><td><code>claude-opus-5</code></td><td>1M contexto · 128K salida. Es el modelo actual recomendado.</td></tr>
+    <tr><td>Precio</td><td><b>$5 / MTok entrada · $25 / MTok salida</b></td><td>Con prompt caching, la lectura de caché cuesta ~0.1× de la entrada.</td></tr>
+    <tr><td>Alternativa más barata</td><td><code>claude-sonnet-5</code> — $3 / $15 por MTok</td><td>Decisión de negocio, no técnica. Vale medir calidad en las piezas reales antes de bajar.</td></tr>
+    <tr><td>Tareas triviales</td><td><code>claude-haiku-4-5</code> — $1 / $5 por MTok</td><td>Solo para clasificación / etiquetado interno, no para copy de cara al cliente.</td></tr>
+    <tr><td>Thinking</td><td>Encendido por defecto en Opus 5</td><td><code>max_tokens</code> limita <i>thinking + respuesta</i>. Dimensionar con holgura.</td></tr>
+    <tr><td>Effort</td><td><code>output_config: ['effort' =&gt; 'high']</code></td><td>Empezar en <code>high</code> y barrer hacia abajo — en Opus 5, <code>low</code>/<code>medium</code> rinden muy bien y son la palanca real de costo.</td></tr>
+    <tr><td>Streaming</td><td><code>$client-&gt;messages-&gt;createStream(...)</code></td><td>Obligatorio: <code>max_tokens</code> alto sin streaming se cae por timeout HTTP.</td></tr>
+    <tr><td>Salida estructurada</td><td><code>outputConfig: ['format' =&gt; [...]]</code></td><td>Para el cronopost, que debe volver como JSON parseable. <b>No usar prefill</b> — devuelve 400.</td></tr>
+    <tr><td>Prompt caching</td><td><code>cacheControl: ['type' =&gt; 'ephemeral']</code></td><td>El contexto de marca es idéntico entre peticiones del mismo cliente → cachearlo. Mínimo 512 tokens en Opus 5.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="warn">
+  <b>Reglas duras del API</b> — romperlas devuelve 400, no un warning:
+  <ul style="margin-top:8px;font-size:13px;line-height:1.8;">
+    <li>· <code>temperature</code>, <code>top_p</code>, <code>top_k</code> <b>no se aceptan</b> en Opus 5. Se dirige con prompt, no con sampling.</li>
+    <li>· <code>budget_tokens</code> fue eliminado. Se usa <code>effort</code>.</li>
+    <li>· <b>Nada de prefill</b> (último turno <code>assistant</code>) para forzar JSON — usar salida estructurada.</li>
+    <li>· Revisar <code>stop_reason === 'refusal'</code> <b>antes</b> de leer <code>content[0]</code>, o el código revienta cuando un clasificador rechaza.</li>
+  </ul>
+</div>
+
+<h3 class="sub">Anatomía del prompt</h3>
+<div class="wf">
+  <div class="wf-cap">construcción del request — BrandContextBuilder</div>
+  <div class="wf-body">
+    <div class="wf-grid">
+      <div class="box box--solid"><b>1 · system (cacheado)</b><span>Identidad de Breakfast + los do's/don'ts de la marca, literales del deck.<br>"Habla desde la experiencia y el análisis. Nada de lenguaje marketero vacío, exceso de emojis, ni frases motivacionales genéricas. No expliques todo como si el usuario no entendiera. Estética limpia y editorial."<br><b>Estable → <code>cache_control: ephemeral</code></b></span></div>
+      <div class="box box--y"><b>2 · contexto de marca (cacheado)</b><span>brand_strategies del cliente serializado: personalidad, tono, audiencia, arquetipo, pilares, qué NO decir, campaña vigente. Idéntico entre peticiones del mismo cliente → segundo breakpoint de caché aquí.</span></div>
+      <div class="box"><b>3 · plantilla del tipo de contenido</b><span>Instrucciones específicas por canal + formato. Reel de IG ≠ copy web. Vive en <code>config/ai/templates/*.php</code>, versionada en git.</span></div>
+      <div class="box"><b>4 · brief del usuario (volátil)</b><span>Va al final, después del último breakpoint de caché. Es lo único que cambia entre peticiones.</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="flowchart">
+  <span class="fc fc--muted">system BKF</span><span class="arrow">+</span>
+  <span class="fc fc--muted">contexto marca</span><span class="arrow">↤ cache breakpoint</span>
+  <span class="fc">plantilla</span><span class="arrow">+</span>
+  <span class="fc">brief</span><span class="arrow">→</span>
+  <span class="fc fc--y">Claude</span>
+</div>
+
+<h3 class="sub">Clases</h3>
+<div class="cols2">
+  <div class="card2">
+    <h4>app/Services/Ai/</h4>
+    <ul>
+      <li><code>ClaudeClient.php</code> — wrapper del SDK, timeouts, reintentos, manejo de <code>refusal</code></li>
+      <li><code>BrandContextBuilder.php</code> — arma bloques 1 y 2, aplica cacheControl</li>
+      <li><code>ContentGenerationService.php</code> — orquesta generar / regenerar / ajustar tono</li>
+      <li><code>CronopostService.php</code> — salida estructurada → <code>calendar_items</code></li>
+      <li><code>PostReviewService.php</code> <span style="color:#9BA2AB">v2</span></li>
+      <li><code>UsageRecorder.php</code> — escribe <code>ai_usage_logs</code> desde <code>usage</code></li>
+    </ul>
+  </div>
+  <div class="card2">
+    <h4>Control de costo</h4>
+    <ul>
+      <li>Middleware <code>ai.quota</code> — corta antes de llamar al API</li>
+      <li>Cuota por plan en <code>config/plans.php</code> (generaciones/mes)</li>
+      <li><code>throttle:ai</code> — 10 por minuto por usuario</li>
+      <li>Verificar <code>usage.cache_read_input_tokens</code> &gt; 0; si es 0 en peticiones repetidas, algo está invalidando el caché</li>
+      <li>Alerta a Slack si el costo de un cliente supera el umbral del mes</li>
+      <li>Dashboard <code>/admin/ia</code> con costo por cliente</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================================================================== -->
+<h2 class="sec" id="jobs">jobs &amp; colas</h2>
+<div class="tbl-wrap">
+<table class="spec">
+  <thead><tr><th>Job</th><th>Cola</th><th>Disparador</th><th>Qué hace</th></tr></thead>
+  <tbody>
+    <tr><td>GenerateContentJob</td><td>ai</td><td>POST /portal/ia/generar</td><td>Llama a Claude en streaming, emite eventos a Livewire, persiste <code>generations</code> + <code>ai_usage_logs</code>.</td></tr>
+    <tr><td>BuildCronopostJob</td><td>ai</td><td>POST /portal/ia/cronopost</td><td>Salida estructurada → crea <code>content_calendars</code> + <code>calendar_items</code>.</td></tr>
+    <tr><td>RenderCronopostPdfJob</td><td>pdf</td><td>Tras BuildCronopostJob</td><td>Blade → Browsershot → S3. Notifica cuando está listo.</td></tr>
+    <tr><td>NotifyDeliverableUploaded</td><td>default</td><td>Admin sube entrega</td><td>Email + notificación in-app al cliente.</td></tr>
+    <tr><td>NotifyStageAdvanced</td><td>default</td><td>Admin mueve etapa</td><td>Email "tu proyecto avanzó a Identidad".</td></tr>
+    <tr><td>SendMeetingReminder</td><td>default</td><td>Scheduler · 24h antes</td><td>Recordatorio de taller.</td></tr>
+    <tr><td>ProcessStripeWebhook</td><td>payments</td><td>Webhook Stripe</td><td>Cashier. Actualiza estado de suscripción.</td></tr>
+    <tr><td>EscalateSupportTicket</td><td>high</td><td>Cliente usa contacto de emergencia</td><td>Notificación inmediata al equipo BKF (email + Slack).</td></tr>
+    <tr><td>AggregateAiCostsCommand</td><td>scheduler</td><td>Diario 03:00</td><td>Consolida costos, dispara alerta si supera umbral.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="tip">
+  Horizon con supervisores separados: <code>ai</code> con pocos procesos y timeout alto (una generación
+  puede tardar minutos con effort alto), <code>default</code> con muchos procesos y timeout corto.
+  Nunca compartir cola entre ambos.
+</div>
+
+<!-- ================================================================== -->
+<h2 class="sec" id="pay">pagos</h2>
+<p class="note">
+  El brief menciona una app propia llamada <b>goshop</b> que ya acepta pagos vía Stripe.
+  Recomendación: integrar <b>Stripe directo con Laravel Cashier</b>, no a través de goshop.
+</p>
+<div class="cols2">
+  <div class="card2">
+    <h4>Por qué Cashier directo</h4>
+    <ul>
+      <li>Suscripciones recurrentes, prorrateos, reintentos de cobro y dunning ya resueltos</li>
+      <li>Portal de facturación de Stripe: el cliente cambia tarjeta sin que BKF escriba UI</li>
+      <li>Webhooks firmados y verificados por el paquete</li>
+      <li>Estado de suscripción consultable con <code>$client-&gt;subscribed('portal')</code> → middleware directo</li>
+      <li>Un intermediario más es un punto más de fallo para el cobro automático</li>
+    </ul>
+  </div>
+  <div class="card2">
+    <h4>Dónde sí usar goshop</h4>
+    <ul>
+      <li>Si la cuenta de Stripe ya vive dentro de goshop y no se puede separar, se reutiliza esa cuenta — pero conectando Cashier a ella, no llamando a goshop</li>
+      <li>Cobros puntuales fuera de suscripción (talleres sueltos, extras)</li>
+      <li>Vale confirmar con el cliente antes de decidir: es la única pieza del brief donde falta información técnica</li>
+    </ul>
+  </div>
+</div>
+
+<div class="flowchart">
+  <span class="fc">MVP: sin cobro</span><span class="arrow">→</span>
+  <span class="fc">plan free forzado</span><span class="arrow">→</span>
+  <span class="fc">al salir de MVP: Checkout</span><span class="arrow">→</span>
+  <span class="fc">webhook</span><span class="arrow">→</span>
+  <span class="fc fc--y">middleware <code>subscribed</code></span>
+</div>
+<p class="note">
+  Construir el modelo de suscripción <b>desde el día 1</b> aunque no se cobre: el plan free es una fila
+  en <code>plans</code>, no un <code>if</code> desperdigado por el código. Cuando llegue el momento de cobrar,
+  solo se cambia el precio.
+</p>
+
+<!-- ================================================================== -->
+<h2 class="sec" id="files">archivos</h2>
+<div class="tbl-wrap">
+<table class="spec">
+  <thead><tr><th>Tipo</th><th>Disco</th><th>Acceso</th><th>Notas</th></tr></thead>
+  <tbody>
+    <tr><td>Entregas / brandbooks</td><td>s3 (private)</td><td>URL firmada · 5 min</td><td>Nunca URL pública. Autorizado por Policy.</td></tr>
+    <tr><td>Brand assets</td><td>s3 (private)</td><td>URL firmada + zip on-demand</td><td>Zip generado en cola si &gt;20 MB.</td></tr>
+    <tr><td>PDFs de cronopost</td><td>s3 (private)</td><td>URL firmada</td><td>Regenerable — no es fuente de verdad.</td></tr>
+    <tr><td>Imágenes de blog / covers</td><td>s3 (public)</td><td>CDN</td><td>Contenido de marketing.</td></tr>
+    <tr><td>Logo del cliente</td><td>s3 (public)</td><td>CDN</td><td>Se muestra en el portal.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ================================================================== -->
+<h2 class="sec" id="authz">roles &amp; autorización</h2>
+<div class="cols2">
+  <div class="card2">
+    <h4>Roles (spatie/laravel-permission)</h4>
+    <ul>
+      <li><code>admin</code> — BKF, todo</li>
+      <li><code>equipo</code> — BKF, sin back-office financiero</li>
+      <li><code>cliente_owner</code> — dueño de la marca: factura, invita usuarios</li>
+      <li><code>cliente_miembro</code> — usa el portal y el IA Studio, no ve facturación</li>
+    </ul>
+  </div>
+  <div class="card2">
+    <h4>Reglas no negociables</h4>
+    <ul>
+      <li>Global scope por <code>client_id</code> en todo modelo del portal</li>
+      <li>Policy en cada recurso, no solo middleware de ruta</li>
+      <li>Descargas siempre por controller con <code>can:view</code>, nunca link directo a S3</li>
+      <li>El contexto de marca que va a Claude se resuelve del usuario autenticado, <b>nunca de un parámetro del request</b></li>
+      <li>Test de fuga: un cliente no puede leer datos de otro ni por ID directo</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ================================================================== -->
+<h2 class="sec" id="tree">estructura de carpetas</h2>
+<pre class="tree">
+app/
+├── Http/
+│   ├── Controllers/
+│   │   ├── Public/        <span class="c1">HomeController, BlogController, PodcastController…</span>
+│   │   ├── Portal/        <span class="c1">DeliverableController, MeetingController, BillingController…</span>
+│   │   ├── Ia/            <span class="c1">GenerationController, CronopostController</span>
+│   │   └── Admin/         <span class="c1">ClientController, StrategyController, StageController…</span>
+│   ├── Middleware/
+│   │   ├── EnsureClientContext.php    <span class="c1">// resuelve el client_id activo</span>
+│   │   ├── EnsureAiQuota.php          <span class="c1">// corta antes de llamar al API</span>
+│   │   └── EnsureSubscribed.php
+│   └── Requests/          <span class="c1">// validación fuera de los controllers</span>
+├── Livewire/
+│   ├── Portal/            <span class="c1">Dashboard, ProjectTimeline, ContentLibrary, CronopostCalendar</span>
+│   └── Ia/                <span class="c1">Studio, Generator, CronopostBuilder, IdeaBoard, PostReviewer</span>
+├── Models/                <span class="c1">Client, BrandStrategy, Project, ProjectStage, Deliverable,</span>
+│                          <span class="c1">Meeting, Generation, ContentCalendar, CalendarItem, SupportTicket…</span>
+├── Policies/
+├── Services/
+│   ├── Ai/                <span class="c1">ClaudeClient, BrandContextBuilder, ContentGenerationService,</span>
+│   │                      <span class="c1">CronopostService, UsageRecorder</span>
+│   ├── Projects/          <span class="c1">StageProgressCalculator</span>
+│   └── Billing/
+├── Jobs/
+├── Notifications/
+└── Enums/                 <span class="c1">Channel, ContentType, StageStatus, GenerationStatus</span>
+
+config/
+├── ai.php                 <span class="c1">// modelo, effort, límites, precios por MTok</span>
+├── plans.php              <span class="c1">// cuotas de IA y de contacto humano por plan</span>
+└── ai/templates/          <span class="c1">// una plantilla por tipo de contenido, versionada en git</span>
+
+resources/
+├── css/general.css        <span class="c1">// ← tokens de marca Breakfast</span>
+├── views/
+│   ├── layouts/           <span class="c1">public.blade.php · portal.blade.php · admin.blade.php</span>
+│   ├── public/
+│   ├── portal/
+│   ├── ia/
+│   ├── admin/
+│   ├── pdf/               <span class="c1">// cronopost.blade.php → Browsershot</span>
+│   └── components/        <span class="c1">// Blade components mapeados 1:1 a general.css</span>
+└── js/
+
+routes/
+├── web.php · portal.php · admin.php · console.php
+
+docs/
+├── sitemap-frontend.html  <span class="c1">// mapa de navegación de cara al cliente</span>
+└── sitemap-dev.html       <span class="c1">// este documento</span>
+</pre>
+
+<!-- ================================================================== -->
+<h2 class="sec" id="phases">fases de entrega</h2>
+<div class="tbl-wrap">
+<table class="spec">
+  <thead><tr><th>Fase</th><th>Alcance</th><th>Qué desbloquea</th></tr></thead>
+  <tbody>
+    <tr><td>F0 · Base</td><td>Laravel + Livewire + Tailwind + general.css. Auth por invitación. Roles. Shell del portal. Deploy + CI.</td><td>Se puede entrar y navegar. La marca ya se ve.</td></tr>
+    <tr><td>F1 · Portal</td><td>Clientes, proyecto, 5 etapas, entregas, reuniones, brand assets, admin para cargarlo todo.</td><td><b>Es el entregable que el cliente puede empezar a usar de verdad.</b></td></tr>
+    <tr><td>F2 · Estrategia</td><td><code>brand_strategies</code> + editor admin + panel de solo lectura del cliente.</td><td>Sin esto el IA Studio no tiene contexto. Es prerequisito duro.</td></tr>
+    <tr><td>F3 · IA Studio</td><td>Claude, streaming, historial, biblioteca de contenido, cuotas, log de uso.</td><td>El diferenciador del producto.</td></tr>
+    <tr><td>F4 · Cronopost</td><td>Salida estructurada, calendario, export PDF.</td><td>El entregable tangible que el cliente descarga y comparte.</td></tr>
+    <tr><td>F5 · Contenido público</td><td>Blog, videos, podcast, home, servicios.</td><td>Marketing y SEO.</td></tr>
+    <tr><td>F6 · Monetización</td><td>Cashier, planes, checkout, portal de facturación, webhooks.</td><td>Fin del MVP gratis.</td></tr>
+    <tr><td>F7 · v2</td><td>Revisor de posts + back-office (CRM, facturación, cobros, proveedores, flujo de caja).</td><td>Reemplaza Excel y Notion.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="warn">
+  <b>Orden que importa:</b> F2 antes de F3. Construir el IA Studio antes que el modelo de estrategia
+  produce un chat genérico con el logo de Breakfast — exactamente lo que el brief dice que NO debe ser.
+  El contexto de marca no es una feature del IA Studio; es su razón de existir.
+</div>
+
+<p class="bkf-meta" style="margin-top:var(--space-9);text-align:center;">
+  Breakfast · The Brand Therapist · documento de arquitectura v1 ·
+  paleta y dirección creativa: @nathalia.pinero
+</p>
+
+</main>
+</body>
+</html>
