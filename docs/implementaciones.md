@@ -51,6 +51,21 @@ Deploys are **FTP uploads of changed files**, migrations run **by hand in the
 cPanel terminal**, and there is no staging (CLAUDE.md §3). This is the whole
 list for everything below, in the order it must happen.
 
+⚠️ **Everything above the 2026-09-15 line already shipped.** The three
+migrations in step 3 are LIVE in production. What is still pending, as of the
+close of 2026-09-15, is only this:
+
+| pending | what it needs |
+|---|---|
+| **The Brand Egg back end** (§1) | one migration, `npm run build`, one new CSS entry |
+| **Multimarca step 10** (§2b) | one migration, **on its own pass** |
+| `AI_TIMEOUT=90` | upload `portal/tests/.env`, which IS production's env |
+| `rm public/limite.php` | **by hand in cPanel** — there is no local copy |
+
+⚠️ **The two migrations should not travel together.** The Egg's is additive and
+a feature waits on it; step 10's is a destructive column drop that nothing is
+waiting on. Stacking them makes one bad evening out of two easy ones.
+
 **1. Upload PHP + `public/build` FIRST. Then migrate.**
 Not the other way round. The new code reads `brand_user`; the old code does not
 write it. Migrating first opens a window where a signed-in client user belongs
@@ -73,20 +88,28 @@ to no brand and the portal closes on them.
 `public/build` is a portal with an unstyled picker and chat attachments with no
 styling at all.
 
-**3. Run the three migrations, in this order:**
+**3. Run the migrations, in this order:**
 
 ```
-2026_09_14_100000_create_brand_user_table              # creates AND backfills
-2026_09_14_120000_add_source_to_brand_assets_table     # + client_id nullable
-2026_09_15_100000_add_attachment_ids_to_message_tables # both message tables
+2026_09_14_100000_create_brand_user_table              # ✅ LIVE — creates AND backfills
+2026_09_14_120000_add_source_to_brand_assets_table     # ✅ LIVE — + client_id nullable
+2026_09_15_100000_add_attachment_ids_to_message_tables # ✅ LIVE — both message tables
+2026_09_15_110000_create_brand_eggs_table              # ⬜ pending — the Brand Egg (§1)
+2026_09_15_120000_drop_..._from_users_table            # ⬜ pending — step 10 (§2b), ALONE
 ```
 
 The first backfills inside the same command, so there is no gap between "table
 exists" and "memberships exist". Verified locally: 3 client users → 3
 memberships, roles and permission maps intact.
 
-**4. No new env keys.** `portal/tests/.env` is **not** touched this cycle, which
-means the two-env trap does not apply.
+⚠️ **The last one is destructive and irreversible in practice** — its `down()`
+restores the columns but cannot restore the data. Nothing is waiting on it, so
+it goes on a quiet pass of its own, never bundled with a feature.
+
+**4. No new env keys** — but ⚠️ **`portal/tests/.env` DOES need uploading now**,
+for `AI_TIMEOUT=90`. It is not a new key; it is a wrong value live. That file IS
+production's env (CLAUDE.md §3), so editing it locally changes nothing until it
+travels.
 
 **5. Nothing new depends on cron.** Every state added is derived at read time.
 
@@ -100,7 +123,12 @@ thing that breaks if a piece did not travel:
 - a turn with an attachment on `/admin/clientes/{marca}/proceso` shows the
   image, and it enlarges *(#4 — `attachment_ids`, `attachments.css`,
   `lightbox.js`)*;
-- that same turn shows **who wrote it** *(the byline; `process.css`)*.
+- that same turn shows **who wrote it** *(the byline; `process.css`)*;
+- **the Brand Egg row appears on `/admin/clientes/{marca}`**, that screen opens,
+  Componer on one ring returns a paragraph, and after Aprobar the link shows on
+  `/portal/estrategia` and opens *(§1)*;
+- **a client user can still sign in** after step 10's migration *(§2b — the
+  columns it drops are inert, so the check is that nothing quietly read one)*.
 
 
 ---
