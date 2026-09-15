@@ -10,22 +10,22 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
 
 test('the invitation says an account was created, not that a password was reset', function () {
-    $user = User::factory()->clientOwner()->create(['name' => 'María García']);
+    $user = User::factory()->clientOwner($brand = Client::factory()->create())->create(['name' => 'María García']);
 
-    $mail = (new ClientInvitation('tok3n', $user->client))->toMail($user);
+    $mail = (new ClientInvitation('tok3n', $brand))->toMail($user);
     $body = (string) $mail->render();
 
     expect($mail->subject)->toContain(config('app.name'))
         ->and($body)->toContain('María García')
-        ->and($body)->toContain($user->client->name)
+        ->and($body)->toContain($brand->name)
         ->and($body)->toContain('Crear mi contraseña');
 });
 
 test('the invitation links to the reset page with a usable token', function () {
-    $user = User::factory()->clientOwner()->create();
+    $user = User::factory()->clientOwner($brand = Client::factory()->create())->create();
     $token = Password::broker()->createToken($user);
 
-    $body = (string) (new ClientInvitation($token, $user->client))->toMail($user)->render();
+    $body = (string) (new ClientInvitation($token, $brand))->toMail($user)->render();
 
     expect($body)->toContain(urlencode($user->email))
         ->and(Password::broker()->tokenExists($user, $token))->toBeTrue();
@@ -34,7 +34,7 @@ test('the invitation links to the reset page with a usable token', function () {
 test('a forgotten password sends our Spanish mail, not the English default', function () {
     Notification::fake();
 
-    $user = User::factory()->clientOwner()->create();
+    $user = User::factory()->clientOwner($brand = Client::factory()->create())->create();
 
     $this->post(route('password.email'), ['email' => $user->email])
         ->assertSessionHas('status', trans('passwords.sent'));
@@ -43,7 +43,7 @@ test('a forgotten password sends our Spanish mail, not the English default', fun
 });
 
 test('the reset mail is in Spanish, chrome included', function () {
-    $user = User::factory()->clientOwner()->create(['name' => 'María García']);
+    $user = User::factory()->clientOwner($brand = Client::factory()->create())->create(['name' => 'María García']);
 
     $body = (string) (new ResetPasswordLink('tok3n'))->toMail($user)->render();
 
@@ -64,9 +64,9 @@ test('the reset mail is in Spanish, chrome included', function () {
  ------------------------------------------------------------------------- */
 
 test('every mail carries the Breakfast wordmark', function () {
-    $user = User::factory()->clientOwner()->create();
+    $user = User::factory()->clientOwner($brand = Client::factory()->create())->create();
 
-    $invitation = (string) (new ClientInvitation('tok3n', $user->client))->toMail($user)->render();
+    $invitation = (string) (new ClientInvitation('tok3n', $brand))->toMail($user)->render();
     $reset = (string) (new ResetPasswordLink('tok3n'))->toMail($user)->render();
 
     foreach (['invitación' => $invitation, 'reset' => $reset] as $body) {
@@ -80,9 +80,9 @@ test('every mail carries the Breakfast wordmark', function () {
 });
 
 test('the mails are painted in brand colours, not Laravel zinc', function () {
-    $user = User::factory()->clientOwner()->create();
+    $user = User::factory()->clientOwner($brand = Client::factory()->create())->create();
 
-    $body = (string) (new ClientInvitation('tok3n', $user->client))->toMail($user)->render();
+    $body = (string) (new ClientInvitation('tok3n', $brand))->toMail($user)->render();
 
     expect($body)
         ->toContain('background-color: #402A1B')  // coffee button, --primary-fill
@@ -94,9 +94,9 @@ test('the mails are painted in brand colours, not Laravel zinc', function () {
 });
 
 test('the invitation welcomes rather than warning about a password', function () {
-    $user = User::factory()->clientOwner()->create(['name' => 'María García']);
+    $user = User::factory()->clientOwner($brand = Client::factory()->create())->create(['name' => 'María García']);
 
-    $body = (string) (new ClientInvitation('tok3n', $user->client))->toMail($user)->render();
+    $body = (string) (new ClientInvitation('tok3n', $brand))->toMail($user)->render();
 
     // The recipient never asked for anything and has no password to reset.
     expect($body)->toContain('Creamos tu cuenta')
@@ -118,10 +118,10 @@ test('the staff invitation says back-office and names no brand', function () {
 });
 
 test('both invitations share one template so the welcome cannot drift', function () {
-    $owner = User::factory()->clientOwner()->create();
+    $owner = User::factory()->clientOwner($brand = Client::factory()->create())->create();
     $staff = User::factory()->equipo()->create();
 
-    $client = (string) (new ClientInvitation('tok3n', $owner->client))->toMail($owner)->render();
+    $client = (string) (new ClientInvitation('tok3n', $brand))->toMail($owner)->render();
     $breakfast = (string) (new StaffInvitation('tok3n'))->toMail($staff)->render();
 
     foreach ([$client, $breakfast] as $body) {
@@ -133,9 +133,9 @@ test('both invitations share one template so the welcome cannot drift', function
 });
 
 test('the expiry is worded for a human, never as a minute count', function () {
-    $user = User::factory()->clientOwner()->create();
+    $user = User::factory()->clientOwner($brand = Client::factory()->create())->create();
 
-    $body = (string) (new ClientInvitation('tok3n', $user->client))->toMail($user)->render();
+    $body = (string) (new ClientInvitation('tok3n', $brand))->toMail($user)->render();
 
     // "vence en 10080 minutos" is the failure this guards against.
     expect($body)->not->toContain('10080')

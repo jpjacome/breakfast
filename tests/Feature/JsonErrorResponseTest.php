@@ -35,10 +35,7 @@ function memberWithoutSections(): User
 {
     $client = Client::factory()->create();
 
-    return User::factory()->for($client)->create([
-        'role' => UserRole::ClienteMiembro,
-        'permissions' => [],
-    ]);
+    return User::factory()->clientMember($client, [])->create();
 }
 
 it('answers a caller that asked for JSON with JSON, not an HTML error page', function () {

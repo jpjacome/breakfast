@@ -31,10 +31,7 @@ beforeEach(function () {
         ]),
     ]);
 
-    $this->owner = User::factory()->clientOwner()->create([
-        'client_id' => $this->client->id,
-        'permissions' => [PortalSection::Estrategia->value => AccessLevel::Read->value],
-    ]);
+    $this->owner = User::factory()->clientOwner($this->client->id, [PortalSection::Estrategia->value => AccessLevel::Read->value])->create();
 });
 
 /** The key the form would post for a given line. */
@@ -130,10 +127,7 @@ test('ticking cannot change a word of the entregable', function () {
 });
 
 test('somebody without Estrategia cannot tick, and gets a 404 rather than a 403', function () {
-    $stranger = User::factory()->clientOwner()->create([
-        'client_id' => $this->client->id,
-        'permissions' => [],
-    ]);
+    $stranger = User::factory()->clientOwner($this->client->id, [])->create();
 
     actingAs($stranger)
         ->post(route('portal.estrategia.checklist'), ['items' => [keyFor('Imprimir la papelería')]])

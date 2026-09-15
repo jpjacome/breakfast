@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Enums\DeliverableItem;
-use App\Enums\UserRole;
 use App\Models\AssistantMessage;
 use App\Models\Client;
 use App\Models\User;
@@ -102,7 +101,7 @@ test('one admin does not inherit another admin conversation', function () {
 test('an admin never sees a client conversation', function () {
     fakeReply();
 
-    $owner = User::factory()->clientOwner()->create(['client_id' => $this->brand->id]);
+    $owner = User::factory()->clientOwner($this->brand->id)->create();
 
     actingAs($owner)->postJson(route('portal.assistant'), ['question' => 'Algo privado de la marca'])->assertOk();
     actingAs($this->admin)->postJson(route('admin.assistant'), ['question' => '¿Qué me preguntaron?'])->assertOk();
@@ -117,11 +116,8 @@ test('an admin never sees a client conversation', function () {
 test('two people in the same brand do not share a thread', function () {
     fakeReply();
 
-    $owner = User::factory()->clientOwner()->create(['client_id' => $this->brand->id]);
-    $member = User::factory()->create([
-        'role' => UserRole::ClienteMiembro,
-        'client_id' => $this->brand->id,
-    ]);
+    $owner = User::factory()->clientOwner($this->brand->id)->create();
+    $member = User::factory()->clientMember($this->brand->id)->create();
 
     actingAs($owner)->postJson(route('portal.assistant'), ['question' => 'Lo que preguntó la dueña'])->assertOk();
     actingAs($member)->postJson(route('portal.assistant'), ['question' => '¿Cuál es el relato?'])->assertOk();
@@ -147,7 +143,7 @@ test('the two surfaces keep separate threads for the same person', function () {
 test('a client asks their own brand assistant', function () {
     fakeReply('Tu relato dice que nació en Guayaquil.');
 
-    $owner = User::factory()->clientOwner()->create(['client_id' => $this->brand->id]);
+    $owner = User::factory()->clientOwner($this->brand->id)->create();
 
     actingAs($owner)
         ->postJson(route('portal.assistant'), ['question' => '¿Cuál es nuestro relato?'])
@@ -162,7 +158,7 @@ test('a brand with nothing written says so instead of improvising', function () 
     Http::fake();
 
     $empty = Client::factory()->create();
-    $owner = User::factory()->clientOwner()->create(['client_id' => $empty->id]);
+    $owner = User::factory()->clientOwner($empty->id)->create();
 
     actingAs($owner)
         ->postJson(route('portal.assistant'), ['question' => '¿Cuál es nuestro relato?'])
@@ -174,7 +170,7 @@ test('a brand with nothing written says so instead of improvising', function () 
 });
 
 test('the client assistant refuses an empty question as JSON, not a redirect', function () {
-    $owner = User::factory()->clientOwner()->create(['client_id' => $this->brand->id]);
+    $owner = User::factory()->clientOwner($this->brand->id)->create();
 
     // A redirect here is a silent failure in the fetch() that sent it. Trap 13.
     actingAs($owner)
@@ -190,7 +186,7 @@ test('a Breakfast user is not a brand and gets nothing here', function () {
 });
 
 test('the client dashboard carries the panel', function () {
-    $owner = User::factory()->clientOwner()->create(['client_id' => $this->brand->id]);
+    $owner = User::factory()->clientOwner($this->brand->id)->create();
 
     actingAs($owner)
         ->get(route('portal.home'))
@@ -207,7 +203,7 @@ test('the client dashboard carries the panel', function () {
 test('the panel opens with the previous conversation already in it', function () {
     fakeReply('Alea va en el paso 1.');
 
-    $owner = User::factory()->clientOwner()->create(['client_id' => $this->brand->id]);
+    $owner = User::factory()->clientOwner($this->brand->id)->create();
 
     actingAs($owner)->postJson(route('portal.assistant'), ['question' => '¿En qué paso vamos?'])->assertOk();
 
@@ -234,12 +230,8 @@ test('the Breakfast dashboard opens with its own thread', function () {
 test('a rendered thread is only ever your own', function () {
     fakeReply();
 
-    $owner = User::factory()->clientOwner()->create(['client_id' => $this->brand->id]);
-    $member = User::factory()->create([
-        'role' => UserRole::ClienteMiembro,
-        'client_id' => $this->brand->id,
-        'permissions' => [],
-    ]);
+    $owner = User::factory()->clientOwner($this->brand->id)->create();
+    $member = User::factory()->clientMember($this->brand->id, [])->create();
 
     actingAs($owner)->postJson(route('portal.assistant'), ['question' => 'Lo que preguntó la dueña'])->assertOk();
 
@@ -258,7 +250,7 @@ test('the two surfaces do not show each other conversations', function () {
     // dashboard has no business appearing in a brand's own panel.
     actingAs($this->admin)->postJson(route('admin.assistant'), ['question' => 'Pregunta del panel'])->assertOk();
 
-    $owner = User::factory()->clientOwner()->create(['client_id' => $this->brand->id]);
+    $owner = User::factory()->clientOwner($this->brand->id)->create();
 
     actingAs($owner)
         ->get(route('portal.home'))
@@ -273,7 +265,7 @@ test('the two surfaces do not show each other conversations', function () {
 test('a client can send an image with a question', function () {
     fakeReply('Ese amarillo no es el de tu paleta.');
 
-    $owner = User::factory()->clientOwner()->create(['client_id' => $this->brand->id]);
+    $owner = User::factory()->clientOwner($this->brand->id)->create();
 
     actingAs($owner)
         ->post(route('portal.assistant'), [
@@ -292,7 +284,7 @@ test('a client can send an image with a question', function () {
 test('a voice note is a question on its own', function () {
     fakeReply('Entendido.');
 
-    $owner = User::factory()->clientOwner()->create(['client_id' => $this->brand->id]);
+    $owner = User::factory()->clientOwner($this->brand->id)->create();
 
     // Requiring text alongside a recording defeats the point of recording it.
     actingAs($owner)
@@ -303,7 +295,7 @@ test('a voice note is a question on its own', function () {
 });
 
 test('a format the model cannot open is refused as a file problem, not a provider one', function () {
-    $owner = User::factory()->clientOwner()->create(['client_id' => $this->brand->id]);
+    $owner = User::factory()->clientOwner($this->brand->id)->create();
 
     // webm is exactly the case: browsers record it happily and the provider
     // 400s on it, which is why the recorder re-encodes to WAV.
@@ -316,7 +308,7 @@ test('a format the model cannot open is refused as a file problem, not a provide
 });
 
 test('more than two files in one message is refused', function () {
-    $owner = User::factory()->clientOwner()->create(['client_id' => $this->brand->id]);
+    $owner = User::factory()->clientOwner($this->brand->id)->create();
 
     actingAs($owner)
         ->post(route('portal.assistant'), [
@@ -347,7 +339,7 @@ test('the Breakfast dashboard takes an image too', function () {
 test('an earlier turn replays the file by name, never by re-sending it', function () {
     fakeReply();
 
-    $owner = User::factory()->clientOwner()->create(['client_id' => $this->brand->id]);
+    $owner = User::factory()->clientOwner($this->brand->id)->create();
 
     actingAs($owner)->post(route('portal.assistant'), [
         'question' => 'Mira esto',

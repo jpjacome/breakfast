@@ -96,10 +96,7 @@ it('never shows an unfiled file to a client', function () {
         'visibility' => AssetVisibility::Interno,
     ]);
 
-    $owner = User::factory()->clientOwner()->create([
-        'client_id' => $this->client->id,
-        'permissions' => [PortalSection::BrandAssets->value => 'read'],
-    ]);
+    $owner = User::factory()->clientOwner($this->client->id, [PortalSection::BrandAssets->value => 'read'])->create();
 
     // No brand means no client it could belong to. Breakfast's alone.
     expect($owner->canReachBrandAsset($asset))->toBeFalse()

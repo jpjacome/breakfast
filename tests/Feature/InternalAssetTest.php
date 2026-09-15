@@ -31,10 +31,7 @@ beforeEach(function () {
 
     $this->admin = User::factory()->admin()->create();
     $this->client = Client::factory()->create(['name' => 'Cafetería Norte', 'slug' => 'cafeteria-norte']);
-    $this->owner = User::factory()->clientOwner()->create([
-        'client_id' => $this->client->id,
-        'permissions' => [PortalSection::BrandAssets->value => AccessLevel::Read->value],
-    ]);
+    $this->owner = User::factory()->clientOwner($this->client->id, [PortalSection::BrandAssets->value => AccessLevel::Read->value])->create();
 });
 
 function anInternalFile(Client $client, string $title = 'Contrato firmado'): BrandAsset
@@ -128,10 +125,7 @@ test('Breakfast can still download it', function () {
 test('an internal file is still refused to a client of another brand', function () {
     // Visibility narrows; it never widens. Making a file internal must not
     // accidentally take it out of the brand check it was already inside.
-    $other = User::factory()->clientOwner()->create([
-        'client_id' => Client::factory()->create()->id,
-        'permissions' => [PortalSection::BrandAssets->value => AccessLevel::Read->value],
-    ]);
+    $other = User::factory()->clientOwner(Client::factory()->create()->id, [PortalSection::BrandAssets->value => AccessLevel::Read->value])->create();
 
     actingAs($other)
         ->get(route('assets.download', anInternalFile($this->client)))

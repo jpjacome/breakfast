@@ -173,10 +173,7 @@ it('drops an archived brand from the picker and keeps the other', function () {
 
 it('closes the portal to somebody whose only brand is archived', function () {
     $client = Client::factory()->create();
-    $user = User::factory()->clientOwner()->create([
-        'client_id' => $client->id,
-        'permissions' => ['estrategia' => 'read'],
-    ]);
+    $user = User::factory()->clientOwner($client->id, ['estrategia' => 'read'])->create();
 
     $client->delete();
 
@@ -185,10 +182,7 @@ it('closes the portal to somebody whose only brand is archived', function () {
 
 it('gives everything back when an archived brand is restored', function () {
     $client = Client::factory()->create();
-    $user = User::factory()->clientOwner()->create([
-        'client_id' => $client->id,
-        'permissions' => ['estrategia' => 'read'],
-    ]);
+    $user = User::factory()->clientOwner($client->id, ['estrategia' => 'read'])->create();
 
     $client->delete();
     $client->restore();
@@ -280,10 +274,7 @@ it('removes a person from one brand without closing them out of the other', func
         secondRole: BrandRole::Miembro,
     );
 
-    $owner = User::factory()->clientOwner()->create([
-        'client_id' => $alea->id,
-        'permissions' => ['estrategia' => 'read'],
-    ]);
+    $owner = User::factory()->clientOwner($alea->id, ['estrategia' => 'read'])->create();
 
     actingAs($owner)->delete(route('portal.equipo.destroy', $member));
 
@@ -296,16 +287,9 @@ it('removes a person from one brand without closing them out of the other', func
 it('deletes the account when the brand removed was the last one', function () {
     $client = Client::factory()->create();
 
-    $owner = User::factory()->clientOwner()->create([
-        'client_id' => $client->id,
-        'permissions' => ['estrategia' => 'read'],
-    ]);
+    $owner = User::factory()->clientOwner($client->id, ['estrategia' => 'read'])->create();
 
-    $member = User::factory()->create([
-        'role' => UserRole::ClienteMiembro,
-        'client_id' => $client->id,
-        'permissions' => ['estrategia' => 'read'],
-    ]);
+    $member = User::factory()->clientMember($client->id, ['estrategia' => 'read'])->create();
 
     actingAs($owner)->delete(route('portal.equipo.destroy', $member));
 
@@ -349,10 +333,7 @@ it('does not let a brand owner attach an address that already has an account', f
     // Refused on this side, unlike on Breakfast's: attaching would tell the
     // owner that an account exists on an address they only guessed at.
     $client = Client::factory()->create();
-    $owner = User::factory()->clientOwner()->create([
-        'client_id' => $client->id,
-        'permissions' => ['estrategia' => 'read'],
-    ]);
+    $owner = User::factory()->clientOwner($client->id, ['estrategia' => 'read'])->create();
 
     User::factory()->create(['email' => 'ajena@ejemplo.com']);
 

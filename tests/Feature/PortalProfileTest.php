@@ -25,19 +25,22 @@ use function Pest\Laravel\actingAs;
 beforeEach(function () {
     $this->client = Client::factory()->create(['name' => 'Cafetería Norte']);
 
-    $this->member = User::factory()->create([
-        'client_id' => $this->client->id,
-        'name' => 'María Peña',
-        'email' => 'maria@cafeterianorte.test',
-        'password' => Hash::make('la-de-siempre-1'),
-        'permissions' => [PortalSection::Estrategia->value => AccessLevel::Read->value],
-    ]);
+    $this->member = User::factory()
+        ->clientMember($this->client, [PortalSection::Estrategia->value => AccessLevel::Read->value])
+        ->create([
+            'name' => 'María Peña',
+            'email' => 'maria@cafeterianorte.test',
+            'password' => Hash::make('la-de-siempre-1'),
+        ]);
 });
 
 test('the page opens for everybody in the brand', function () {
     // Perfil is always-on: it is not in the permissions map at all, so a member
     // granted nothing still reaches their own account.
-    $this->member->update(['permissions' => []]);
+    // Granted nothing at all, in the brand — the map lives on the pivot now.
+    $this->member->brands()->updateExistingPivot($this->client->id, [
+        'permissions' => json_encode((object) []),
+    ]);
 
     actingAs($this->member)
         ->get(route('portal.perfil'))

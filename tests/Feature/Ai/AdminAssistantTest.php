@@ -169,7 +169,7 @@ test('a brand the user cannot see falls back to the portfolio, not an error', fu
 });
 
 test('client users cannot reach it', function () {
-    $owner = User::factory()->clientOwner()->create(['client_id' => $this->coffee->id]);
+    $owner = User::factory()->clientOwner($this->coffee->id)->create();
 
     // 404, not 403 — the admin area does not exist for them.
     actingAs($owner)

@@ -2,7 +2,6 @@
 
 use App\Enums\AccessLevel;
 use App\Enums\PortalSection;
-use App\Enums\UserRole;
 use App\Models\Client;
 use App\Models\Meeting;
 use App\Models\User;
@@ -17,10 +16,7 @@ beforeEach(function () {
     // The owner is granted Reuniones explicitly: owners get Equipo and
     // Suscripción by role, but every grantable section still comes from their
     // permissions map. An owner with an empty map sees no meetings.
-    $this->owner = User::factory()->clientOwner()->create([
-        'client_id' => $this->client->id,
-        'permissions' => [PortalSection::Reuniones->value => AccessLevel::Read->value],
-    ]);
+    $this->owner = User::factory()->clientOwner($this->client->id, [PortalSection::Reuniones->value => AccessLevel::Read->value])->create();
 });
 
 /** The payload the admin form posts. */
@@ -122,11 +118,7 @@ test('only the portal is used when mail is unticked', function () {
 test('somebody without access to Reuniones is not told', function () {
     Notification::fake();
 
-    $member = User::factory()->create([
-        'role' => UserRole::ClienteMiembro,
-        'client_id' => $this->client->id,
-        'permissions' => [PortalSection::Estrategia->value => AccessLevel::Read->value],
-    ]);
+    $member = User::factory()->clientMember($this->client->id, [PortalSection::Estrategia->value => AccessLevel::Read->value])->create();
 
     actingAs($this->admin)->post(route('admin.clients.meetings.store', $this->client), meetingPayload());
 
@@ -139,10 +131,7 @@ test('somebody without access to Reuniones is not told', function () {
 test('another brand is never told', function () {
     Notification::fake();
 
-    $stranger = User::factory()->clientOwner()->create([
-        'client_id' => Client::factory()->create()->id,
-        'permissions' => [PortalSection::Reuniones->value => AccessLevel::Read->value],
-    ]);
+    $stranger = User::factory()->clientOwner(Client::factory()->create()->id, [PortalSection::Reuniones->value => AccessLevel::Read->value])->create();
 
     actingAs($this->admin)->post(route('admin.clients.meetings.store', $this->client), meetingPayload());
 
@@ -270,22 +259,14 @@ test('the dashboard carries the next meeting', function () {
 test('a member without Reuniones sees no meeting card', function () {
     $this->client->meetings()->create(['title' => 'Secreta', 'scheduled_at' => now()->addDay()]);
 
-    $member = User::factory()->create([
-        'role' => UserRole::ClienteMiembro,
-        'client_id' => $this->client->id,
-        'permissions' => [PortalSection::Estrategia->value => AccessLevel::Read->value],
-    ]);
+    $member = User::factory()->clientMember($this->client->id, [PortalSection::Estrategia->value => AccessLevel::Read->value])->create();
 
     // Showing the card would tell them their brand has a Reuniones section.
     actingAs($member)->get(route('portal.home'))->assertOk()->assertDontSee('Secreta');
 });
 
 test('the reuniones page needs the section', function () {
-    $member = User::factory()->create([
-        'role' => UserRole::ClienteMiembro,
-        'client_id' => $this->client->id,
-        'permissions' => [],
-    ]);
+    $member = User::factory()->clientMember($this->client->id, [])->create();
 
     actingAs($member)->get(route('portal.reuniones'))->assertNotFound();
     actingAs($this->owner)->get(route('portal.reuniones'))->assertOk();

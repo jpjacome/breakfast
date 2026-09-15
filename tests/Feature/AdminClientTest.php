@@ -282,9 +282,7 @@ test('the client sees marca registrada on their own brand page', function () {
     $client = Client::factory()->create(['trademark_registered' => true]);
     $client->deliverables->update([DeliverableItem::Relato->value => 'Nació en Cuenca.']);
 
-    $owner = User::factory()->clientOwner($client)->create([
-        'permissions' => ['estrategia' => 'read'],
-    ]);
+    $owner = User::factory()->clientOwner($client, ['estrategia' => 'read'])->create();
 
     $this->actingAs($owner)
         ->get(route('portal.estrategia'))

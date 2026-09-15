@@ -121,7 +121,7 @@ test('deleting from the file manager comes back to the file manager', function (
 
 /** 404 rather than 403, like every other gate in the app. */
 test('a client user cannot reach the file manager', function () {
-    $owner = User::factory()->clientOwner()->create(['client_id' => $this->client->id]);
+    $owner = User::factory()->clientOwner($this->client->id)->create();
 
     actingAs($owner)->get(route('admin.files.index'))->assertNotFound();
     actingAs($owner)->get(route('admin.files.show', $this->client))->assertNotFound();

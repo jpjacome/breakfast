@@ -50,15 +50,9 @@ function brandWith(array $permissions = [], ?array $ownerPermissions = null): ar
 {
     $client = Client::factory()->create();
 
-    $owner = User::factory()->for($client)->create([
-        'role' => UserRole::ClienteOwner,
-        'permissions' => $ownerPermissions ?? allSections(AccessLevel::Write),
-    ]);
+    $owner = User::factory()->clientOwner($client, $ownerPermissions ?? allSections(AccessLevel::Write))->create();
 
-    $member = User::factory()->for($client)->create([
-        'role' => UserRole::ClienteMiembro,
-        'permissions' => $permissions,
-    ]);
+    $member = User::factory()->clientMember($client, $permissions)->create();
 
     return [$client, $owner, $member];
 }
@@ -278,8 +272,8 @@ it('stops an owner from touching another brand\'s member', function () {
 
 it('stops an owner from deleting a co-owner', function () {
     $client = Client::factory()->create();
-    $owner = User::factory()->for($client)->create(['role' => UserRole::ClienteOwner]);
-    $coOwner = User::factory()->for($client)->create(['role' => UserRole::ClienteOwner]);
+    $owner = User::factory()->clientOwner($client)->create();
+    $coOwner = User::factory()->clientOwner($client)->create();
 
     actingAs($owner)->delete(route('portal.equipo.destroy', $coOwner))->assertForbidden();
 });
@@ -376,20 +370,17 @@ it('leaves the team alone when Breakfast edits a member rather than an owner', f
 
     [$client, , $member] = brandWith(['reuniones' => 'read']);
 
-    $other = User::factory()->for($client)->create([
-        'role' => UserRole::ClienteMiembro,
-        'permissions' => ['reuniones' => 'write'],
-    ]);
+    $other = User::factory()->clientMember($client, ['reuniones' => 'write'])->create();
 
     actingAs($admin)->put(route('admin.clients.users.update', [$client, $member]), [
         'permissions' => ['reuniones' => ['read', 'write']],
     ]);
 
     // Editing one member is not a ceiling change, so the other's row is not
-    // rewritten. Asserted on the stored value rather than accessTo(), which
+    // rewritten. Asserted on the STORED PIVOT rather than accessTo(), which
     // clamps a legacy 'write' to Read on the way out — the point here is that
     // nothing wrote to this member at all.
-    expect($other->refresh()->permissions)->toBe(['reuniones' => 'write']);
+    expect(storedMap($other, $client))->toBe(['reuniones' => 'write']);
 });
 
 it('changes nothing when the ceiling is re-applied to a consistent brand', function () {
@@ -405,11 +396,9 @@ it('changes nothing when the ceiling is re-applied to a consistent brand', funct
  ------------------------------------------------------------------------- */
 
 it('fails closed for a client user with no brand', function () {
-    $stray = User::factory()->create([
-        'role' => UserRole::ClienteMiembro,
-        'client_id' => null,
-        'permissions' => ['estrategia' => 'write'],
-    ]);
+    // No membership at all, which a bare factory now says plainly — it used to
+    // take an invisible brand of its own from users.client_id.
+    $stray = User::factory()->create(['role' => UserRole::ClienteMiembro]);
 
     expect($stray->canRead(PortalSection::Estrategia))->toBeFalse()
         ->and($stray->visibleSections())->toBe([]);

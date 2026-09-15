@@ -17,10 +17,7 @@ beforeEach(function () {
 
     $this->admin = User::factory()->admin()->create();
     $this->client = Client::factory()->create(['name' => 'Cafetería Norte', 'slug' => 'cafeteria-norte']);
-    $this->owner = User::factory()->clientOwner()->create([
-        'client_id' => $this->client->id,
-        'permissions' => [PortalSection::Estrategia->value => AccessLevel::Read->value],
-    ]);
+    $this->owner = User::factory()->clientOwner($this->client->id, [PortalSection::Estrategia->value => AccessLevel::Read->value])->create();
 });
 
 /*
@@ -80,9 +77,13 @@ test('archiving hides the brand and shuts its people out immediately', function 
         'confirmation' => 'Cafetería Norte',
     ])->assertRedirect();
 
-    // No user row was touched. accessTo() fails closed because the brand
-    // behind a client user is gone, which is why restoring needs no undo.
-    expect($this->owner->fresh()->permissions)
+    // No membership was touched. accessTo() fails closed because the brand
+    // behind it is gone, which is why restoring needs no undo — the grant is
+    // still sitting there intact, waiting for the brand to come back.
+    $stored = $this->owner->brands()->withTrashed()
+        ->whereKey($this->client->id)->sole()->pivot->permissions;
+
+    expect(json_decode((string) $stored, true))
         ->toBe([PortalSection::Estrategia->value => AccessLevel::Read->value]);
 
     actingAs($this->owner->fresh())->get(route('portal.estrategia'))->assertNotFound();

@@ -6,7 +6,6 @@ use App\Enums\AccessLevel;
 use App\Enums\BrandEggLayer;
 use App\Enums\DeliverableItem;
 use App\Enums\PortalSection;
-use App\Enums\UserRole;
 use App\Models\Client;
 use App\Models\User;
 
@@ -29,10 +28,7 @@ function brandAndOwner(array $permissions): array
     // syncs the brand_user pivot after creating, carrying the role and the
     // permissions map across — so attaching by hand here is a duplicate row,
     // which the pivot's unique index correctly refuses.
-    $owner = User::factory()->for($client)->create([
-        'role' => UserRole::ClienteOwner,
-        'permissions' => $permissions,
-    ]);
+    $owner = User::factory()->clientOwner($client, $permissions)->create();
 
     return [$client->fresh(), $owner->fresh()];
 }

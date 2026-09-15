@@ -31,10 +31,7 @@ beforeEach(function () {
 
     $this->client = Client::factory()->create(['name' => 'Alea']);
 
-    $this->owner = User::factory()->clientOwner()->create([
-        'client_id' => $this->client->id,
-        'permissions' => [PortalSection::Reuniones->value => AccessLevel::Read->value],
-    ]);
+    $this->owner = User::factory()->clientOwner($this->client->id, [PortalSection::Reuniones->value => AccessLevel::Read->value])->create();
 });
 
 afterEach(fn () => Carbon::setTestNow());
@@ -231,10 +228,7 @@ test('a reminder already sent is not re-sent when the meeting moves', function (
 /* --- scope ---------------------------------------------------------------- */
 
 test('somebody without Reuniones is not reminded about them', function () {
-    $stranger = User::factory()->clientOwner()->create([
-        'client_id' => $this->client->id,
-        'permissions' => [],
-    ]);
+    $stranger = User::factory()->clientOwner($this->client->id, [])->create();
 
     aMeetingAt($this->client, '2026-09-03 08:00:00');
 

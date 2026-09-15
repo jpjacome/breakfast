@@ -30,13 +30,10 @@ beforeEach(function () {
 
     $this->client = Client::factory()->create(['name' => 'Cafetería Norte']);
 
-    $this->owner = User::factory()->clientOwner()->create([
-        'client_id' => $this->client->id,
-        'permissions' => [
-            PortalSection::Estrategia->value => AccessLevel::Read->value,
-            PortalSection::BrandAssets->value => AccessLevel::Read->value,
-        ],
-    ]);
+    $this->owner = User::factory()->clientOwner($this->client->id, [
+        PortalSection::Estrategia->value => AccessLevel::Read->value,
+        PortalSection::BrandAssets->value => AccessLevel::Read->value,
+    ])->create();
 });
 
 function anAssetNamed(Client $client, string $name, string $mime, AssetVisibility $visibility = AssetVisibility::Compartido): BrandAsset

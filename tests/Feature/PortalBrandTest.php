@@ -5,7 +5,6 @@ use App\Enums\AccessLevel;
 use App\Enums\DeliverableItem;
 use App\Enums\PortalSection;
 use App\Enums\ProcessStep;
-use App\Enums\UserRole;
 use App\Models\Client;
 use App\Models\User;
 use App\Services\Ai\BrandContextRepository;
@@ -14,13 +13,10 @@ use function Pest\Laravel\actingAs;
 
 beforeEach(function () {
     $this->client = Client::factory()->create(['name' => 'Cafetería Norte']);
-    $this->owner = User::factory()->clientOwner()->create([
-        'client_id' => $this->client->id,
-        'permissions' => [
-            PortalSection::Estrategia->value => AccessLevel::Read->value,
-            PortalSection::Reuniones->value => AccessLevel::Read->value,
-        ],
-    ]);
+    $this->owner = User::factory()->clientOwner($this->client->id, [
+        PortalSection::Estrategia->value => AccessLevel::Read->value,
+        PortalSection::Reuniones->value => AccessLevel::Read->value,
+    ])->create();
     $this->steps = app(AdvanceProcessStep::class);
 });
 
@@ -89,11 +85,7 @@ test('every person in the brand sees the step bar on their dashboard', function 
     // It used to be gated on Proyecto, which was the page it belonged to.
     // That section is gone, and the dashboard is every brand person's own
     // screen: where their brand is up to is the least private thing on it.
-    $member = User::factory()->create([
-        'role' => UserRole::ClienteMiembro,
-        'client_id' => $this->client->id,
-        'permissions' => [],
-    ]);
+    $member = User::factory()->clientMember($this->client->id, [])->create();
 
     actingAs($member)->get(route('portal.home'))->assertOk()->assertSee('El proceso');
 
@@ -185,11 +177,7 @@ test('markup in an entregable is escaped, not rendered', function () {
 });
 
 test('the brand page needs the section', function () {
-    $member = User::factory()->create([
-        'role' => UserRole::ClienteMiembro,
-        'client_id' => $this->client->id,
-        'permissions' => [],
-    ]);
+    $member = User::factory()->clientMember($this->client->id, [])->create();
 
     actingAs($member)->get(route('portal.estrategia'))->assertNotFound();
 });

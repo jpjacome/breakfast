@@ -2,7 +2,6 @@
 
 use App\Enums\AccessLevel;
 use App\Enums\PortalSection;
-use App\Enums\UserRole;
 use App\Models\BrandAsset;
 use App\Models\Client;
 use App\Models\User;
@@ -16,10 +15,7 @@ beforeEach(function () {
 
     $this->admin = User::factory()->admin()->create();
     $this->client = Client::factory()->create(['name' => 'Cafetería Norte', 'slug' => 'cafeteria-norte']);
-    $this->owner = User::factory()->clientOwner()->create([
-        'client_id' => $this->client->id,
-        'permissions' => [PortalSection::BrandAssets->value => AccessLevel::Read->value],
-    ]);
+    $this->owner = User::factory()->clientOwner($this->client->id, [PortalSection::BrandAssets->value => AccessLevel::Read->value])->create();
 });
 
 /*
@@ -107,10 +103,7 @@ test('the brand can download its own file', function () {
 test('another brand cannot, even with the exact url', function () {
     $asset = uploadAsset($this->admin, $this->client);
 
-    $stranger = User::factory()->clientOwner()->create([
-        'client_id' => Client::factory()->create()->id,
-        'permissions' => [PortalSection::BrandAssets->value => AccessLevel::Read->value],
-    ]);
+    $stranger = User::factory()->clientOwner(Client::factory()->create()->id, [PortalSection::BrandAssets->value => AccessLevel::Read->value])->create();
 
     // This is the whole reason files live under storage/ and not public/:
     // a file in public/ is served by Apache before PHP ever runs.
@@ -120,11 +113,7 @@ test('another brand cannot, even with the exact url', function () {
 test('a member without Brand assets cannot, even in the right brand', function () {
     $asset = uploadAsset($this->admin, $this->client);
 
-    $member = User::factory()->create([
-        'role' => UserRole::ClienteMiembro,
-        'client_id' => $this->client->id,
-        'permissions' => [PortalSection::Estrategia->value => AccessLevel::Read->value],
-    ]);
+    $member = User::factory()->clientMember($this->client->id, [PortalSection::Estrategia->value => AccessLevel::Read->value])->create();
 
     actingAs($member)->get($asset->url())->assertNotFound();
 });
@@ -209,11 +198,7 @@ test('the files screen lists everything in the folder', function () {
 });
 
 test('the files screen needs the section', function () {
-    $member = User::factory()->create([
-        'role' => UserRole::ClienteMiembro,
-        'client_id' => $this->client->id,
-        'permissions' => [],
-    ]);
+    $member = User::factory()->clientMember($this->client->id, [])->create();
 
     actingAs($member)->get(route('portal.brand_assets'))->assertNotFound();
     actingAs($this->owner)->get(route('portal.brand_assets'))->assertOk();
