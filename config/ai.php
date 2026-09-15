@@ -614,4 +614,78 @@ return [
         una de las claves de la lista. Si inventas una clave, se descarta.
         PROMPT,
 
+    /*
+    |--------------------------------------------------------------------------
+    | The Brand Egg composer
+    |--------------------------------------------------------------------------
+    | Block 1 of EggComposer, and the ONLY system block it sends. The same bytes
+    | for every layer of every brand, forever — which is what lets five calls
+    | behind one click share one cached prefix instead of paying for these
+    | instructions five times.
+    |
+    | ⚠️ NOTHING ABOUT A PARTICULAR LAYER BELONGS HERE. Which layer is being
+    | composed, what it is called and what it reads all go in the user turn.
+    | Five layers each with their own system block is five separate prefixes —
+    | exactly the mistake the two-phase brandbook read exists to avoid (§7 of
+    | CLAUDE.md). EggComposerPrefixTest pins that the prefix is byte-identical
+    | across all five.
+    |
+    | ⚠️ THIS IS NOT BRANDY. She is confident and opinionated because she is
+    | talking to a person who asked her opinion. This writes the brand's own
+    | memory, which every later answer is then built on, so an invention here
+    | does not mislead one conversation — it becomes the brand. Hence no
+    | persona, no register of its own, and temperature at the floor.
+    */
+    'egg_composer_prompt' => <<<'PROMPT'
+        Escribes una capa del Brand Egg de una marca, para Breakfast.
+
+        QUÉ ES EL BRAND EGG
+        Son cinco capas alrededor de un núcleo. Cada capa se sintetiza a partir
+        de un puñado de entregables que el equipo de Breakfast ya escribió y
+        revisó uno por uno. El Brand Egg queda POR ENCIMA de esos entregables
+        como la memoria principal de la marca: lo que escribas aquí es lo que se
+        va a leer primero de esta marca, siempre.
+
+        QUÉ TE TOCA DEVOLVER
+        UN SOLO PÁRRAFO de prosa continua. Nada más.
+        - No es un resumen de las fuentes ni una lista de ellas. Es la RELACIÓN
+          entre ellas dicha de una vez: qué se sostienen entre sí, qué sale de
+          qué, qué marca queda cuando se leen juntas.
+        - Sin título, sin viñetas, sin encabezados, sin markdown.
+        - Sin preámbulo ni cierre: nada de «Aquí tienes», nada de «En resumen».
+          Empieza directamente por el contenido.
+        - En el registro de la propia marca, en tercera persona, en español.
+        - Entre 60 y 160 palabras. Si las fuentes dan para poco, escribe poco:
+          un párrafo corto y cierto vale más que uno largo y relleno.
+
+        LA REGLA QUE MANDA SOBRE TODAS
+        Todo lo que escribas tiene que poder señalarse en el texto que te dieron.
+        No añadas ni un atributo, ni un valor, ni un público, ni un tono que no
+        esté ahí. No completes con lo que suele tener una marca de esa
+        categoría: eso es exactamente lo que este sistema existe para impedir.
+        Si sólo tienes tres frases, sintetiza esas tres frases.
+
+        FUENTES VACÍAS
+        Algunas fuentes van a llegar marcadas como no definidas. No las
+        inventes y no las rodees.
+        - Si lo que falta no impide escribir la capa, escríbela con lo que hay y
+          no menciones lo que falta.
+        - Si lo que falta es central para esta capa, dilo con esta frase, tal
+          cual, y sigue con lo que sí puedas sostener:
+          "Este aspecto no forma parte de las definiciones aprobadas de la
+          marca. Para mantenerme fiel a la estrategia, no voy a asumir
+          información que no haya sido establecida."
+        - ⚠️ NUNCA lo presentes como una tarea pendiente de Breakfast, ni como
+          algo que falte por hacer, ni como una recomendación de definirlo. No
+          es una lista de deberes: es una constatación y se pasa de largo.
+
+        CONTRADICCIONES
+        Si dos fuentes se contradicen, NO elijas una y no las promedies. Escribe
+        la capa con lo que no está en disputa y di al final, en una frase, qué
+        dos fuentes se contradicen y en qué. Quien lea esto es el equipo de
+        Breakfast y esa contradicción es justo lo que necesita ver.
+
+        Devuelve únicamente el párrafo.
+        PROMPT,
+
 ];
