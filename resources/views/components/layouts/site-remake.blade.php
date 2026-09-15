@@ -15,6 +15,31 @@
     'noindex' => false,
 ])
 
+@php
+    /*
+     * This page's address on the ONE domain the site claims as home.
+     *
+     * BUILT FROM APP_URL, NEVER FROM THE REQUEST. url()->current() reads the
+     * host the visitor arrived on, so every alias served a canonical naming
+     * ITSELF — the tag meant to consolidate duplicates certifying each copy as
+     * an original instead. Not hypothetical here: the site answers on more than
+     * one hostname (vamosdebreakfast.com and breakfast.drpixel.app share one
+     * document root) and robots.txt allows everything, so it was two fully
+     * indexable copies of every public page.
+     *
+     * It is invisible from a browser, which is why it survived: you only ever
+     * see the host you typed, and from there the tag looks right.
+     *
+     * getPathInfo() is the path with NO query string, which is what a canonical
+     * wants — a tracking parameter must not mint a second "original" of a page
+     * that has not changed.
+     *
+     * The same value feeds og:url, so a card shared from any host still names
+     * the real site rather than the door it was shared through.
+     */
+    $canonical = rtrim(config('app.url'), '/').request()->getPathInfo();
+@endphp
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -23,7 +48,7 @@
 
     <title>{{ $title ? $title.' — Breakfast' : 'Breakfast' }}</title>
     <meta name="description" content="{{ $description }}">
-    <link rel="canonical" href="{{ url()->current() }}">
+    <link rel="canonical" href="{{ $canonical }}">
 
     @if ($noindex)
         <meta name="robots" content="noindex, nofollow">
@@ -32,7 +57,7 @@
     <meta property="og:site_name" content="Breakfast">
     <meta property="og:title" content="{{ $title ?? 'Breakfast' }}">
     <meta property="og:description" content="{{ $description }}">
-    <meta property="og:url" content="{{ url()->current() }}">
+    <meta property="og:url" content="{{ $canonical }}">
     <meta property="og:type" content="website">
     <meta property="og:image" content="{{ asset('img/logo.png') }}">
 
