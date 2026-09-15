@@ -31,9 +31,9 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 | 4 | Mostrar imágenes en el chat, ampliar y reproducir video | ✅ 2026-09-15 |
 | 5 | Historial de chats y conversación completa | ⬜ **merged with #6** — assessed, see below |
 | 6 | Rediseño del Dashboard | ⬜ **next.** Waiting on Breakfast's reference images |
-| 7 | Editar una pregunta enviada | ⬜ |
+| 7 | Editar una pregunta enviada | ✅ 2026-09-15 — **solved as RECALL, not as editing in place.** The cancel half is blocked; see §7 |
 | 8 | Waffle giratorio | ⬜ |
-| 9 | Prueba de uso simultáneo e informe de hosting | ⬜ |
+| 9 | Prueba de uso simultáneo e informe de hosting | ⬜ — groundwork exists: the host's shape is in CLAUDE.md §3 and `tools/flush-probe.php` is written and unrun |
 | 10 | Regla de seguridad: contraseñas, tokens, instrucciones | ⬜ |
 | 11 | La notificación abre la reunión correcta | ⬜ |
 | 12 | Checklist agrupado por categorías | ⬜ |
@@ -41,7 +41,7 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 | 14 | Campos propios por marca | ⬜ |
 | 15 | Notas | ⬜ |
 
-**Suite:** 497 → **588 passing** across this cycle. `pint` clean throughout.
+**Suite:** 497 → **592 passing** across this cycle. `pint` clean throughout.
 
 ---
 
@@ -798,6 +798,81 @@ a fact about the conversation, not its owner.
 brand and is shared by everyone working it; giving it per-user conversations
 would break that by accident.
 
+
+---
+
+## 7 · Editar una pregunta enviada — ✅ 2026-09-15
+
+**Built as recall, deliberately not as editing.** Breakfast's ask was to edit a
+question already sent. Editing a sent turn IN PLACE means rewriting the history
+the model already answered from: two versions of one question, an answer
+attached to the version nobody can see any more, and a thread that no longer
+records what was actually asked. Pressing **Up** in the composer puts the sent
+text back in an empty box instead — the same gesture, none of that. The sent
+turn stays exactly as sent; what you edit is a NEW question.
+
+### Where it lives, and why there
+
+`resources/js/assistant-composer.js`, which is the one module all three panels
+share — the same reason Enter's rules live there. A key that did different
+things on different screens would be worse than one that did nothing.
+
+⚠️ **Up and Down are only taken over at the EDGES of the box.** The field is a
+textarea, so those keys are how somebody moves between the lines of a long
+question. On the first line there is nowhere up to go, so recall is free;
+anywhere else, taking the key would trap the caret and make a multi-paragraph
+question impossible to edit.
+
+Edits made while walking the list are kept, the way a shell keeps them, and
+sending throws them all away.
+
+### The bug that was in it
+
+Typing a new question while standing on an old recall wrote the new text into
+**that entry's** working copy, so a later Up served back something nobody had
+ever sent. Sending now re-syncs the scratch copies from what was actually sent
+— which is what a shell does when a line is accepted.
+
+Found by driving the real module in Node against a stubbed textarea rather than
+by reading it. ⚠️ **That harness is not in the repo**: there is no JS test
+runner here, and adding one is a project-shaping decision nobody has made. It
+is worth re-creating if this file is touched again.
+
+### ⚠️ The other half — a stop button — is NOT built, and is blocked
+
+Breakfast's flow was "cancel the running answer, edit, resend". **There is no
+stop button and adding one naively would be a lie**, because:
+
+1. Cancelling an OpenAI-wire-format call means closing the connection, and that
+   only means anything while **streaming**.
+2. **PHP cannot tell the browser hung up while blocked on a socket** —
+   `connection_aborted()` only updates when PHP writes output, and during a
+   blocking Guzzle call it writes nothing.
+3. `remember()` runs after the answer lands regardless of who is listening, so
+   the "cancelled" question **and its answer** would still be written and would
+   reappear on the next load.
+
+Streaming fixes all three, and `LlmClient::stream()` and
+`BrandAssistant::streamAnswer()` are **already built and wired to nothing**
+(CLAUDE.md §7). But it is gated on whether this host lets PHP flush at all,
+which `tools/flush-probe.php` exists to measure and which has not been run.
+`Server: openresty` with gzip on says probably not.
+
+**Until then the flow is: wait for the answer, press Up, edit, resend** — which
+is the same thing minus the impatience, and honest about what the host allows.
+⚠️ `AI_TIMEOUT=90` bounds that wait, and production still carries **300** until
+`portal/tests/.env` is uploaded.
+
+### Done alongside, off the list
+
+**The canonical tag named whatever host served it.** `url()->current()` reads
+the request host, so every alias certified itself as the original — and this
+site answers on two hostnames sharing one document root with `robots.txt`
+allowing everything, so every public page was two indexable copies. Now built
+from `APP_URL` + `getPathInfo()`. It lands on the most-rendered layout in the
+app: seven public pages plus the six entrance screens.
+`tests/Feature/CanonicalUrlTest.php`, verified to fail against the old code
+before being kept.
 ---
 
 ## Bugs found while building — the reusable ones
