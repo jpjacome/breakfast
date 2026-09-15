@@ -8,6 +8,7 @@ use App\Models\AssistantMessage;
 use App\Models\BrandAsset;
 use App\Models\Client;
 use App\Models\User;
+use Illuminate\Support\Facades\Schema;
 
 use function Pest\Laravel\actingAs;
 
@@ -30,11 +31,9 @@ function personInTwoBrands(
     $alea = Client::factory()->create(['name' => 'Alea', 'slug' => 'alea']);
     $bruma = Client::factory()->create(['name' => 'Bruma', 'slug' => 'bruma']);
 
-    $user = User::factory()->create([
-        'role' => UserRole::ClienteMiembro,
-        'client_id' => null,
-        'permissions' => null,
-    ]);
+    // No membership from the factory: both are attached explicitly below, one
+    // per brand, which is the whole point of this file.
+    $user = User::factory()->create(['role' => UserRole::ClienteMiembro]);
 
     foreach ([[$alea, $firstRole, $first], [$bruma, $secondRole, $second]] as [$brand, $role, $map]) {
         $user->brands()->attach($brand->id, [
@@ -65,9 +64,7 @@ it('shows a picker only when there is more than one brand', function () {
         ->assertSee('Cambiar de marca');
 
     // One brand: the name, and no control that pretends to offer a choice.
-    $solo = User::factory()->clientOwner()->create([
-        'permissions' => ['estrategia' => 'read'],
-    ]);
+    $solo = User::factory()->clientOwner(permissions: ['estrategia' => 'read'])->create();
 
     actingAs($solo)->get(route('portal.home'))
         ->assertOk()
@@ -304,11 +301,12 @@ it('adds an existing account to a brand instead of refusing it', function () {
     $admin = User::factory()->admin()->create();
     $bruma = Client::factory()->create(['name' => 'Bruma']);
 
-    $existing = User::factory()->clientOwner()->create([
-        'name' => 'Lucía Paz',
-        'email' => 'lucia@ejemplo.com',
-        'permissions' => ['estrategia' => 'read'],
-    ]);
+    $existing = User::factory()
+        ->clientOwner(permissions: ['estrategia' => 'read'])
+        ->create([
+            'name' => 'Lucía Paz',
+            'email' => 'lucia@ejemplo.com',
+        ]);
 
     $before = $existing->password;
 
@@ -348,14 +346,15 @@ it('does not let a brand owner attach an address that already has an account', f
  | The columns this replaced are dead
  ------------------------------------------------------------------------- */
 
-it('answers from the membership and not from the old user columns', function () {
+it('answers from the membership, and the old columns no longer exist', function () {
     [$user, $alea] = personInTwoBrands(first: ['estrategia' => 'read', 'reuniones' => 'read']);
 
-    // The account carries neither: it was made straight on the pivot. If any
-    // reader had fallen back to users.permissions this would be false, and if
-    // one had fallen back to users.client_id there would be no active brand.
-    expect($user->client_id)->toBeNull()
-        ->and($user->permissions)->toBeNull()
+    // Dropped on 2026-09-15 — docs/multimarca.md step 10. Asserted on the
+    // SCHEMA rather than on the model, because a dropped column and a column
+    // that merely reads null are indistinguishable from an accessor, and only
+    // one of them is what this file set out to prove.
+    expect(Schema::hasColumn('users', 'client_id'))->toBeFalse()
+        ->and(Schema::hasColumn('users', 'permissions'))->toBeFalse()
         ->and($user->canRead(PortalSection::Reuniones, $alea))->toBeTrue()
         ->and($user->activeBrand()->is($alea))->toBeTrue();
 });

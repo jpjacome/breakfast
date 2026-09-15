@@ -25,7 +25,7 @@ dataset('every role', [
     'admin' => [fn () => User::factory()->admin()->create()],
     'equipo' => [fn () => User::factory()->equipo()->create()],
     'brand owner' => [fn () => User::factory()->clientOwner(Client::factory()->create())->create()],
-    'brand member' => [fn () => User::factory()->create(['client_id' => Client::factory()])],
+    'brand member' => [fn () => User::factory()->clientMember()->create()],
 ]);
 
 it('walks the whole recovery loop', function (Closure $makeUser) {

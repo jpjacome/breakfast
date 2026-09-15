@@ -170,7 +170,7 @@ controller. Nothing is stubbed.
 | table | what it is |
 |---|---|
 | `clients` | **a brand, not a person.** name, slug (unique), industry, status, contact, notes, `onboarded_at`, `document_digest`, `trademark_registered`, soft-deletes |
-| `users` | role, 2FA columns. ⚠️ `client_id` and `permissions` are **dead** — kept only so the multi-marca migration stays reversible |
+| `users` | role, 2FA columns. ⚠️ `client_id` and `permissions` were **dropped 2026-09-15** — the brand and the grants live on `brand_user`, per brand |
 | `brand_user` | ⭐ **which people are in which brands**, with their `BrandRole` and permissions map **per brand**. Unique on `client_id` + `user_id` |
 | `client_staff` | which Breakfast people cover which brands |
 | `brand_deliverables` | **one row per brand, 48 TEXT columns.** The heart of it |

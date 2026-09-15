@@ -21,8 +21,10 @@ test('an admin can create a user for a client', function () {
 
     $user = User::firstWhere('email', 'maria@lamarca.test');
 
+    // The brand is the MEMBERSHIP, not a column — users.client_id was dropped
+    // on 2026-09-15 (docs/multimarca.md step 10).
     expect($user)->not->toBeNull()
-        ->and($user->client_id)->toBe($client->id)
+        ->and($user->brands->contains($client))->toBeTrue()
         ->and($user->role)->toBe(UserRole::ClienteOwner);
 });
 

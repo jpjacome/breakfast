@@ -81,10 +81,9 @@ it('never shows a file the viewer could not open', function () {
         'original_name' => 'contrato.png',
     ]);
 
-    $member = User::factory()->create([
-        'client_id' => $this->client->id,
-        'permissions' => [PortalSection::BrandAssets->value => 'read'],
-    ]);
+    $member = User::factory()
+        ->clientMember($this->client, [PortalSection::BrandAssets->value => 'read'])
+        ->create();
 
     $items = app(TurnAttachments::class)->for(['contrato.png'], [$internal->id], $member);
 

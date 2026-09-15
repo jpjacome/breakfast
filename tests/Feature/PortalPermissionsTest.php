@@ -191,7 +191,7 @@ it('lets the owner invite a member with a partial grant', function () {
 
     $invited = User::where('email', 'diego@lamarca.com')->sole();
 
-    expect($invited->client_id)->toBe($client->id)
+    expect($invited->brands->contains($client))->toBeTrue()
         ->and($invited->role)->toBe(UserRole::ClienteMiembro)
         ->and($invited->accessTo(PortalSection::Estrategia))->toBe(AccessLevel::Read)
         // Posted as read+write, stored as Read: a grantable section tops out

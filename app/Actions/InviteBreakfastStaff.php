@@ -31,9 +31,7 @@ class InviteBreakfastStaff
             'name' => $name,
             'email' => $email,
             'role' => $role,
-            'client_id' => null,
             'password' => Hash::make($temporaryPassword),
-            'permissions' => [],
         ]);
 
         return [

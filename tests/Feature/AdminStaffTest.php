@@ -33,9 +33,12 @@ test('an admin can add someone to the team', function () {
 
     $user = User::firstWhere('email', 'maria@vamosdebreakfast.test');
 
+    // Staff belong to no brand — asserted on the memberships, since
+    // users.client_id was dropped on 2026-09-15 and reading a column that is
+    // not there would pass for the wrong reason.
     expect($user)->not->toBeNull()
         ->and($user->role)->toBe(UserRole::Equipo)
-        ->and($user->client_id)->toBeNull();
+        ->and($user->brands)->toBeEmpty();
 
     Notification::assertSentTo($user, StaffInvitation::class);
 });

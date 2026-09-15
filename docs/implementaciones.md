@@ -26,7 +26,7 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 | # | item | state |
 |---|---|---|
 | 1 | Brand Egg | 🟡 **steps 1–9 built 2026-09-15.** Only §11 step 10 is open — layer 4's images, gated on brief point 2. See §1 below |
-| 2 | Multi-marca y permisos | ✅ 2026-09-14 |
+| 2 | Multi-marca y permisos | ✅ 2026-09-14 · **step 10 closed 2026-09-15** |
 | 3 | Leer las imágenes del toolkit sin segunda carga | ✅ 2026-09-14/15 |
 | 4 | Mostrar imágenes en el chat, ampliar y reproducir video | ✅ 2026-09-15 |
 | 5 | Historial de chats y conversación completa | ⬜ **merged with #6** — assessed, see below |
@@ -302,6 +302,63 @@ showing, and the sidebar still printed the *account* role.
 - **Dropping `users.client_id` and `users.permissions`** — deliberately
   deferred so the migration stays reversible. Dead but still written on account
   creation. This is step 10 of `multimarca.md`.
+
+---
+
+## 2b · Multimarca step 10 — the single-brand columns go · 2026-09-15
+
+*`docs/multimarca.md` §10, closed once the pivot had been live in production for
+a full deploy cycle.*
+
+`users.client_id` and `users.permissions` were replaced by the `brand_user`
+pivot on 2026-09-14 and left in place so that migration stayed reversible. They
+were inert — nothing read them — but the FACTORY still wrote them and copied
+them onto the pivot after creating, which is how ~85 test sites declared a brand
+membership without ever saying so.
+
+**Two commits, deliberately.** The factory first, with the columns still there
+and the suite green; the columns second. One commit would have meant a failure
+that could have come from either half — which is the same reason step 10 was
+deferred in the first place.
+
+### What changed
+
+| | |
+|---|---|
+| `UserFactory` | `clientOwner($brand, $permissions)` and `clientMember($brand, $permissions)` write one `brand_user` row each |
+| bare `User::factory()->create()` | now a client user in **no brand**, which `accessTo()` fails closed on |
+| `User` | `client()` relation gone, both columns out of `$fillable`, the `permissions` cast gone |
+| `InviteUserToClient` | stops writing `client_id`; `sendSetupLink()` loses its dead `?? $user->client` fallback |
+| `InviteBreakfastStaff` | stops writing `client_id => null` and `permissions => []` |
+| `DemoSeeder` | ⚠️ **was never writing the pivot at all** — see below |
+
+### The one real bug this turned up
+
+**`DemoSeeder` had been making brand-less client users since 2026-09-14.** It set
+`client_id` and `permissions` and nothing else, so the demo accounts it created
+had no membership and `/portal` closed on them. Nothing caught it because seeders
+are not covered by the suite and the columns still existed, so it failed silently
+and only on a freshly seeded machine. It writes memberships now.
+
+### Reversibility, said plainly
+
+`down()` restores the columns but **not the data, and it cannot** — a person with
+three brands has no single `client_id` to go back to. What makes this safe is not
+the rollback; it is that the pivot has been the only source of truth for a full
+deploy cycle.
+
+### Deploy
+
+⚠️ **This migration is not urgent and should travel alone.** The columns are
+inert: leaving them costs nothing but confusion. Do not run it in the same pass
+as the Brand Egg upload just because both are pending — a destructive column drop
+stacked on a feature deploy makes one bad evening out of two easy ones.
+
+When it does go: upload the PHP first, then
+`2026_09_15_120000_drop_single_brand_columns_from_users_table`. The new code
+never reads the columns, so unlike the pivot migration there is no gap to worry
+about in either order — but the code must not be OLDER than the schema, because
+the old code still writes them.
 
 ---
 
@@ -912,6 +969,7 @@ Brandy sending.
 steps 1 and 3–9; see §1 above.** What is left of that plan is step 10 alone,
 layer 4's images, which is gated on brief point 2 and not on anything here.
 
-`docs/multimarca.md` §10 (dropping `users.client_id` and `users.permissions`) is
-still open and still safe to do, since the pivot is live and backfilled in
-production.
+~~`docs/multimarca.md` §10~~ — **closed 2026-09-15.** `users.client_id` and
+`users.permissions` are gone; see §2b. What is left of that plan is collapsing
+`UserRole`'s two client cases into one, which is vocabulary rather than storage
+and belongs in its own pass.

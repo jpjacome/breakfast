@@ -12,13 +12,12 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'client_id', 'permissions'])]
+#[Fillable(['name', 'email', 'password', 'role'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable
 {
@@ -31,16 +30,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'role' => UserRole::class,
-            'permissions' => 'array',
         ];
-    }
-
-    /**
-     * The brand this user belongs to. Null for Breakfast staff.
-     */
-    public function client(): BelongsTo
-    {
-        return $this->belongsTo(Client::class);
     }
 
     /**
@@ -115,8 +105,8 @@ class User extends Authenticatable
      * The brand this request is about, or null.
      *
      * A thin reading of ActiveBrand, which is the one place that decides. It
-     * sits here so that call sites keep asking the user — $user->activeBrand()
-     * reads the way $user->client did — without every one of them having to
+     * sits here so that call sites keep asking the user — it reads the way the
+     * old single-brand relation did — without every one of them having to
      * resolve the service itself.
      */
     public function activeBrand(): ?Client
@@ -233,8 +223,8 @@ class User extends Authenticatable
      * and for the client reading it — so the two answers live together rather
      * than in two controllers that could drift apart.
      *
-     * Fails closed: a client user whose client_id does not match, or who was
-     * never granted Brand assets, gets nothing. A Breakfast user has to cover
+     * Fails closed: a client user who is not in the asset's brand, or who was
+     * never granted Brand assets there, gets nothing. A Breakfast user has to cover
      * the brand, exactly as EnsureStaffCoversClient would have decided.
      *
      * ⚠️ AND AN INTERNAL FILE IS BREAKFAST'S ALONE. A brand's folder holds the

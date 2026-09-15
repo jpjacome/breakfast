@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\AccessLevel;
+use App\Enums\BrandRole;
 use App\Enums\ClientStatus;
 use App\Enums\PortalSection;
 use App\Enums\UserRole;
@@ -32,7 +33,6 @@ class DemoSeeder extends Seeder
                 'password' => Hash::make(self::PASSWORD),
                 'email_verified_at' => now(),
                 'role' => UserRole::Admin,
-                'client_id' => null,
             ]
         );
 
@@ -72,10 +72,20 @@ class DemoSeeder extends Seeder
                 'password' => Hash::make(self::PASSWORD),
                 'email_verified_at' => now(),
                 'role' => UserRole::ClienteOwner,
-                'client_id' => $client->id,
-                'permissions' => $ownerPermissions,
             ]
         );
+
+        // ⚠️ THE MEMBERSHIP IS THE BRAND, and this seeder did not write one.
+        // It set users.client_id and users.permissions, which the portal
+        // stopped reading on 2026-09-14 and which were dropped on 2026-09-15 —
+        // so the demo accounts it made had no brand at all and /portal closed
+        // on them. See docs/multimarca.md.
+        $clientUser->brands()->syncWithoutDetaching([
+            $client->id => [
+                'role' => BrandRole::Owner->value,
+                'permissions' => json_encode((object) $ownerPermissions),
+            ],
+        ]);
 
         /*
          * A teammate, granted by María rather than by Breakfast, and strictly
@@ -91,13 +101,18 @@ class DemoSeeder extends Seeder
                 'password' => Hash::make(self::PASSWORD),
                 'email_verified_at' => now(),
                 'role' => UserRole::ClienteMiembro,
-                'client_id' => $client->id,
-                'permissions' => [
-                    PortalSection::Estrategia->value => AccessLevel::Read->value,
-                    PortalSection::Reuniones->value => AccessLevel::Read->value,
-                ],
             ]
         );
+
+        $member->brands()->syncWithoutDetaching([
+            $client->id => [
+                'role' => BrandRole::Miembro->value,
+                'permissions' => json_encode((object) [
+                    PortalSection::Estrategia->value => AccessLevel::Read->value,
+                    PortalSection::Reuniones->value => AccessLevel::Read->value,
+                ]),
+            ],
+        ]);
 
         $this->command->newLine();
         $this->command->info('Cuentas de desarrollo listas (contraseña: '.self::PASSWORD.')');

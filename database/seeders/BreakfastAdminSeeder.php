@@ -28,7 +28,6 @@ class BreakfastAdminSeeder extends Seeder
                     'name' => $admin['name'],
                     'password' => Hash::make('Breakfast2020.'),
                     'role' => UserRole::Admin,
-                    'client_id' => null,
                     'email_verified_at' => now(),
                 ]
             );

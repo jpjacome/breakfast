@@ -66,10 +66,6 @@ class InviteUserToClient
             'email' => $email,
             'role' => $role,
             'password' => Hash::make($temporaryPassword),
-            // ⚠️ Kept so the account still records the brand it was created
-            // for, and so the invitation mail can name one. It is NOT what the
-            // portal reads — brand_user is (ACC-01). See docs/multimarca.md §2.
-            'client_id' => $client->id,
         ]);
 
         $this->attach($client, $user, $role, $permissions);
@@ -143,12 +139,11 @@ class InviteUserToClient
      */
     public function sendSetupLink(User $user, ?Client $client = null): bool
     {
-        // The brand is passed in rather than read off the user: an account can
-        // now belong to several, so "their brand" stopped being a question the
-        // user row can answer. Falls back to the brand the account was created
-        // for, which is what the resend path on /admin means.
-        $client ??= $user->client;
-
+        // ⚠️ THE BRAND IS PASSED IN, ALWAYS. An account belongs to several, so
+        // "their brand" stopped being a question a user row can answer — and
+        // since 2026-09-15 there is no column left to guess from. Every caller
+        // that has a brand names it; the nullable signature is what makes a
+        // caller without one fail closed rather than mail the wrong brand.
         if ($client === null) {
             return false;
         }

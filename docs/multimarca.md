@@ -241,11 +241,17 @@ Steps 1–3 are the risky ones and everything after them is mechanical.
 
 ---
 
-## 10. Status — built 2026-09-14
+## 10. Status — built 2026-09-14, closed 2026-09-15
 
-**Steps 1-9 are done. 518/518 tests pass, `pint` clean, and the migration has
-been run against the local database** (3 client users -> 3 memberships, roles
-and permission maps carried over intact).
+**Steps 1-9 were done on 2026-09-14. 518/518 tests passed, `pint` clean, and
+the migration was run against the local database** (3 client users -> 3
+memberships, roles and permission maps carried over intact).
+
+**Step 10 closed on 2026-09-15**, once the pivot had been live in production for
+a full deploy cycle. 588/588. It took two commits on purpose — the factory first,
+the columns second — because the factory was the last thing writing them, as
+shorthand that let ~85 test sites declare a membership without saying so. One
+commit would have meant a failure that could have come from either half.
 
 | | | |
 |---|---|---|
@@ -258,7 +264,7 @@ and permission maps carried over intact).
 | 7 | `InviteUserToClient::attach()` — an existing account is added, not duplicated | done |
 | 8 | `EnforceBrandPermissionCeiling` per brand | done |
 | 9 | `tests/Feature/MultiBrandTest.php` — 21 tests | done |
-| 10 | Drop `users.client_id` and `users.permissions` | **open, deliberately** |
+| 10 | Drop `users.client_id` and `users.permissions` | **done 2026-09-15** |
 
 ### Verified in the browser
 
@@ -275,7 +281,9 @@ Per-brand permissions, end to end.
   storage change would have meant one commit where a failure could have come
   from either half. `users.role` is now only read for `isBreakfast()` and as the
   factory's shorthand; `BrandRole` on the pivot is what decides anything about a
-  brand. Collapsing it belongs with step 10.
+  brand. ⚠️ **It did NOT go with step 10, and it is the last piece of §2 still
+  open.** Step 10 was about storage; this is about vocabulary, and the same
+  argument for splitting them applies again.
 - **Removing somebody detaches the membership** and deletes the account only
   when it was their last brand. Deleting the row outright would have let the
   owner of one brand close somebody out of another.
