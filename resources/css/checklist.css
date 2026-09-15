@@ -1,0 +1,114 @@
+/*
+   The implementation checklist — SEG-05 of the beta review.
+
+   ⚠️ ITS OWN FILE BECAUSE IT RENDERS IN BOTH SHELLS. The client ticks it on
+   /portal/estrategia and Breakfast watches it on /admin/clientes/{marca}, so
+   neither dashboard.css nor admin.css can hold it — the same rule that made
+   permissions.css its own file, and the same trap: only tokens BOTH shells
+   define may be used here. That bug's other half was --box-edge, which only
+   the portal had. Everything below is --ink, --ink-quiet, --sunken, --rule,
+   --bkf-yellow, --border-radius, --dur and --ease, all of which are in
+   admin.css and dashboard.css alike.
+
+   Named for the component, loaded by each page that renders it.
+*/
+
+.checklist {
+  display: grid;
+  gap: .875rem;
+}
+
+.checklist-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.checklist-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* A count of THEIR OWN items, which is why it is here and why "25 de 48" is
+   not printed anywhere on the brand page: every one of these is something a
+   person can go and do. */
+.checklist-count {
+  margin: 0;
+  font-size: .8rem;
+  color: var(--ink-quiet);
+  white-space: nowrap;
+}
+
+.checklist-items {
+  display: grid;
+  gap: .125rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.checklist-item label,
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: .625rem;
+  padding: .5rem .625rem;
+  font-size: .925rem;
+  line-height: 1.5;
+  border-radius: var(--border-radius);
+}
+
+/* The label is the whole row, so the text is part of the hit area — a
+   checkbox alone is a 16px target on a phone. */
+.checklist-item label {
+  width: 100%;
+  padding: 0;
+  cursor: pointer;
+}
+
+.checklist-item:hover { background: var(--sunken); }
+
+.checklist-item input[type="checkbox"] {
+  flex: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  margin-top: .15rem;
+  accent-color: var(--bkf-yellow);
+  cursor: pointer;
+}
+
+/* Ticked items stay legible rather than being struck through and greyed to
+   nothing: the list is a record of what was done, not a bin. */
+.checklist-item.is-done { color: var(--ink-quiet); }
+
+.checklist-mark {
+  flex: none;
+  display: inline-flex;
+  margin-top: .1rem;
+  color: var(--ink-quiet);
+}
+
+.checklist-item.is-done .checklist-mark { color: var(--bkf-yellow); }
+.checklist-mark svg { width: 1.05rem; height: 1.05rem; }
+
+/* Who ticked it, on Breakfast's side. The point of the read-only view. */
+.checklist-who {
+  display: block;
+  margin-top: .125rem;
+  font-size: .75rem;
+  color: var(--ink-quiet);
+}
+
+/* Hidden once checklist.js is running: the boxes save themselves, and a save
+   button that never needs pressing is a button people press anyway and then
+   wonder about. It stays for anybody without JavaScript. */
+.checklist-form.is-live .checklist-save { display: none; }
+
+.checklist-saved {
+  font-size: .8rem;
+  color: var(--ink-quiet);
+  transition: opacity var(--dur) var(--ease);
+}
+
+.checklist-saved[hidden] { display: none; }

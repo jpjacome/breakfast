@@ -3,7 +3,7 @@
 use App\Enums\UserRole;
 use App\Models\Client;
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Notifications\ClientInvitation;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 
@@ -40,7 +40,7 @@ test('the new user gets a link to set their own password', function () {
 
     Notification::assertSentTo(
         User::firstWhere('email', 'nuevo@lamarca.test'),
-        ResetPassword::class,
+        ClientInvitation::class,
     );
 });
 
@@ -82,19 +82,29 @@ test('breakfast roles cannot be assigned through the client form', function () {
     expect(User::where('role', UserRole::Equipo)->count())->toBe(0);
 });
 
-test('a duplicate email is rejected', function () {
+test('an address that already has an account is added to the brand, not refused', function () {
+    // ⚠️ This used to assert a validation error, and that was right while an
+    // account belonged to exactly one brand. ACC-01 inverted it: the same
+    // person working with two brands is the case this app now has to serve,
+    // and refusing the address was what forced them into a second one.
     Notification::fake();
 
     $this->actingAs(User::factory()->admin()->create());
     $client = Client::factory()->create();
 
-    User::factory()->create(['email' => 'tomado@lamarca.test']);
+    $existing = User::factory()->create(['email' => 'tomado@lamarca.test']);
 
     $this->post(route('admin.clients.users.store', $client), [
         'name' => 'Otro',
         'email' => 'tomado@lamarca.test',
         'role' => UserRole::ClienteMiembro->value,
-    ])->assertSessionHasErrors('email');
+    ])->assertSessionHasNoErrors();
+
+    expect(User::where('email', 'tomado@lamarca.test')->count())->toBe(1)
+        ->and($existing->fresh()->brands->contains($client))->toBeTrue();
+
+    // No "create your password" mail: they already have one.
+    Notification::assertNothingSent();
 });
 
 test('a client user cannot create accounts', function () {

@@ -32,5 +32,35 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+
+        <!--
+            The AI provider is PINNED here, not inherited from .env.
+
+            The client tests fake HTTP against whichever base URL the active
+            provider uses. Left to .env, changing AI_PROVIDER on a laptop sent
+            those requests straight past the fake to the real API — with the
+            real key, spending real credits and shipping the test prompts to a
+            provider. That happened once, on 2026-08-13, switching to
+            OpenRouter. Tests must not depend on developer configuration.
+
+            The keys are blanked for the same reason: belt as well as braces,
+            so a stray request cannot authenticate even if one escapes.
+            Http::preventStrayRequests() in tests/Pest.php is the braces.
+        -->
+        <env name="AI_PROVIDER" value="deepseek"/>
+        <env name="OPENROUTER_API_KEY" value=""/>
+        <env name="OPENROUTER_MANAGEMENT_KEY" value=""/>
+
+        <!--
+            Pinned for the same reason: a test that asserts on a rendered date
+            reads the month name through the locale, and .env.example still
+            ships APP_LOCALE=en. Left inherited, those assertions pass on this
+            laptop and fail on a fresh clone.
+
+            The timezone is NOT pinned here, deliberately — it is hardcoded in
+            config/app.php rather than read from env, so it is already the same
+            everywhere and there is nothing for a machine to disagree about.
+        -->
+        <env name="APP_LOCALE" value="es"/>
     </php>
 </phpunit>

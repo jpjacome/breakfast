@@ -9,10 +9,23 @@
    "Vibes de The WSJ: clean, chic e inteligente, con un toque fun."
    Limpio. Simple. Pero cool.
 
-   Drop into a Laravel app at resources/css/general.css and import it
-   BEFORE Tailwind's utilities layer if you use Tailwind:
-       @import './general.css';
-       @tailwind base; @tailwind components; @tailwind utilities;
+   THIS IS THE ONLY GENERAL STYLESHEET, for the website and the app alike. It
+   holds the palette, the base, the type sizes, the one radius, the one border
+   and the dark theme. Everything else is a stylesheet per blade, holding only
+   that page's own elements — see the list below.
+
+   The rules, which do not bend:
+   · Never add a colour. The palette below is the whole vocabulary. If
+     something seems to need another one, ask — do not mix, tint or invent it.
+   · One of each general rule: one radius, one border width. Not scales.
+   · Spacing is plain rem — 1rem, 2rem. No spacing tokens.
+   · Type size is clamp(px, vw, rem), set once below for p, h1, h2 and h3.
+   · No Tailwind, and no role tokens (--primary-fill and friends). Fewer
+     variables is the goal.
+
+   This file imports nothing. Every blade loads two stylesheets — this one and
+   its own — so a page never downloads styles belonging to another. Adding a
+   page means adding its file to vite.config.js and naming it in its blade.
    ========================================================================== */
 
 
@@ -42,722 +55,251 @@
   --bkf-yellow-600:    #C79C0C;   /* hover on yellow */
   --bkf-yellow-800:    #8A6C06;
 
-  --bkf-gray-50:       #F7F8F9;
-  --bkf-gray-100:      #EDEFF1;
-  --bkf-gray-200:      #DEE1E5;
-  --bkf-gray-300:      #C4C9CF;
-  --bkf-gray-400:      #9BA2AB;
-  --bkf-gray-500:      #6E767F;
-  --bkf-gray-600:      #4C535A;
-  --bkf-gray-700:      #33383D;
-  --bkf-gray-900:      #16181A;
+  /* One radius and one border width for everything: buttons, cards, inputs,
+     images, rules. */
+  --border-radius: 36px;
+  --border-width: 2px;
 
-  /* --- 1.3 Semantic roles — USE THESE IN COMPONENTS */
+  /* The two faces, and the one motion. A font stack has to be named in more
+     than one place, so it is a variable; there is no scale of them. */
+  --font-serif: "Libre Baskerville", Georgia, "Times New Roman", serif;
+  --font-sans:  "Almarai", system-ui, -apple-system, sans-serif;
+  --duration: 240ms;
+  --ease: cubic-bezier(.22, .61, .36, 1);
 
-  --color-bg:              var(--bkf-off-white);
-  --color-surface:         var(--bkf-white);
-  --color-surface-sunken:  var(--bkf-gray-50);
-  --color-surface-invert:  var(--bkf-black);
+  /* Page gutter and the width content stops growing at. */
+  --gutter: 2rem;
+  --max-width: 1600px;
 
-  --color-text:            var(--bkf-black);
-  --color-text-muted:      var(--bkf-gray-500);
-  --color-text-subtle:     var(--bkf-gray-400);
-  --color-text-invert:     var(--bkf-white);
-
-  --color-border:          var(--bkf-gray-200);
-  --color-border-strong:   var(--bkf-black);
-  --color-border-subtle:   var(--bkf-gray-100);
-
-  --color-accent:          var(--bkf-yellow);
-  --color-accent-hover:    var(--bkf-yellow-600);
-  --color-accent-soft:     var(--bkf-yellow-100);
-  --color-on-accent:       var(--bkf-black);   /* black on yellow. Never white. */
-
-  --color-focus:           var(--bkf-black);
-
-  /* Status — mapped onto brand accents, not generic UI colors */
-  --color-success:         var(--bkf-green);
-  --color-success-soft:    #E7EEE4;
-  --color-warning:         var(--bkf-orange);
-  --color-warning-soft:    #FDECE0;
-  --color-danger:          var(--bkf-red);
-  --color-danger-soft:     #F6E3E2;
-  --color-info:            var(--bkf-blue);
-  --color-info-soft:       #E8F1F6;
-
-  /* --- 1.4 Channel colors — one accent per social platform / content type.
-         Hold these CONSISTENTLY across the whole app. Never re-map. */
-
-  --channel-instagram:     var(--bkf-red);
-  --channel-tiktok:        var(--bkf-black);
-  --channel-youtube:       var(--bkf-orange);
-  --channel-linkedin:      var(--bkf-navy);
-  --channel-facebook:      var(--bkf-blue);
-  --channel-web:           var(--bkf-green);
-  --channel-email:         var(--bkf-brown);
-  --channel-podcast:       var(--bkf-yellow);
-
-  /* --- 1.5 Project stage colors (5 etapas) */
-
-  --stage-1:               var(--bkf-blue);     /* Descubrimiento   */
-  --stage-2:               var(--bkf-green);    /* Estrategia       */
-  --stage-3:               var(--bkf-yellow);   /* Identidad        */
-  --stage-4:               var(--bkf-orange);   /* Activación       */
-  --stage-5:               var(--bkf-brown);    /* Acompañamiento   */
-
-  /* --- 1.6 Typography
-         The deck is set in Arial/Helvetica — a neo-grotesque is correct.
-         Swap --font-sans for a licensed face (Helvetica Now / ABC Diatype /
-         Söhne) when one is acquired. Inter is the free stand-in.
-         The LOGO is a separate heavy rounded display face — it is an SVG
-         asset, never web type. */
-
-  --font-sans: "Inter", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  /* Optional editorial serif — ONLY for long-form reading (blog, strategy docs).
-     Never in UI chrome. */
-  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
-
-  --fw-regular: 400;
-  --fw-medium:  500;
-  --fw-bold:    700;
-  --fw-black:   900;
-
-  /* Type scale — 1.250 major third, 16px base */
-  --fs-3xs:  0.6875rem;  /* 11px  labels, eyebrows           */
-  --fs-2xs:  0.75rem;    /* 12px  meta, captions             */
-  --fs-xs:   0.8125rem;  /* 13px  dense UI                   */
-  --fs-sm:   0.875rem;   /* 14px  secondary body             */
-  --fs-base: 1rem;       /* 16px  body                       */
-  --fs-lg:   1.125rem;   /* 18px  lead                       */
-  --fs-xl:   1.375rem;   /* 22px  card title                 */
-  --fs-2xl:  1.75rem;    /* 28px  section heading (.dot)     */
-  --fs-3xl:  2.5rem;     /* 40px  page heading               */
-  --fs-4xl:  3.5rem;     /* 56px  hero metric (82%)          */
-  --fs-5xl:  5rem;       /* 80px  display                    */
-
-  --lh-tight:   1.05;
-  --lh-snug:    1.25;
-  --lh-normal:  1.5;
-  --lh-relaxed: 1.7;   /* long-form reading */
-
-  --ls-tight:   -0.02em;
-  --ls-normal:   0;
-  --ls-wide:     0.08em;   /* eyebrows / small caps */
-
-  /* --- 1.7 Space — 4px base, generous by default.
-         Negative space is the single most brand-defining move.
-         When in doubt, use the larger step. */
-
-  --space-0:   0;
-  --space-1:   0.25rem;   /*  4 */
-  --space-2:   0.5rem;    /*  8 */
-  --space-3:   0.75rem;   /* 12 */
-  --space-4:   1rem;      /* 16 */
-  --space-5:   1.5rem;    /* 24 */
-  --space-6:   2rem;      /* 32 */
-  --space-7:   3rem;      /* 48 */
-  --space-8:   4rem;      /* 64 */
-  --space-9:   6rem;      /* 96 */
-  --space-10:  8rem;      /* 128 */
-
-  /* --- 1.8 Radius — roundness lives in the LOGO, not in every card. Restrained. */
-
-  --radius-xs:   2px;
-  --radius-sm:   4px;
-  --radius-md:   8px;
-  --radius-lg:   12px;
-  --radius-xl:   16px;
-  --radius-full: 999px;
-
-  /* --- 1.9 Elevation — editorial means flat. Borders over shadows.
-         Use shadow only for genuinely floating layers (modal, dropdown, toast). */
-
-  --shadow-none: none;
-  --shadow-sm:   0 1px 2px rgba(0,0,0,.05);
-  --shadow-md:   0 4px 12px rgba(0,0,0,.07);
-  --shadow-lg:   0 12px 32px rgba(0,0,0,.10);
-  --shadow-sticker: 0 0 0 3px var(--bkf-white), 0 0 0 5px var(--bkf-black);
-
-  /* --- 1.10 Motion — quiet. "Alguien ruidoso" is a stated anti-pattern.
-          Nothing bouncy, nothing attention-seeking. */
-
-  --ease:        cubic-bezier(.4, 0, .2, 1);
-  --ease-out:    cubic-bezier(0, 0, .2, 1);
-  --dur-fast:    120ms;
-  --dur-base:    200ms;
-  --dur-slow:    320ms;
-
-  /* --- 1.11 Layout */
-
-  --container:        1280px;
-  --container-narrow: 760px;   /* long-form reading measure */
-  --sidebar-w:        260px;
-  --topbar-h:         72px;
-  --z-dropdown: 100;
-  --z-sticky:   200;
-  --z-drawer:   300;
-  --z-modal:    400;
-  --z-toast:    500;
+  /* --- the two colours that change with the theme -------------------------
+     The whole dark mode is these two swapping, further down. Everything else
+     on any page is a palette colour above, used directly. Two variables, not
+     twenty roles.
+     ---------------------------------------------------------------------- */
+  --page: var(--bkf-off-white);
+  --ink: var(--bkf-black);
 }
 
 
-/* --------------------------------------------------------------------------
-   2. RESET + BASE
-   -------------------------------------------------------------------------- */
+/* --- type sizes -----------------------------------------------------------
+   Set once, for the whole project. A page that needs a different size for one
+   heading overrides it in its own file; it does not invent a new scale.
+   ------------------------------------------------------------------------- */
+
+h1 { font-size: clamp(28px, 3.4vw, 3.25rem); }
+h2 { font-size: clamp(24px, 2.8vw, 2.5rem); }
+h3 { font-size: clamp(17px, 1.9vw, 1.25rem); }
+p  { font-size: clamp(15px, 1.55vw, 1.1rem); }
+
+
+/* --- dark theme -----------------------------------------------------------
+   Chosen explicitly by the toggle in the app's rail, which writes data-theme
+   on <html>. The page and the ink trade places; nothing else moves, because
+   nothing else is a variable.
+
+   The public website is not themed — it is always the yellow-and-black brand —
+   so this applies to the app only.
+   ------------------------------------------------------------------------- */
+
+[data-theme="dark"] {
+  --page: var(--bkf-black);
+  --ink: var(--bkf-off-white);
+
+  /* Scrollbars, form controls and autofill follow the page instead of
+     painting a light box in the middle of it. */
+  color-scheme: dark;
+}
+
+
+/* --- base -----------------------------------------------------------------
+   Unscoped, so the website and the app get the same foundation instead of the
+   app rebuilding it inside .admin. Everything here is a reset or a default —
+   nothing that belongs to one page.
+   ------------------------------------------------------------------------- */
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html { -webkit-text-size-adjust: 100%; }
-
-body {
-  margin: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
-  font-family: var(--font-sans);
-  font-size: var(--fs-base);
-  font-weight: var(--fw-regular);
-  line-height: var(--lh-normal);
-  letter-spacing: var(--ls-normal);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-h1, h2, h3, h4, h5, h6, p, figure, blockquote, dl, dd { margin: 0; }
-ul, ol { margin: 0; padding: 0; list-style: none; }
-img, svg, video { display: block; max-width: 100%; height: auto; }
-button, input, select, textarea { font: inherit; color: inherit; }
+h1, h2, h3 { margin: 0; font-family: var(--font-serif); font-weight: 400; }
+p, figure { margin: 0; }
+img { display: block; max-width: 100%; }
 a { color: inherit; text-decoration: none; }
+:focus-visible { outline: var(--border-width) solid var(--ink); outline-offset: 3px; }
 
-:focus-visible {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
-  border-radius: var(--radius-xs);
-}
-
-::selection { background: var(--bkf-yellow); color: var(--bkf-black); }
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: .01ms !important;
-    transition-duration: .01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-
-/* --------------------------------------------------------------------------
-   3. TYPOGRAPHY
-   -------------------------------------------------------------------------- */
-
-.bkf-display {
-  font-size: var(--fs-5xl);
-  font-weight: var(--fw-bold);
-  line-height: var(--lh-tight);
-  letter-spacing: var(--ls-tight);
-}
-
-.bkf-h1 { font-size: var(--fs-3xl); font-weight: var(--fw-bold); line-height: var(--lh-tight);  letter-spacing: var(--ls-tight); }
-.bkf-h2 { font-size: var(--fs-2xl); font-weight: var(--fw-bold); line-height: var(--lh-snug);   letter-spacing: var(--ls-tight); }
-.bkf-h3 { font-size: var(--fs-xl);  font-weight: var(--fw-bold); line-height: var(--lh-snug); }
-.bkf-h4 { font-size: var(--fs-lg);  font-weight: var(--fw-medium); line-height: var(--lh-snug); }
-
-/* THE brand typographic device, straight from the deck:
-   lowercase headings prefixed with a period — .personalidad .cromática .do's
-   Usage: <h2 class="bkf-dot">estrategia</h2>  →  ".estrategia"           */
-.bkf-dot {
-  font-size: var(--fs-2xl);
-  font-weight: var(--fw-bold);
-  line-height: var(--lh-snug);
-  letter-spacing: var(--ls-tight);
-  text-transform: lowercase;
-}
-.bkf-dot::before { content: "."; }
-
-.bkf-dot--sm { font-size: var(--fs-lg); }
-.bkf-dot--lg { font-size: var(--fs-3xl); }
-
-/* Eyebrow / kicker — the small uppercase label above a stat */
-.bkf-eyebrow {
-  font-size: var(--fs-3xs);
-  font-weight: var(--fw-medium);
-  letter-spacing: var(--ls-wide);
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.bkf-lead   { font-size: var(--fs-lg); line-height: var(--lh-relaxed); color: var(--color-text-muted); }
-.bkf-body   { font-size: var(--fs-base); line-height: var(--lh-normal); }
-.bkf-meta   { font-size: var(--fs-2xs); color: var(--color-text-muted); }
-
-/* Hero metric — the "82%" treatment */
-.bkf-metric {
-  font-size: var(--fs-4xl);
-  font-weight: var(--fw-bold);
-  line-height: 1;
-  letter-spacing: -0.03em;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Long-form reading only: blog posts, strategy documents, brandbook text.
-   Justified, generous measure, relaxed leading — the WSJ reference.
-   NEVER apply to UI chrome. */
-.bkf-prose {
-  max-width: var(--container-narrow);
-  font-size: var(--fs-lg);
-  line-height: var(--lh-relaxed);
-  text-align: justify;
-  hyphens: auto;
-}
-.bkf-prose > * + * { margin-top: var(--space-5); }
-.bkf-prose h2 { font-size: var(--fs-2xl); font-weight: var(--fw-bold); text-align: left; margin-top: var(--space-7); }
-.bkf-prose h3 { font-size: var(--fs-xl);  font-weight: var(--fw-bold); text-align: left; margin-top: var(--space-6); }
-.bkf-prose a  { border-bottom: 2px solid var(--bkf-yellow); }
-.bkf-prose blockquote {
-  border-left: 3px solid var(--bkf-black);
-  padding-left: var(--space-5);
-  font-style: italic;
-  text-align: left;
-}
-
-
-/* --------------------------------------------------------------------------
-   4. LOGO / STICKER
-   -------------------------------------------------------------------------- */
-
-/* The wordmark is an SVG asset. The sticker outline is the brand's one
-   "fun" gesture — everything around it stays restrained. */
-
-.bkf-logo { display: block; height: 28px; width: auto; }
-.bkf-logo--lg { height: 48px; }
-
-/* Yellow circle lockup (slide 3, variant A) */
-.bkf-logo-badge {
-  display: grid;
-  place-items: center;
-  width: 64px; height: 64px;
-  border-radius: var(--radius-full);
-  background: var(--bkf-yellow);
-}
-/* Light circle lockup (slide 3, variant B) */
-.bkf-logo-badge--light { background: var(--bkf-gray-100); }
-
-/* Die-cut sticker treatment for any element that should read as a sticker */
-.bkf-sticker {
-  display: inline-block;
-  background: var(--bkf-black);
-  color: var(--bkf-white);
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-sticker);
-  font-weight: var(--fw-bold);
-  font-size: var(--fs-2xs);
-  letter-spacing: var(--ls-wide);
-  text-transform: uppercase;
-}
-.bkf-sticker--yellow { background: var(--bkf-yellow); color: var(--bkf-black); }
-
-
-/* --------------------------------------------------------------------------
-   5. LAYOUT
-   -------------------------------------------------------------------------- */
-
-.bkf-container {
-  width: 100%;
-  max-width: var(--container);
-  margin-inline: auto;
-  padding-inline: var(--space-5);
-}
-.bkf-container--narrow { max-width: var(--container-narrow); }
-
-/* App shell: fixed left rail + content. Matches the brief's IA. */
-.bkf-shell {
-  display: grid;
-  grid-template-columns: var(--sidebar-w) 1fr;
-  min-height: 100vh;
-}
-@media (max-width: 900px) {
-  .bkf-shell { grid-template-columns: 1fr; }
-}
-
-.bkf-section { padding-block: var(--space-8); }
-.bkf-section--tight { padding-block: var(--space-6); }
-.bkf-section--loose { padding-block: var(--space-10); }
-
-.bkf-stack > * + * { margin-top: var(--space-4); }
-.bkf-stack--lg > * + * { margin-top: var(--space-6); }
-.bkf-stack--xl > * + * { margin-top: var(--space-8); }
-
-.bkf-row { display: flex; align-items: center; gap: var(--space-3); }
-.bkf-row--between { justify-content: space-between; }
-.bkf-row--wrap { flex-wrap: wrap; }
-
-.bkf-grid { display: grid; gap: var(--space-4); }
-.bkf-grid--2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-.bkf-grid--3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-.bkf-grid--4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-
-/* Editorial asymmetry — the deck leaves half a slide empty on purpose. */
-.bkf-split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8); }
-.bkf-split--offset { grid-template-columns: 1fr 1.6fr; }
-@media (max-width: 900px) {
-  .bkf-split, .bkf-split--offset { grid-template-columns: 1fr; gap: var(--space-6); }
-}
-
-
-/* --------------------------------------------------------------------------
-   6. NAVIGATION
-   -------------------------------------------------------------------------- */
-
-.bkf-sidebar {
-  background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
-  padding: var(--space-5) var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow-y: auto;
-}
-
-.bkf-nav { display: flex; flex-direction: column; gap: var(--space-1); }
-
-.bkf-nav-label {
-  font-size: var(--fs-3xs);
-  font-weight: var(--fw-medium);
-  letter-spacing: var(--ls-wide);
-  text-transform: uppercase;
-  color: var(--color-text-subtle);
-  padding: var(--space-2) var(--space-3);
-}
-
-.bkf-nav-item {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  font-size: var(--fs-sm);
-  color: var(--color-text-muted);
-  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
-}
-.bkf-nav-item:hover { background: var(--bkf-gray-50); color: var(--color-text); }
-
-/* Active state is one of the few places yellow is allowed to appear. */
-.bkf-nav-item[aria-current="page"],
-.bkf-nav-item.is-active {
-  background: var(--color-accent-soft);
-  color: var(--color-text);
-  font-weight: var(--fw-medium);
-  box-shadow: inset 3px 0 0 var(--bkf-yellow);
-}
-
-.bkf-topbar {
-  height: var(--topbar-h);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding-inline: var(--space-6);
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
-  position: sticky; top: 0; z-index: var(--z-sticky);
-}
-
-
-/* --------------------------------------------------------------------------
-   7. SURFACES
-   -------------------------------------------------------------------------- */
-
-.bkf-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
-}
-.bkf-card--flat    { border-color: var(--color-border-subtle); }
-.bkf-card--sunken  { background: var(--color-surface-sunken); border-color: transparent; }
-.bkf-card--invert  { background: var(--color-surface-invert); color: var(--color-text-invert); border-color: transparent; }
-.bkf-card--accent  { background: var(--bkf-yellow); color: var(--bkf-black); border-color: transparent; }
-.bkf-card--navy    { background: var(--bkf-navy); color: var(--color-text-invert); border-color: transparent; }
-
-/* Interactive card (an action tile in the IA Studio grid) */
-.bkf-card--action {
-  cursor: pointer;
-  transition: border-color var(--dur-base) var(--ease), transform var(--dur-base) var(--ease);
-}
-.bkf-card--action:hover {
-  border-color: var(--color-border-strong);
-  transform: translateY(-2px);
-}
-
-.bkf-divider { height: 1px; background: var(--color-border); border: 0; margin-block: var(--space-5); }
-.bkf-divider--strong { background: var(--bkf-black); height: 2px; }
-
-
-/* --------------------------------------------------------------------------
-   8. BUTTONS
-   -------------------------------------------------------------------------- */
-
-.bkf-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-5);
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-medium);
-  line-height: 1;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background var(--dur-fast) var(--ease),
-              border-color var(--dur-fast) var(--ease),
-              color var(--dur-fast) var(--ease);
-}
-.bkf-btn:disabled { opacity: .45; cursor: not-allowed; }
-
-/* Primary = yellow. High-value. If it's on every card it stops meaning anything. */
-.bkf-btn--primary { background: var(--color-accent); color: var(--color-on-accent); }
-.bkf-btn--primary:hover:not(:disabled) { background: var(--color-accent-hover); }
-
-/* Secondary = the sticker logic: black shape, white edge. */
-.bkf-btn--secondary { background: var(--bkf-black); color: var(--bkf-white); }
-.bkf-btn--secondary:hover:not(:disabled) { background: var(--bkf-gray-700); }
-
-.bkf-btn--outline { background: transparent; border-color: var(--bkf-black); color: var(--bkf-black); }
-.bkf-btn--outline:hover:not(:disabled) { background: var(--bkf-black); color: var(--bkf-white); }
-
-.bkf-btn--ghost { background: transparent; color: var(--color-text-muted); }
-.bkf-btn--ghost:hover:not(:disabled) { background: var(--bkf-gray-100); color: var(--color-text); }
-
-.bkf-btn--danger { background: var(--bkf-red); color: var(--bkf-white); }
-
-.bkf-btn--sm { padding: var(--space-2) var(--space-3); font-size: var(--fs-2xs); }
-.bkf-btn--lg { padding: var(--space-4) var(--space-6); font-size: var(--fs-base); }
-.bkf-btn--block { width: 100%; }
-
-
-/* --------------------------------------------------------------------------
-   9. BADGES / PILLS / CHANNEL CHIPS
-   -------------------------------------------------------------------------- */
-
-.bkf-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 3px var(--space-2);
-  border-radius: var(--radius-full);
-  font-size: var(--fs-3xs);
-  font-weight: var(--fw-medium);
-  letter-spacing: .02em;
-  background: var(--bkf-gray-100);
-  color: var(--color-text-muted);
-  white-space: nowrap;
-}
-.bkf-badge--accent  { background: var(--color-accent-soft);  color: var(--bkf-yellow-800); }
-.bkf-badge--success { background: var(--color-success-soft); color: var(--color-success); }
-.bkf-badge--warning { background: var(--color-warning-soft); color: var(--color-warning); }
-.bkf-badge--danger  { background: var(--color-danger-soft);  color: var(--color-danger); }
-.bkf-badge--info    { background: var(--color-info-soft);    color: #2E5C78; }
-.bkf-badge--solid   { background: var(--bkf-black); color: var(--bkf-white); }
-
-/* Channel chip — carries its assigned brand color as a left marker. */
-.bkf-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-full);
-  font-size: var(--fs-sm);
-  cursor: pointer;
-  transition: border-color var(--dur-fast) var(--ease);
-}
-.bkf-chip::before {
-  content: "";
-  width: 8px; height: 8px;
-  border-radius: var(--radius-full);
-  background: var(--chip-color, var(--bkf-gray-400));
-}
-.bkf-chip:hover,
-.bkf-chip[aria-pressed="true"] { border-color: var(--bkf-black); }
-
-.bkf-chip--instagram { --chip-color: var(--channel-instagram); }
-.bkf-chip--tiktok    { --chip-color: var(--channel-tiktok); }
-.bkf-chip--youtube   { --chip-color: var(--channel-youtube); }
-.bkf-chip--linkedin  { --chip-color: var(--channel-linkedin); }
-.bkf-chip--facebook  { --chip-color: var(--channel-facebook); }
-.bkf-chip--web       { --chip-color: var(--channel-web); }
-.bkf-chip--email     { --chip-color: var(--channel-email); }
-.bkf-chip--podcast   { --chip-color: var(--channel-podcast); }
-
-
-/* --------------------------------------------------------------------------
-   10. PROGRESS / STAGES
-   -------------------------------------------------------------------------- */
-
-.bkf-progress {
-  height: 8px;
-  border-radius: var(--radius-full);
-  background: var(--bkf-gray-200);
-  overflow: hidden;
-}
-.bkf-progress > span {
-  display: block;
-  height: 100%;
-  width: var(--value, 0%);
-  background: var(--bkf-yellow);
-  border-radius: inherit;
-  transition: width var(--dur-slow) var(--ease-out);
-}
-
-/* Stepper for the 5 project etapas */
-.bkf-steps { display: flex; gap: var(--space-2); }
-.bkf-step {
-  flex: 1;
-  height: 6px;
-  border-radius: var(--radius-full);
-  background: var(--bkf-gray-200);
-}
-.bkf-step.is-done    { background: var(--bkf-black); }
-.bkf-step.is-current { background: var(--bkf-yellow); }
-
-
-/* --------------------------------------------------------------------------
-   11. FORMS
-   -------------------------------------------------------------------------- */
-
-.bkf-field { display: flex; flex-direction: column; gap: var(--space-2); }
-
-.bkf-label { font-size: var(--fs-sm); font-weight: var(--fw-medium); }
-.bkf-hint  { font-size: var(--fs-2xs); color: var(--color-text-muted); }
-.bkf-error { font-size: var(--fs-2xs); color: var(--color-danger); }
-
-.bkf-input,
-.bkf-select,
-.bkf-textarea {
-  width: 100%;
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--fs-sm);
-  transition: border-color var(--dur-fast) var(--ease);
-}
-.bkf-input::placeholder,
-.bkf-textarea::placeholder { color: var(--color-text-subtle); }
-
-.bkf-input:focus,
-.bkf-select:focus,
-.bkf-textarea:focus {
-  outline: none;
-  border-color: var(--bkf-black);
-  box-shadow: 0 0 0 3px var(--color-accent-soft);
-}
-.bkf-input[aria-invalid="true"] { border-color: var(--color-danger); }
-
-.bkf-textarea { min-height: 120px; resize: vertical; line-height: var(--lh-normal); }
-
-
-/* --------------------------------------------------------------------------
-   12. TABLES
-   -------------------------------------------------------------------------- */
-
-.bkf-table-wrap { overflow-x: auto; }
-
-.bkf-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
-.bkf-table th {
-  text-align: left;
-  font-size: var(--fs-3xs);
-  font-weight: var(--fw-medium);
-  letter-spacing: var(--ls-wide);
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 2px solid var(--bkf-black);
-  white-space: nowrap;
-}
-.bkf-table td {
-  padding: var(--space-4);
-  border-bottom: 1px solid var(--color-border);
-  vertical-align: top;
-}
-.bkf-table tbody tr:hover { background: var(--bkf-gray-50); }
-.bkf-table--fixed { table-layout: fixed; }
-
-
-/* --------------------------------------------------------------------------
-   13. MEDIA
-   -------------------------------------------------------------------------- */
-
-/* Real photography over illustration. Still-life / flat-lay / editorial.
-   No stock-y moodboard energy, no gradient blobs, no 3D illustration. */
-
-.bkf-figure { margin: 0; }
-.bkf-figure img { border-radius: var(--radius-md); width: 100%; object-fit: cover; }
-.bkf-figure figcaption { margin-top: var(--space-2); font-size: var(--fs-2xs); color: var(--color-text-muted); }
-
-.bkf-ratio { position: relative; width: 100%; overflow: hidden; border-radius: var(--radius-md); }
-.bkf-ratio > * { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.bkf-ratio--1x1  { aspect-ratio: 1 / 1; }
-.bkf-ratio--4x5  { aspect-ratio: 4 / 5; }   /* IG portrait */
-.bkf-ratio--9x16 { aspect-ratio: 9 / 16; }  /* reels / stories */
-.bkf-ratio--16x9 { aspect-ratio: 16 / 9; }  /* YouTube */
-
-
-/* --------------------------------------------------------------------------
-   14. UTILITIES
-   -------------------------------------------------------------------------- */
-
-.bkf-text-muted   { color: var(--color-text-muted); }
-.bkf-text-subtle  { color: var(--color-text-subtle); }
-.bkf-text-accent  { color: var(--bkf-yellow-800); }
-.bkf-text-center  { text-align: center; }
-.bkf-uppercase    { text-transform: uppercase; letter-spacing: var(--ls-wide); }
-.bkf-tabular      { font-variant-numeric: tabular-nums; }
-.bkf-mono         { font-family: var(--font-mono); }
-
-.bkf-bg-yellow    { background: var(--bkf-yellow); color: var(--bkf-black); }
-.bkf-bg-black     { background: var(--bkf-black);  color: var(--bkf-white); }
-.bkf-bg-navy      { background: var(--bkf-navy);   color: var(--bkf-white); }
-.bkf-bg-offwhite  { background: var(--bkf-off-white); }
-
-.bkf-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bkf-clamp-2  { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-.bkf-sr-only {
+/* Present for screen readers, absent on screen. */
+.screen-reader-only {
   position: absolute; width: 1px; height: 1px;
   padding: 0; margin: -1px; overflow: hidden;
   clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 
+/* First tab stop on every page, in both layouts. Coffee rather than --ink:
+   black is for type, and this is a plane. */
+.skip-link {
+  position: absolute; left: 1rem; top: -6rem; z-index: 100;
+  padding: 1rem;
+  background: var(--bkf-brown);
+  color: var(--bkf-off-white);
+  transition: top var(--duration) var(--ease);
+}
+.skip-link:focus { top: 1rem; }
 
-/* --------------------------------------------------------------------------
-   15. PRINT — strategy PDFs, cronopost calendars
-   -------------------------------------------------------------------------- */
 
-@media print {
-  body { background: #fff; }
-  .bkf-sidebar, .bkf-topbar, .bkf-btn { display: none !important; }
-  .bkf-card { border: 1px solid #ccc; break-inside: avoid; }
+/* --- the button -----------------------------------------------------------
+   One button, here, for the website and the app alike. It used to live in
+   home-remake.css under the name .home-button, which meant six of the seven
+   pages that carry a button — /login among them — rendered a bare UA control:
+   a page only ever loads its own stylesheet and the home page's was not it.
+
+   Coffee, not black. Black is for type; every plane and fill in the project is
+   brown, which is the same call already made for the app's loudest button
+   (--primary-fill in admin.css). Both now read the one palette value, so the
+   colour is decided in exactly one place.
+
+   The margin-top is here because every use of this is the call to action
+   closing a block of text, and it is the same distance on all of them.
+   Anywhere it is not wanted — a form row, a toolbar — sets margin-top: 0.
+
+   One trap if this is ever used inside the app: .admin a and .dashboard a set
+   `color: inherit` at (0,1,1), which outranks this bare class, so an <a class="button">
+   in either shell needs the colour restated there. On a <button> it is fine.
+   ------------------------------------------------------------------------- */
+
+.button {
+  position: relative;          /* anchors the fill */
+  isolation: isolate;          /* REQUIRED — see the ::before note below */
+  /* No overflow: hidden. Clipping a transformed child against a rounded box
+     leaves a pale hairline around the pill that reads as a border; the fill
+     below carries the same radius instead, so there is nothing to clip. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin-top: clamp(2rem, 4vw, 3rem);
+  padding: 1rem 2.25rem;
+  /* Undoing the UA stylesheet, which only shows up when this class is on a
+     <button> (the contact form's submit, the login form's) rather than on an
+     <a>: buttons come with an outset border and do not inherit the page font. */
+  border: 0;
+  border-radius: var(--border-radius);
+  background: var(--bkf-brown);
+  color: var(--bkf-off-white);
+  font-family: inherit;
+  font-size: .95rem;
+  cursor: pointer;
+  transition: color var(--duration) var(--ease);
 }
 
+/* Fill that wipes across on hover.
 
-/* ==========================================================================
-   DO / DON'T  (slide 5) — carry these into product copy AND the AI's output
-   --------------------------------------------------------------------------
-   DO    · hablar desde la experiencia y el análisis
-         · usar referencias culturales con naturalidad (arte, moda, negocios)
-         · hacer preguntas inteligentes e interesantes
-         · ser honesto incluso cuando algo no funciona
-         · mantener una estética limpia y editorial
-   DON'T · lenguaje muy marketero vacío
-         · exceso de emojis o signos
-         · frases motivacionales genéricas
-         · explicarlo todo como si el usuario no entendiera
-         · sonar trendy, pick me
-   ========================================================================== */
+   The negative z-index paints it above the button's own background but still
+   below the label, so no wrapper span is needed — but that ONLY works because
+   the button sets isolation: isolate. Without a stacking context the fill is
+   painted behind the background and never appears at all.
+
+   scaleX is a transform, so this never triggers layout. */
+.button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--bkf-off-white);
+  transform: scaleX(0);
+  transform-origin: right;     /* leaving: retreats to the right */
+  transition: transform var(--duration) var(--ease);
+}
+
+.button:hover::before,
+.button:focus-visible::before {
+  transform: scaleX(1);
+  transform-origin: left;      /* arriving: fills from the left */
+}
+
+/* Label flips to black as the fill arrives underneath it.
+   17.1:1 on off-white, 10.4:1 on yellow — both pass. */
+.button:hover,
+.button:focus-visible { color: var(--bkf-black); }
+
+
+/* --- theme toggle --------------------------------------------------------
+   The light/dark switch in the back-office rails. Unscoped, unlike almost
+   everything else here, because both shells mount it in the same place and
+   scoping it would mean writing it twice.
+
+   It shows the face you are switching TO — a moon while the page is light, a
+   sun while it is dark. Which one is showing is the only state it carries;
+   the choice itself lives on <html data-theme> (see x-theme-boot).
+
+   --rail-hover comes from whichever shell is hosting it, so the hover follows
+   the rail it sits on. Nothing else here is themed: the button inherits its
+   colour, and the yellow the icons sit against never changes.
+   ------------------------------------------------------------------------- */
+
+.theme-toggle {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 0;
+  border-radius: var(--border-radius);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background 200ms cubic-bezier(.22, .61, .36, 1);
+}
+.theme-toggle:hover { background: var(--rail-hover); }
+.theme-toggle svg { width: 20px; height: 20px; }
+
+.theme-toggle-sun { display: none; }
+[data-theme="dark"] .theme-toggle-sun { display: block; }
+[data-theme="dark"] .theme-toggle-moon { display: none; }
+
+
+body{
+  margin: 13px;
+}
+
+/* --- Animated page content -----------------------------------------------
+
+   Two hooks the interior pages (nosotros, podcast, contacto) mark themselves
+   with, so app.js does not have to know every page's class names:
+
+     data-plane        the page's coloured card, fading in with the navbar
+     data-typewriter   a heading typed out one character at a time
+     data-fade-in      anything that simply fades in after it
+
+   Same .js guard and reduced-motion escape as the navbar above: hidden only
+   while something is going to reveal them.
+   ------------------------------------------------------------------------- */
+
+.js [data-plane],
+.js [data-typewriter],
+.js [data-fade-in] { visibility: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .js [data-plane],
+  .js [data-typewriter],
+  .js [data-fade-in] { visibility: visible; }
+}
+
+/* Caret — only present while typing. */
+[data-typewriter].is-typing::after {
+  content: "";
+  display: inline-block;
+  width: .055em;
+  height: .8em;
+  margin-left: .05em;
+  translate: 0 .05em;
+  background: currentColor;
+  animation: home-caret-blink 900ms steps(1) infinite;
+}
+

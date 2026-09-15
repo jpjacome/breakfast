@@ -1,0 +1,218 @@
+/* ==========================================================================
+   THE ENTRANCE — /login, /forgot-password, /reset-password,
+   /two-factor-challenge, /user/confirm-password, /email/verify
+
+   One vocabulary for every screen you pass through before you are inside.
+   They are one family: same yellow card under the navbar, same heading, same
+   fields, same one message box. A component rendered by six blades, so it
+   gets its own file rather than living in any one of theirs.
+
+   ⚠️ THE ONE THAT MATTERS MOST IS /reset-password, and it is the one nobody
+   sees while building. It is where the invitation mail lands — the first page
+   of this app a client's user ever opens, arriving from a mail that is
+   carefully painted in the brand. Until 2026-08-18 these five screens were
+   still written against a design system that was never built (.bkf-input,
+   .alert--success, var(--space-5)); not one of those selectors existed in any
+   stylesheet, so the page rendered as raw browser HTML with the wordmark
+   blown up to full width. The mail was immaculate and the door it opened had
+   no paint on it.
+
+   /login adds a photograph and a second column — that, and only that, is what
+   is left in login.css.
+   ========================================================================== */
+
+.auth {
+  max-width: var(--max-width);
+  margin-inline: auto;
+  padding: var(--gutter);
+  background: var(--bkf-yellow);
+  color: var(--bkf-black);
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.auth .container {
+  margin-inline: auto;
+  padding-block: clamp(2rem, 6vw, 5rem);
+  display: grid;
+  column-gap: clamp(2rem, 5vw, 4rem);
+}
+
+.auth-body,
+.auth-heading { max-width: 68ch; }
+
+.auth-heading {
+  font-size: clamp(28px, 3.4vw, 3.25rem);
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  margin-bottom: clamp(2rem, 4vw, 3rem) !important;
+}
+
+.auth-body { margin-bottom: 2rem; }
+
+.auth-intro {
+  font-size: clamp(15px, 1.55vw, 1.1rem);
+  line-height: 1.9;
+  /* The form's own top margin sets the space below this. */
+  max-width: 54ch;
+}
+
+/* One box for every message these screens have: "check your mail", "that
+   link expired", a failed login. Black on yellow reads as a stop either way,
+   and a page never shows two at once — each of these redirects with one or
+   the other.
+
+   Descendant selector, not `.auth-status` alone: general.css zeroes every
+   paragraph with `.website p`, which outranks a single class and would drop
+   the margin below. Same reason for .auth-foot further down. */
+.auth .auth-status {
+  margin-top: clamp(2rem, 4vw, 3rem);
+  padding: 1rem 1.25rem;
+  background: var(--bkf-brown);
+  color: var(--bkf-yellow);
+  border-radius: var(--border-radius);
+  font-size: clamp(15px, 1.55vw, 1.1rem);
+  line-height: 1.6;
+}
+
+/* The multi-error case only. A single error is one sentence with no list. */
+.auth .auth-status ul { margin: .5rem 0 0; padding-left: 1.25rem; }
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  margin-top: clamp(2rem, 4vw, 3rem);
+  /* The fields read as one column; full page width would strand the labels
+     far from their boxes. */
+  max-width: 34rem;
+}
+
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.auth-field label {
+  font-size: .95rem;
+  font-weight: 700;
+}
+
+.auth-field input {
+  width: 100%;
+  padding: .875rem 1.125rem;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--bkf-black);
+  background: transparent;
+  border: var(--border-width) solid var(--bkf-brown);
+  border-radius: var(--border-radius);
+  transition: box-shadow var(--duration) var(--ease);
+}
+
+.auth-field input::placeholder { color: var(--bkf-black); opacity: .45; }
+
+.auth-field input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--bkf-yellow-200);
+}
+
+/* Field failed validation. The message itself is in .auth-status above the
+   form — this only marks which box to go back to. */
+.auth-field input[aria-invalid="true"] { border-color: var(--bkf-red); }
+
+/* Under a field, not beside it: "6 dígitos" is an instruction for the box it
+   sits below, and reads as one there. */
+.auth-hint {
+  font-size: .85rem;
+  line-height: 1.5;
+  opacity: .7;
+}
+
+/* A six-digit code lines up under itself while it is being typed. */
+.auth-code {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .35em;
+}
+
+/* Label on the left, the reset link on the right, both on the field's line. */
+.auth-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.auth-forgot {
+  font-size: .9rem;
+  text-decoration-line: underline;
+  text-underline-offset: 4px;
+}
+
+/* --- remember me ----------------------------------------------------------
+   appearance: none drops the browser's blue box; everything below draws the
+   replacement, which is the same black square used on the rest of the site.
+   ------------------------------------------------------------------------- */
+
+.auth-remember {
+  display: inline-flex;
+  align-items: center;
+  gap: .625rem;
+  align-self: flex-start;
+  font-size: .95rem;
+  cursor: pointer;
+}
+
+.auth-remember input {
+  appearance: none;
+  margin: 0;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  display: grid;
+  place-content: center;
+  background: transparent;
+  border: var(--border-width) solid var(--bkf-brown);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background var(--duration) var(--ease);
+}
+
+/* The tick is a clipped square, so it scales with the box and needs no SVG. */
+.auth-remember input::after {
+  content: "";
+  width: 11px;
+  height: 11px;
+  background: var(--bkf-brown);
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+  transform: scale(0);
+  transition: transform var(--duration) var(--ease);
+}
+
+.auth-remember input:checked::after { transform: scale(1); }
+
+.auth-form .button { align-self: flex-start; }
+
+/* Two buttons that are two separate posts — resend, and sign out. Side by
+   side because neither is the obvious one to press. */
+.auth-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: clamp(2rem, 4vw, 3rem);
+}
+
+.auth .auth-foot {
+  margin-top: clamp(2.5rem, 5vw, 4rem);
+  padding-top: clamp(1.5rem, 3vw, 2rem);
+  border-top: var(--border-width) solid var(--bkf-brown);
+  max-width: 54ch;
+  font-size: .95rem;
+  line-height: 1.7;
+}
+
+.auth-foot a {
+  text-decoration-line: underline;
+  text-underline-offset: 4px;
+}

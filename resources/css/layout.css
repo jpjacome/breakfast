@@ -1,0 +1,247 @@
+/* ==========================================================================
+   SITE LAYOUT — the navbar and the footer
+
+   The chrome site-remake.blade.php renders around every public page, so it
+   loads with that layout rather than with any one page. Nothing here belongs
+   to a single page; a page's own elements live in that page's file.
+   ========================================================================== */
+
+.navbar {
+  position: relative;
+  z-index: 30;
+  background: var(--bkf-yellow);
+  color: var(--bkf-black);
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+/* Hidden until the load animation reveals them, otherwise the navbar paints
+   in place for a frame and then jumps back to animate. Applies only with JS
+   on, and never under reduced motion — nothing animates then, so nothing
+   would ever reveal them. */
+.js .navbar,
+.js .navbar-logo,
+.js .navbar-links a { visibility: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .js .navbar,
+  .js .navbar-logo,
+  .js .navbar-links a { visibility: visible; }
+}
+
+
+.navbar-inner {
+  max-width: var(--max-width);
+  margin-inline: auto;
+  padding: clamp(1rem, 2vw, 1.75rem) var(--gutter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+/* Wordmark is ~5.7:1, so it is sized by height and left to find its width. */
+.navbar-logo img { height: clamp(26px, 3vw, 38px); width: auto; }
+
+.navbar-links { display: flex; align-items: center; gap: clamp(1.25rem, 2.5vw, 2.5rem); }
+
+.navbar-links a {
+  font-size: .95rem;
+  /* The 2px used to be a transparent border, which added height whether or not
+     the rule was showing. The underline is a pseudo-element now, so the space
+     it used to occupy is padding instead and the link keeps the same size. */
+  padding: .25rem 0 calc(.25rem + 2px);
+}
+
+/* Underline that wipes in from the left. Excluded from the two links that are
+   not words: .navbar-cta is a filled pill with its own hover, and
+   .navbar-account is a glyph in a ring with nothing to underline. */
+.navbar-links a:not(.navbar-cta, .navbar-account) { position: relative; }
+
+.navbar-links a:not(.navbar-cta, .navbar-account)::after {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--bkf-black);
+  transform: scaleX(0);
+  transform-origin: right;      /* leaving: retreats to the right */
+  transition: transform var(--duration) var(--ease);
+}
+
+.navbar-links a:not(.navbar-cta, .navbar-account):hover::after,
+.navbar-links a:not(.navbar-cta, .navbar-account):focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left;       /* arriving: grows from the left */
+}
+
+.navbar-cta {
+  position: relative;          /* anchors the fill */
+  isolation: isolate;          /* REQUIRED — see the ::before note below */
+  /* No overflow: hidden. Clipping a transformed child against a rounded box
+     leaves a pale hairline around the pill that reads as a border; the fill
+     below carries the same radius instead, so there is nothing to clip. */
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: .5rem 1.5rem !important;
+  /* Coffee, like every other filled control — see .button in general.css. It
+     is not that button: the navbar's pill is deliberately shorter, and it
+     fights .navbar-links a for its colour, so it keeps its own rules. What it
+     must not do is be a different colour from the buttons in the page. */
+  background: var(--bkf-brown);
+  border-radius: var(--border-radius);
+  color: var(--bkf-off-white) !important;
+  border-bottom: 0 !important;
+  transition: color var(--duration) var(--ease);
+}
+/* Same left-to-right fill as the page buttons. Kept here rather than shared,
+   because the navbar belongs to the layout and .button is general.css'.
+   The negative z-index only paints above the black background because the
+   button sets isolation: isolate above — without it, nothing is visible. */
+.navbar-cta::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: var(--bkf-off-white);
+  transform: scaleX(0);
+  transform-origin: right;      /* leaving: retreats to the right */
+  transition: transform var(--duration) var(--ease);
+}
+
+.navbar-cta:hover::before,
+.navbar-cta:focus-visible::before {
+  transform: scaleX(1);
+  transform-origin: left;       /* arriving: fills from the left */
+}
+
+.navbar-cta:hover,
+.navbar-cta:focus-visible { color: var(--bkf-black) !important; }
+
+/* --- account link ---------------------------------------------------------
+   The way in to the portal. A glyph in a ring rather than a fifth word: it is
+   not part of the site's story, it is the door for people who already are
+   clients. Next to the filled Contáctanos pill, an outline keeps the CTA the
+   loudest thing in the navbar.
+
+   Icons across the project are Tabler, rendered inline by blade-tabler-icons.
+   ------------------------------------------------------------------------- */
+
+.navbar-account {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border: var(--border-width) solid var(--ink);
+  border-radius: var(--border-radius);
+  transition: background var(--duration) var(--ease),
+              color var(--duration) var(--ease);
+}
+
+/* Tabler ships 24px stroked outlines with currentColor, so colour is inherited
+   and only the size needs setting. */
+.navbar-account svg { width: 22px; height: 22px; }
+
+.navbar-account:hover,
+.navbar-account:focus-visible {
+  /* Same coffee the CTA beside it fills with. */
+  background: var(--bkf-brown);
+  color: var(--bkf-off-white);
+}
+
+/* Desktop shows the glyph alone; the label is still read aloud, and comes back
+   as visible text in the mobile menu below, where a bare ring in a list of
+   words would be a guess. */
+.navbar-account-label {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* Mobile menu is a checkbox toggle — no JavaScript. */
+.navbar-toggle { display: none; }
+
+.navbar-burger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  width: 44px; height: 44px;
+  cursor: pointer;
+}
+.navbar-burger-bar { display: block; height: 2px; width: 26px; background: var(--bkf-black); }
+
+@media (max-width: 949px) {
+  .navbar-burger { display: flex; }
+  .navbar-links {
+    display: none;
+    position: absolute;
+    left: 0; right: 0; top: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    padding: .5rem var(--gutter) 2rem;
+    background: var(--bkf-yellow);
+  }
+  .navbar-inner { position: relative; flex-wrap: wrap; }
+  .navbar-toggle:checked ~ .navbar-links { display: flex; }
+  .navbar-links a { padding-block: 1rem; border-bottom: var(--border-width) solid var(--ink); }
+  .navbar-cta { margin-top: 1.5rem; justify-content: center; }
+
+  /* A full-width row with its label showing, like the links above it. */
+  .navbar-account {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: .625rem;
+    width: auto;
+    height: auto;
+    margin-top: .75rem;
+    padding: .75rem 1.5rem;
+    border-bottom: var(--border-width) solid var(--ink);
+  }
+
+  .navbar-account-label {
+    position: static;
+    width: auto; height: auto;
+    margin: 0; overflow: visible;
+    clip: auto;
+    font-size: .95rem;
+  }
+}
+
+
+/* --- footer --------------------------------------------------------------
+   Wordmark and one line. A black card matching the sections above it.
+   ------------------------------------------------------------------------- */
+
+.footer {
+    max-width: var(--max-width);
+    margin-inline: auto;
+    margin-top: 2rem;
+    color: var(--bkf-black);
+    border-radius: var(--border-radius);
+}
+
+.footer .container {
+  padding: 13px var(--gutter) 20px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+/* Set as type rather than the logo artwork, so it scales with the layout and
+   carries the ® as real text. */
+.footer-wordmark {
+  font-family: var(--font-serif);
+    font-size: clamp(28px, 2vw, 2rem);
+  line-height: 1;
+}
+.footer-wordmark sup { font-size: .3em; vertical-align: super; }
+
+.footer-note { font-size: 1rem; }

@@ -1,0 +1,40 @@
+# ADD TO THE TOP of public_html/.htaccess — above the Laravel rewrite blocks
+# and above the WordPress section. Order matters: these must run first.
+#
+# Why it is needed: orustravel.org is rooted at public_html, so it can see into
+# every project folder. The existing app rewrites are guarded by
+# "RewriteCond %{REQUEST_FILENAME} !-f" — meaning they only fire for paths that
+# do NOT exist on disk. Any real file is therefore served straight out.
+#
+# Verified on the live server:
+#   /drpixel/innato/composer.json            -> 200
+#   /drpixel/innato/storage/logs/laravel.log -> 200
+#
+# .env currently returns a connection error, but that is mod_security matching
+# the filename, not a rule you control. Do not rely on it.
+
+# --- 1. Never serve dotfiles: .env, .env.example, .git/*, .user.ini ----------
+# Matches the FILE name only, so .well-known/acme-challenge/<token> still works
+# and AutoSSL keeps renewing.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# --- 2. Never serve Laravel internals through this domain -------------------
+# Scoped to the app folders only, so WordPress plugin paths that happen to
+# contain /vendor/ or /resources/ are untouched.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteRule ^(drpixel/[^/]+|aurora-dev)/(app|bootstrap|config|database|lang|resources|routes|storage|tests|vendor)/ - [F,L]
+
+    RewriteRule ^(drpixel/[^/]+|aurora-dev)/(composer\.(json|lock)|artisan|package(-lock)?\.json|vite\.config\.js|README\.md)$ - [F,L]
+</IfModule>
+
+# After adding, re-check — all three should now be 403:
+#   curl -sI https://orustravel.org/drpixel/innato/composer.json            | head -1
+#   curl -sI https://orustravel.org/drpixel/innato/storage/logs/laravel.log | head -1
+#   curl -sI https://orustravel.org/drpixel/innato/.env                     | head -1
+#
+# And confirm the sites still work:
+#   https://innatotravel.com  and  https://orustravel.org

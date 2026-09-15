@@ -1,0 +1,935 @@
+/* ==========================================================================
+   CLIENT DASHBOARD — "/portal/*"
+
+   The logged-in area a brand's own team uses. Scoped under .dashboard (the
+   <body> class) so none of it reaches the public website, which shares this
+   file only for the palette in general.css.
+
+   Not to be confused with portal.css, which styles the Breakfast-side admin
+   shell and is a separate surface.
+
+   Layout is a fixed rail plus a scrolling column. Below 900px the rail slides
+   in over the page from a checkbox toggle — no JavaScript, same pattern as the
+   public navbar.
+
+   TWO THEMES. Light is the default and is the surface the public site uses:
+   an off-white page with black type. Dark is opt-in, switched on by
+   data-theme="dark" on <html> (see x-theme-toggle), and turns the page the
+   same black the rail has always been.
+
+   Every colour below comes from a role token, and the two theme blocks are the
+   only places those tokens are set. A component says var(--surface), never a
+   palette colour, so adding a rule never means remembering to add its dark
+   half. The rail is the exception: it is black in both themes, so nothing
+   inside it is themed at all.
+   ========================================================================== */
+
+.dashboard {
+  --rail: 264px;
+  --pad: clamp(1.25rem, 3vw, 2.5rem);
+  --dur: 220ms;
+  --ease: cubic-bezier(.22, .61, .36, 1);
+
+  /* --- light, the default -------------------------------------------------
+     Tints are black at low opacity. --accent is whatever emphasis is drawn in
+     — focus rings, hover borders — which on an off-white page is black.
+     ---------------------------------------------------------------------- */
+  /* Three planes, lightest to most tinted: cards are white, the page is the
+     brand off-white carried most of the way to white, and the rail keeps the
+     off-white at full strength. Matches the admin shell exactly. */
+  --page: color-mix(in srgb, var(--bkf-off-white) 40%, var(--bkf-white));
+  --ink: var(--bkf-black);
+  --surface: var(--bkf-white);
+
+  /* BLACK IS FOR TYPE, NOTHING ELSE — same rule as the admin shell. Planes,
+     edges and fills are coffee; --ink stays black because type is the one
+     thing black is for. The tints carry more coffee than they carried black,
+     since brown is lighter and matching alpha would fade every hairline. */
+  /* The recess under a hovered row and behind a file's preview tile. It was
+     used in three places here and defined in none of them, so those surfaces
+     rendered transparent — the admin shell had it, this one never did. */
+  --sunken: color-mix(in srgb, var(--bkf-brown) 5%, transparent);
+  --rule: color-mix(in srgb, var(--bkf-brown) 22%, transparent);
+  --rule-strong: color-mix(in srgb, var(--bkf-brown) 42%, transparent);
+  --ink-quiet: rgba(0, 0, 0, .62);
+  --accent: var(--bkf-brown);
+  --glow: var(--bkf-yellow-200);
+  --danger: var(--bkf-red);
+
+  /* The rail is a plane apart from the page, so it gets its own fill and its
+     own hover tint rather than borrowing the page's. --rail-mark is whatever
+     has to sit ON the rail and still be seen — the current page's pill, the
+     avatar — and is always the rail's inverse, so flipping the rail carries
+     both with it. */
+  --rail-fill: var(--bkf-yellow);
+  --rail-hover: color-mix(in srgb, var(--bkf-brown) 12%, transparent);
+  --rail-mark-fill: var(--bkf-brown);
+  --rail-mark-ink: var(--bkf-yellow);
+
+  /* A flash message is a filled plane, so it carries its own pair. */
+  --note-fill: var(--bkf-brown);
+  --note-ink: var(--bkf-yellow);
+  --note-tint: rgba(255, 255, 255, .12);
+
+  /* The one filled button on this surface. Hover goes deeper into the coffee
+     rather than off to another colour — pressed, not swapped. */
+  --button-fill: var(--bkf-brown);
+  --button-ink: var(--bkf-off-white);
+  --button-fill-hover: color-mix(in srgb, var(--bkf-brown) 78%, var(--bkf-black));
+
+  --box-edge: var(--bkf-brown);
+
+  /* The assistant orb's wireframe, read from CSS by assistant.js rather than
+     hardcoded. Defined in both shells because the panel now renders in both. */
+  --orb-line: var(--bkf-yellow);
+
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  color-scheme: light;
+  font-family: "Almarai", system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- dark ------------------------------------------------------------------
+   The page joins the rail. Everything above that black is white at low
+   opacity — lifts and hairlines, not new palette colours — and yellow takes
+   over every accent light gave to black.
+   -------------------------------------------------------------------------- */
+
+[data-theme="dark"] .dashboard {
+  --page: var(--bkf-black);
+  --ink: var(--bkf-off-white);
+  --surface: rgba(255, 255, 255, .05);
+  /* Named for the light theme, where it is a recess. Over black the same job
+     is done by lifting rather than sinking. */
+  --sunken: rgba(255, 255, 255, .07);
+  --rule: rgba(255, 255, 255, .12);
+  --rule-strong: rgba(255, 255, 255, .3);
+  --ink-quiet: rgba(231, 233, 235, .62);
+  --accent: var(--bkf-yellow);
+  /* yellow-200 would be a halo brighter than anything else on a black page. */
+  --glow: var(--bkf-yellow-800);
+  /* Oxblood is unreadable on black, so danger is that red carried toward the
+     off-white until it reads. */
+  --danger: color-mix(in srgb, var(--bkf-red) 55%, var(--bkf-off-white));
+
+  /* Pure black, so the rail stays flat while the panels beside it lift — and
+     the mark inverts with it, back to yellow on black. */
+  --rail-fill: var(--bkf-black);
+  --rail-hover: rgba(255, 255, 255, .08);
+  --rail-mark-fill: var(--bkf-yellow);
+  --rail-mark-ink: var(--bkf-black);
+
+  /* Black on black would vanish, so the note inverts to the yellow plane. */
+  --note-fill: var(--bkf-yellow);
+  --note-ink: var(--bkf-black);
+  --note-tint: rgba(0, 0, 0, .18);
+
+  --button-fill: var(--bkf-yellow);
+  --button-ink: var(--bkf-black);
+  --button-fill-hover: var(--bkf-yellow-600);
+
+  --box-edge: var(--rule-strong);
+
+  /* Scrollbars, autofill and native form widgets follow the page instead of
+     painting a light box in the middle of it. */
+  color-scheme: dark;
+}
+
+.dashboard *, .dashboard *::before, .dashboard *::after { box-sizing: border-box; }
+.dashboard h1, .dashboard h2 { margin: 0; font-weight: 400; }
+.dashboard p, .dashboard ul, .dashboard figure { margin: 0; }
+.dashboard ul { list-style: none; padding: 0; }
+.dashboard img { display: block; max-width: 100%; }
+.dashboard a { color: inherit; text-decoration: none; }
+.dashboard :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+/* Tabler ships 24px stroked outlines coloured with currentColor, so only the
+   size is ever set. One rule covers every icon on the surface. */
+.dashboard svg { width: 20px; height: 20px; flex: none; }
+
+.dashboard-frame {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* --- rail ----------------------------------------------------------------
+   Themed like everything else: white against the off-white page in light,
+   black in dark. It is a plane apart from the page either way — lighter than
+   the page in light, and in dark the one surface that stays flat while every
+   panel beside it is lifted. The hairline down its right side draws the edge
+   in both.
+
+   The wordmark is a sticker with its own yellow fill and white keyline, so it
+   carries on either rail without a second asset.
+   ------------------------------------------------------------------------- */
+
+.dashboard-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem 1rem;
+  background: var(--rail-fill);
+  border-right: 1px solid var(--rule);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+}
+
+.dashboard-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-inline: .5rem;
+}
+
+.dashboard-brand img { width: 132px; height: auto; }
+
+/* Only exists in the slide-over; hidden at desk sizes by the rule further down. */
+.dashboard-close { display: none; cursor: pointer; }
+
+.dashboard-nav { display: flex; flex-direction: column; gap: 2px; }
+
+.dashboard-nav-link {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .625rem .75rem;
+  border-radius: var(--border-radius);
+  font-size: .95rem;
+  color: var(--ink-quiet);
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.dashboard-nav-link:hover { background: var(--rail-hover); color: var(--ink); }
+
+.dashboard-nav-link[aria-current="page"] {
+  background: var(--rail-mark-fill);
+  color: var(--rail-mark-ink);
+}
+
+.dashboard-account {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  padding: .75rem;
+  border-top: 1px solid var(--rule);
+}
+
+/* Also used on /portal/equipo, away from the rail — the rail's inverse there
+   is a black disc with gold initials, which reads on a white card too. */
+.dashboard-avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  /* A circle is a shape, not a radius — it does not take the one radius. */
+  border-radius: 50%;
+  background: var(--rail-mark-fill);
+  color: var(--rail-mark-ink);
+  font-size: .75rem;
+  font-weight: 700;
+}
+
+/* min-width: 0 so a long name ellipses instead of widening the rail. Both
+   lines ellipse: the row also carries the theme toggle and the logout button,
+   so there is not enough width left for either to wrap. */
+.dashboard-account-meta { display: grid; min-width: 0; flex: 1; }
+.dashboard-account-meta b,
+.dashboard-account-meta > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dashboard-account-meta b { font-size: .875rem; font-weight: 500; }
+.dashboard-account-meta > span { font-size: .7rem; color: var(--ink-quiet); }
+
+.dashboard-logout {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 0;
+  border-radius: var(--border-radius);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+.dashboard-logout:hover { background: var(--rail-hover); }
+
+/* --- content column ------------------------------------------------------ */
+
+.dashboard-column { display: flex; flex-direction: column; min-width: 0; }
+
+.dashboard-topbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem var(--pad);
+  border-bottom: 1px solid var(--rule);
+}
+
+.dashboard-client { font-size: .9rem; color: var(--ink-quiet); }
+
+/* The brand picker — ACC-02. Only rendered when there is more than one brand
+   to pick, so there is no "disabled" state to style. Same details/summary
+   mechanism as the bell further down; the two share nothing but the idea. */
+.dashboard-brand { position: relative; }
+
+.dashboard-brand summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .25rem .5rem;
+  margin-left: -.5rem;
+  border-radius: var(--border-radius);
+}
+
+/* Both spellings. A summary given display:flex keeps its marker in Chrome, and
+   ::-webkit-details-marker alone does not reach it. */
+.dashboard-brand summary::marker { content: ''; }
+.dashboard-brand summary::-webkit-details-marker { display: none; }
+.dashboard-brand summary:hover { background: var(--sunken); }
+.dashboard-brand summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dashboard-brand summary svg { width: 14px; height: 14px; color: var(--ink-quiet); }
+
+/* Same construction as .dashboard-bell-panel below — same radius, border,
+   padding and shadow. Two popovers in one bar that disagreed about their
+   proportions would read as two different components. */
+.dashboard-brand-menu {
+  position: absolute;
+  top: calc(100% + .5rem);
+  left: 0;
+  z-index: 20;
+  width: max-content;
+  min-width: 12rem;
+  max-width: calc(100vw - 2rem);
+  display: grid;
+  gap: .25rem;
+  padding: .5rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgb(0 0 0 / .12);
+}
+
+.dashboard-brand-menu button {
+  width: 100%;
+  text-align: left;
+  padding: .75rem 1rem;
+  border: 0;
+  border-radius: var(--border-radius);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: .875rem;
+  cursor: pointer;
+}
+
+.dashboard-brand-menu button:hover { background: var(--sunken); }
+.dashboard-brand-menu button.is-current { color: var(--ink-quiet); cursor: default; }
+
+/* Only exists in the slide-over; hidden at desk sizes below. */
+.dashboard-burger { display: none; cursor: pointer; }
+
+.dashboard-main {
+  flex: 1;
+  padding: clamp(1.75rem, 4vw, 3rem) var(--pad) 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.dashboard-head h1 {
+  font-family: "Libre Baskerville", Georgia, serif;
+  font-size: clamp(26px, 3vw, 2.25rem);
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+
+.dashboard-head p {
+  margin-top: .75rem;
+  max-width: 62ch;
+  color: var(--ink-quiet);
+}
+.dashboard-head a,
+/* A panel note carries the "who changes this" links on /portal/perfil, and
+   general.css strips every underline. */
+.dashboard-panel-note a { text-decoration: underline; text-underline-offset: 3px; }
+
+/* --- messages ------------------------------------------------------------ */
+
+/* A filled plane either way: black carrying yellow type on the light page,
+   inverted to yellow carrying black on the dark one. */
+.dashboard-note {
+  padding: 1rem 1.25rem;
+  border-radius: var(--border-radius);
+  background: var(--note-fill);
+  color: var(--note-ink);
+  line-height: 1.55;
+}
+.dashboard-note ul { margin-top: .5rem; padding-left: 1.25rem; list-style: disc; }
+
+.dashboard-note-problem { background: var(--bkf-red); color: var(--bkf-white); }
+
+/* Shown once and never again, so it has to be selectable in one gesture. The
+   tint darkens or lightens depending on which way the note is filled. */
+.dashboard-secret {
+  display: block;
+  margin-top: .625rem;
+  padding: .625rem .875rem;
+  border-radius: var(--border-radius);
+  background: var(--note-tint);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: .05em;
+  user-select: all;
+  word-break: break-all;
+}
+
+.dashboard-empty {
+  padding: 2rem 1.5rem;
+  border: 1.5px dashed var(--rule-strong);
+  border-radius: var(--border-radius);
+  text-align: center;
+  color: var(--ink-quiet);
+}
+
+/* --- section cards on /portal -------------------------------------------- */
+
+.dashboard-cards {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+}
+
+.dashboard-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+  height: 100%;
+  padding: 1.25rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+  transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.dashboard-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+.dashboard-card-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  margin-bottom: .5rem;
+  border-radius: var(--border-radius);
+  background: var(--bkf-yellow);
+  /* The icon draws in currentColor, which in dark is off-white — on a yellow
+     tile it has to be held to black in both themes. */
+  color: var(--bkf-black);
+}
+
+.dashboard-card-note { font-size: .85rem; color: var(--ink-quiet); line-height: 1.5; }
+
+.dashboard-tag {
+  align-self: flex-start;
+  margin-top: .5rem;
+  padding: .125rem .5rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--border-radius);
+  font-size: .7rem;
+  color: var(--ink-quiet);
+}
+
+/* --- panels -------------------------------------------------------------- */
+
+.dashboard-panel {
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+}
+
+.dashboard-panel-title {
+  font-family: "Libre Baskerville", Georgia, serif;
+  font-size: 1.15rem;
+}
+
+.dashboard-panel-note { margin-top: .5rem; color: var(--ink-quiet); font-size: .9rem; }
+.dashboard-panel-title + .member, .dashboard-panel-note + form { margin-top: 1.5rem; }
+
+/* --- buttons ------------------------------------------------------------- */
+
+.dashboard-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: .625rem 1.5rem;
+  border: 0;
+  border-radius: var(--border-radius);
+  background: var(--button-fill);
+  color: var(--button-ink);
+  font: inherit;
+  font-size: .9rem;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+.dashboard-button:hover { background: var(--button-fill-hover); }
+
+/* Read-only members see this rather than a missing control. Not pointer-events:
+   none — the cursor is the affordance that says "this is off". */
+.dashboard-button:disabled {
+  background: transparent;
+  border: 1.5px dashed var(--rule-strong);
+  color: var(--ink-quiet);
+  cursor: not-allowed;
+}
+
+.dashboard-button-quiet {
+  margin-top: 1rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: .85rem;
+  color: var(--danger);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* --- fields -------------------------------------------------------------- */
+
+.dashboard-field { display: flex; flex-direction: column; gap: .375rem; }
+.dashboard-field label { font-size: .85rem; font-weight: 700; }
+
+.dashboard-field input {
+  width: 100%;
+  padding: .75rem 1rem;
+  font: inherit;
+  font-size: .95rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--rule-strong);
+  border-radius: var(--border-radius);
+  transition: border-color var(--dur) var(--ease);
+}
+.dashboard-field input:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--glow); }
+
+/* --- team ---------------------------------------------------------------- */
+
+.member { border-top: 1px solid var(--rule); }
+.member:last-of-type { border-bottom: 1px solid var(--rule); }
+
+.member-summary {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: 1rem 0;
+  cursor: pointer;
+  list-style: none;
+}
+.member-summary::-webkit-details-marker { display: none; }
+
+.member-identity { display: grid; min-width: 0; flex: 1; }
+.member-identity b { font-size: .95rem; font-weight: 500; }
+.member-identity > span {
+  font-size: .8rem;
+  color: var(--ink-quiet);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.member-count { font-size: .8rem; color: var(--ink-quiet); flex: none; }
+
+/* --- a form inside a panel ------------------------------------------------
+   Named for the shell rather than for the team page, which is where these
+   started: /portal/perfil posts two forms of its own, and .member-form on a
+   page about your own password would say the wrong thing on sight.
+   ------------------------------------------------------------------------- */
+
+.dashboard-form { display: flex; flex-direction: column; gap: 1.5rem; padding-bottom: 1rem; }
+
+.dashboard-form-fields { display: grid; gap: 1rem; }
+@media (min-width: 620px) {
+  .dashboard-form-fields { grid-template-columns: 1fr 1fr; }
+}
+
+.dashboard-form-actions { display: flex; gap: 1rem; }
+
+/* --- the facts on /portal/perfil that somebody else decides --------------- */
+
+.profile-facts { display: grid; gap: 1.25rem; margin-top: 1.5rem; }
+@media (min-width: 620px) {
+  .profile-facts { grid-template-columns: 1fr 1fr; }
+}
+
+.profile-facts dt { font-size: .8rem; color: var(--ink-quiet); }
+.profile-facts dd { margin: .25rem 0 0; font-size: .95rem; }
+
+/* --- slide-over rail below 900px ----------------------------------------- */
+
+.dashboard-toggle { display: none; }
+.dashboard-scrim { display: none; }
+
+@media (max-width: 899px) {
+  .dashboard-frame { grid-template-columns: minmax(0, 1fr); }
+
+  .dashboard-burger,
+  .dashboard-close { display: grid; place-items: center; width: 44px; height: 44px; }
+
+  .dashboard-sidebar {
+    position: fixed;
+    z-index: 40;
+    inset-block: 0;
+    left: 0;
+    width: min(var(--rail), 82vw);
+    transform: translateX(-100%);
+    transition: transform var(--dur) var(--ease);
+  }
+
+  .dashboard-toggle:checked ~ .dashboard-frame .dashboard-sidebar { transform: translateX(0); }
+
+  .dashboard-toggle:checked ~ .dashboard-frame .dashboard-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(0, 0, 0, .45);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-sidebar,
+  .dashboard-card { transition: none; }
+}
+
+
+/* --------------------------------------------------------------------------
+   The bell
+   --------------------------------------------------------------------------
+   A details/summary, not a JavaScript popover. The portal ships no JavaScript
+   and this needs none: the browser gives the toggle, the escape key and the
+   focus handling for free.
+   -------------------------------------------------------------------------- */
+
+.dashboard-bell { margin-left: auto; position: relative; }
+
+.dashboard-bell summary {
+  list-style: none;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius);
+  position: relative;
+}
+
+.dashboard-bell summary::-webkit-details-marker { display: none; }
+.dashboard-bell summary:hover { background: var(--sunken); }
+.dashboard-bell summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dashboard-bell summary svg { width: 20px; height: 20px; }
+
+.dashboard-bell-count {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--border-radius);
+  background: var(--bkf-yellow);
+  color: var(--bkf-black);
+  font-size: .625rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+.dashboard-bell-panel {
+  position: absolute;
+  top: calc(100% + .5rem);
+  right: 0;
+  z-index: 20;
+  width: min(22rem, calc(100vw - 2rem));
+  display: grid;
+  gap: .25rem;
+  padding: .5rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgb(0 0 0 / .12);
+}
+
+.dashboard-bell-item {
+  display: grid;
+  gap: .125rem;
+  padding: .75rem;
+  border-radius: var(--border-radius);
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.dashboard-bell-item:hover { background: var(--sunken); }
+.dashboard-bell-item b { font-size: .875rem; }
+.dashboard-bell-item span { font-size: .75rem; color: var(--ink-quiet); }
+.dashboard-bell-ago { font-size: .6875rem; }
+
+.dashboard-bell-empty { padding: 1rem .75rem; font-size: .8rem; color: var(--ink-quiet); }
+
+.dashboard-bell-clear {
+  width: 100%;
+  padding: .5rem;
+  font: inherit;
+  font-size: .75rem;
+  color: var(--ink-quiet);
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--rule);
+  cursor: pointer;
+}
+
+.dashboard-bell-clear:hover { color: var(--ink); }
+
+
+/* --------------------------------------------------------------------------
+   Meetings
+   -------------------------------------------------------------------------- */
+
+/* The next meeting is the question this dashboard gets asked most, so it takes
+   the brand fill and sits above everything else. */
+.meeting-next {
+  display: grid;
+  gap: .5rem;
+  justify-items: start;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  margin-bottom: 2rem;
+  border: 1.5px solid var(--bkf-yellow);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+}
+
+.meeting-eyebrow {
+  font-size: .6875rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+  margin: 0;
+}
+
+.meeting-next h2 { margin: 0; font-size: 1.25rem; }
+.meeting-when { margin: 0; font-weight: 700; }
+.meeting-agenda { margin: 0; color: var(--ink-quiet); font-size: .875rem; max-width: 60ch; }
+
+.meeting-actions { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; margin: .5rem 0 0; }
+.meeting-more { font-size: .8rem; color: var(--ink-quiet); }
+
+.meeting-block { display: grid; gap: .75rem; margin-top: 2rem; }
+.meeting-block h3 { margin: 0; font-size: .95rem; }
+
+.meeting-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+
+.meeting-row {
+  display: grid;
+  gap: .125rem;
+  padding: .875rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+}
+
+.meeting-row b { font-size: .9rem; }
+.meeting-row span { font-size: .8rem; color: var(--ink-quiet); }
+.meeting-row-off b { text-decoration: line-through; }
+.meeting-notes { margin: .375rem 0 0; font-size: .8rem; color: var(--ink-quiet); }
+
+
+/* --------------------------------------------------------------------------
+   Brand assets
+   -------------------------------------------------------------------------- */
+
+.asset-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: 1rem;
+}
+
+.asset-card {
+  display: grid;
+  gap: .25rem;
+  padding: .75rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+  text-decoration: none;
+  color: var(--ink);
+  height: 100%;
+}
+
+.asset-card:hover { border-color: var(--bkf-yellow); }
+.asset-card b { font-size: .875rem; }
+
+.asset-preview {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  margin-bottom: .375rem;
+  border-radius: var(--border-radius);
+  background: var(--sunken);
+  overflow: hidden;
+}
+
+.asset-preview img { width: 100%; height: 100%; object-fit: contain; }
+
+/* Big enough to read as a picture of the file rather than as UI furniture.
+   The shell's blanket `.dashboard svg { width: 20px }` would otherwise leave a
+   20px mark floating in a 4:3 tile. */
+.asset-icon {
+    width: 38% !important;
+    height: auto !important;
+    max-width: 72px;
+    color: var(--ink-quiet);
+    stroke-width: 1.25;
+
+}
+.asset-meta { font-size: .75rem; color: var(--ink-quiet); }
+
+
+/* --------------------------------------------------------------------------
+   The three steps
+   -------------------------------------------------------------------------- */
+
+.step-bar {
+  display: grid;
+  gap: 1rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  margin-bottom: 2rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+}
+
+.step-bar-head { display: grid; gap: .25rem; }
+.step-bar-state { margin: 0; font-size: .95rem; color: var(--ink-quiet); }
+.step-bar-state b { color: var(--ink); }
+
+.step-bar-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 1rem;
+}
+
+.step-bar-step {
+  display: grid;
+  gap: .375rem;
+  align-content: start;
+  padding-top: .875rem;
+  /* The rule above each step IS the progress bar: it fills for the steps that
+     are done and stays quiet for the ones that are not, so the shape of the
+     progress reads before any of the words do. */
+  border-top: 3px solid var(--rule);
+}
+
+.step-bar-step.is-done, .step-bar-step.is-now { border-top-color: var(--bkf-yellow); }
+
+.step-bar-mark {
+  display: grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--border-radius);
+  border: 1.5px solid var(--rule-strong);
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--ink-quiet);
+}
+
+.step-bar-mark svg { width: 14px; height: 14px; }
+
+.step-bar-step.is-done .step-bar-mark {
+  background: var(--bkf-yellow);
+  border-color: var(--bkf-yellow);
+  color: var(--bkf-black);
+}
+
+.step-bar-step.is-now .step-bar-mark { border-color: var(--bkf-yellow); color: var(--ink); }
+
+.step-bar-name { font-size: .9rem; font-weight: 700; }
+.step-bar-step:not(.is-done):not(.is-now) .step-bar-name { color: var(--ink-quiet); }
+.step-bar-note { font-size: .8rem; color: var(--ink-quiet); line-height: 1.5; }
+.step-bar-when { font-size: .75rem; color: var(--ink-quiet); }
+
+/* On the dashboard this sits above everything else and must not become the
+   page: the marks and names alone, in a row. */
+.step-bar-compact { gap: .75rem; }
+.step-bar-compact .step-bar-steps { gap: .75rem; }
+.step-bar-compact .step-bar-step { padding-top: .625rem; }
+
+
+/* --------------------------------------------------------------------------
+   The brand, writing itself
+   -------------------------------------------------------------------------- */
+
+.brand-page { display: grid; gap: 2rem; max-width: 46rem; }
+
+/* One stated fact about the brand, above the entregables — today only
+   "Marca registrada". Set apart from .brand-entry because it is not one of the
+   48: it is a property of the brand, not something Breakfast wrote. */
+.brand-fact {
+  margin-bottom: 1.5rem;
+  padding: .75rem 1rem;
+  font-size: .925rem;
+  background: var(--sunken);
+  border-radius: var(--border-radius);
+}
+
+.brand-entry { display: grid; gap: .5rem; }
+
+/* An image or a video inside an entregable — section 5 of the beta review.
+   Twelve of the 48 are text and picture by nature, and a Kapferer prism
+   reduced to a URL is not the entregable.
+
+   Block, not inline: these sit on their own line inside the paragraph they
+   were written into, and an inline image would ride the text baseline and
+   push the line height around. max-width so a 4000px export cannot widen the
+   page — the ONLY rule here that is load-bearing. */
+.entregable-media {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: .75rem 0;
+  border-radius: var(--border-radius);
+}
+
+.brand-entry h2 {
+  margin: 0;
+  font-size: .75rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.brand-entry-body { display: grid; gap: .75rem; }
+.brand-entry-body p { margin: 0; line-height: 1.7; }
+.brand-entry-body a { word-break: break-word; }

@@ -5,7 +5,52 @@ import { bunny } from 'laravel-vite-plugin/fonts';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            // orb-demo.js is its own entry on purpose: app.js is the public
+            // site's GSAP bundle, and three.js has no business shipping to
+            // someone reading the podcast page.
+            // One stylesheet per blade, plus general.css which every blade
+            // loads alongside it. A page never ships another page's CSS.
+            input: [
+                'resources/css/general.css',
+                'resources/css/layout.css',
+                'resources/css/admin.css',
+                'resources/css/dashboard.css',
+                'resources/css/process.css',
+                'resources/css/files.css',
+                'resources/css/admin-brand-egg.css',
+                // Component stylesheets, not pages': these render in BOTH
+                // shells, so neither shell's file can own them.
+                'resources/css/permissions.css',
+                // Rendered in both shells, like permissions.css — see its header.
+                'resources/css/checklist.css',
+                // Chat attachments: the three transcripts live in both shells.
+                'resources/css/attachments.css',
+                'resources/css/brand-egg.css',
+                'resources/css/assistant.css',
+                'resources/css/meetings.css',
+                'resources/css/staff.css',
+                'resources/css/account.css',
+                'resources/css/auth.css',
+                'resources/css/login.css',
+                'resources/css/home-remake.css',
+                'resources/css/nosotros.css',
+                'resources/css/servicios.css',
+                'resources/css/podcast.css',
+                'resources/css/contacto.css',
+                'resources/css/carta.css',
+                'resources/css/brand-egg-map.css',
+
+                'resources/js/app.js',
+                'resources/js/assistant.js',
+                'resources/js/client-draft.js',
+                'resources/js/process-assistant.js',
+                'resources/js/process.js',
+                'resources/js/checklist.js',
+                'resources/js/brand-egg.js',
+                'resources/js/copy-link.js',
+                'resources/js/lightbox.js',
+                'resources/js/orb-demo.js',
+            ],
             refresh: true,
             fonts: [
                 // Neo-grotesque stand-in for the brand face. Swap for a
@@ -14,12 +59,66 @@ export default defineConfig({
                 bunny('Inter', {
                     weights: [400, 500, 700, 900],
                 }),
+                // Public marketing site only. These two are the faces the
+                // Squarespace site actually ships: Libre Baskerville sets every
+                // heading, Almarai every paragraph. The portal stays on Inter.
+                bunny('Libre Baskerville', {
+                    weights: [400, 700],
+                }),
+                bunny('Almarai', {
+                    weights: [400, 700],
+                }),
             ],
         }),
     ],
+    /*
+     * STABLE FILENAMES — no content hash.
+     *
+     * Deploys here are FTP uploads of changed files (see CLAUDE.md §3), and a
+     * hashed name means every edit lands as a NEW file plus a rewritten
+     * manifest.json, which had to be uploaded in that order or the site came
+     * up unstyled. The output name is the address you upload to, so it has to
+     * hold still: resources/css/admin.css is always
+     * public/build/assets/admin.css, today and next month.
+     *
+     * The hash was doing one real job — busting the one-YEAR browser cache the
+     * root .htaccess puts on text/css. That job moved to a ?v= query stamped
+     * from each file's own mtime; see Vite::createAssetPathsUsing() in
+     * AppServiceProvider.
+     *
+     * JS lands in assets/js/ and everything else directly in assets/, which is
+     * cosmetic. The function is not: a CSS entry also produces a JS chunk (an
+     * empty stub Vite then discards) and that stub RESERVES the entry's
+     * basename. With one pattern for both, assistant.css took the name and
+     * resources/js/assistant.js was renamed assistant2.js — a number assigned
+     * by input order, so reordering the array above would silently move it to
+     * the other file. Sending the stubs to a path of their own keeps the name
+     * they reserve out of the way. Nothing is written there; only the name is
+     * spent.
+     *
+     * A new entry sharing a basename with an existing one of the SAME kind
+     * would still collide silently. Check the build output for a "2" after
+     * adding one.
+     */
+    build: {
+        rollupOptions: {
+            output: {
+                entryFileNames: (chunk) => /\.css$/.test(chunk.facadeModuleId || '')
+                    ? 'assets/css-entry-stub/[name].js'
+                    : 'assets/js/[name].js',
+                chunkFileNames: 'assets/js/[name].js',
+                assetFileNames: 'assets/[name][extname]',
+            },
+        },
+    },
     server: {
         watch: {
-            ignored: ['**/storage/framework/views/**'],
+            // public/** is served as-is and never needs HMR. It is ignored
+            // because this project sits inside OneDrive: OneDrive locks files
+            // while it syncs them, and a watcher landing on a locked file
+            // throws EBUSY, which kills the whole dev server. Dropping an image
+            // into public/img was enough to take it down.
+            ignored: ['**/storage/framework/views/**', '**/public/**'],
         },
     },
 });

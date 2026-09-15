@@ -7,6 +7,7 @@ use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
 use App\Http\Responses\LoginResponse;
+use Illuminate\Auth\Middleware\RedirectIfAuthenticated;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -36,6 +37,22 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        /*
+         * Where an already-signed-in visitor goes when they ask for a guest
+         * screen such as /login.
+         *
+         * Without this, Laravel's RedirectIfAuthenticated falls back to
+         * defaultRedirectUri(), which looks for a route named "dashboard" and
+         * then one named "home" — and "home" is the public marketing page. So
+         * clicking the account icon while signed in bounced you to the
+         * marketing site, which looks exactly like the link being broken.
+         *
+         * Same routing as after a successful login: see App\Models\User.
+         */
+        RedirectIfAuthenticated::redirectUsing(
+            fn (Request $request) => $request->user()->homeRoute(),
+        );
+
         Fortify::createUsersUsing(CreateNewUser::class);
         Fortify::updateUserProfileInformationUsing(UpdateUserProfileInformation::class);
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);

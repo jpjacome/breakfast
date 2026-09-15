@@ -1,44 +1,54 @@
-<x-layouts.auth title="Recuperar clave">
+{{--
+    /forgot-password — Fortify POSTs to route('password.email').
 
-    <header class="auth-form__head">
-        <h1 class="auth-form__title">recuperar</h1>
-        <p class="auth-form__sub">
-            Escribe tu correo y te mandamos un enlace para crear una contraseña nueva.
-        </p>
-    </header>
+    Says nothing about whether the address has an account: the form answers
+    the same way either way, because a page that distinguished them would hand
+    anybody the client list one address at a time. See PasswordRecoveryTest.
+--}}
+<x-layouts.site-remake :css="['auth']"
+    title="Recuperar tu contraseña"
+    description="Te enviamos un enlace para crear una contraseña nueva."
+    :noindex="true">
 
-    <x-auth.feedback />
+    <article class="auth" data-plane>
+        <div class="container">
 
-    <form method="POST" action="{{ route('password.email') }}" novalidate>
-        @csrf
+          <h1 class="auth-heading" data-typewriter>
+              ¿Olvidaste tu contraseña?
+          </h1>
 
-        <div class="auth-form__fields">
+          <div class="auth-body" data-fade-in>
 
-            <div class="bkf-field">
-                <label class="bkf-label" for="email">Correo</label>
-                <input
-                    class="bkf-input"
-                    id="email"
-                    name="email"
-                    type="email"
-                    inputmode="email"
-                    autocomplete="username"
-                    value="{{ old('email') }}"
-                    @error('email') aria-invalid="true" @enderror
-                    required
-                    autofocus
-                >
-            </div>
+            <p class="auth-intro">
+                Escribe tu correo y te mandamos un enlace para crear una nueva.
+            </p>
 
-            <button type="submit" class="bkf-btn bkf-btn--primary bkf-btn--lg bkf-btn--block">
-                Enviar enlace
-            </button>
+            <x-auth.feedback />
+
+            <form method="POST" action="{{ route('password.email') }}" class="auth-form">
+                @csrf
+
+                <div class="auth-field">
+                    <label for="email">Correo</label>
+                    <input type="email" id="email" name="email"
+                           value="{{ old('email') }}"
+                           inputmode="email"
+                           autocomplete="username"
+                           placeholder="maria@lamarca.com"
+                           @error('email') aria-invalid="true" @enderror
+                           required autofocus>
+                </div>
+
+                <button type="submit" class="button">Enviar enlace</button>
+            </form>
+
+            <p class="auth-foot">
+                <a href="{{ route('login') }}">Volver a entrar</a>
+            </p>
+
+          </div>
 
         </div>
-    </form>
+    </article>
 
-    <p class="auth-form__foot">
-        <a href="{{ route('login') }}">Volver a entrar</a>
-    </p>
-
-</x-layouts.auth>
+</x-layouts.site-remake>

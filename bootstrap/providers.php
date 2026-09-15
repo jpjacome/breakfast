@@ -1,6 +1,11 @@
 <?php
 
+use App\Providers\AiServiceProvider;
+use App\Providers\AppServiceProvider;
+use App\Providers\FortifyServiceProvider;
+
 return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\FortifyServiceProvider::class,
+    AiServiceProvider::class,
+    AppServiceProvider::class,
+    FortifyServiceProvider::class,
 ];

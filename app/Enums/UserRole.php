@@ -49,4 +49,21 @@ enum UserRole: string
     {
         return [self::ClienteOwner, self::ClienteMiembro];
     }
+
+    /** Roles that may be assigned to someone who works at Breakfast. */
+    public static function breakfastRoles(): array
+    {
+        return [self::Admin, self::Equipo];
+    }
+
+    /** What this role is for, in one line, next to the picker. */
+    public function description(): string
+    {
+        return match ($this) {
+            self::Admin => 'Todo el back-office, incluida la facturación y este equipo.',
+            self::Equipo => 'Clientes, marcas y contexto. No toca facturación ni el equipo.',
+            self::ClienteOwner => 'Dueño de su marca: ve la suscripción e invita a su gente.',
+            self::ClienteMiembro => 'Usa el portal de su marca con los permisos que le den.',
+        };
+    }
 }

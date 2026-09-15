@@ -1,0 +1,426 @@
+/* ==========================================================================
+   THE BRAND EGG — the admin screen around the drawing
+
+   ⚠️ THIS IS THE PAGE'S FILE, NOT THE COMPONENT'S. The drawing itself, and
+   the panel the rings speak into, live in brand-egg.css: they ship to the
+   client's read-only view inside <x-layouts.portal> as well, so neither
+   shell's stylesheet nor this one can own them. The boundary is worth stating
+   because both files use a brand-egg- prefix —
+
+     brand-egg.css        the <svg>, its rings, and the panel beneath it
+     this file            the two columns, the stage, and the five layer cards
+
+   Everything here is scoped under .admin, like the rest of the back office,
+   so nothing reaches the client's copy of the drawing by accident.
+
+   No colour, radius or border width is invented below: --border-radius and
+   the role tokens in admin.css are the whole vocabulary, and the one type
+   size that is set explicitly overrides h3 for this screen rather than
+   starting a scale.
+   ========================================================================== */
+
+
+/* --------------------------------------------------------------------------
+   The two columns
+
+   The drawing LEFT and the layers RIGHT, at a near-even split — the egg is the
+   subject of this screen rather than an illustration beside the real content,
+   which is why it does not take the narrow track .admin-columns would give it.
+
+   ⚠️ Not .admin-columns. That grid is 1.6fr/1fr with the list on the wide
+   side, which is right for a file table beside a form and wrong here.
+   -------------------------------------------------------------------------- */
+
+.admin .brand-egg-screen {
+  display: grid;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+  align-items: start;
+}
+
+/* A grid item's default min-width is min-content, so a track refuses to shrink
+   below its widest unbreakable child and pushes the page sideways. Same fix,
+   same reason, as .admin-columns > *. */
+.admin .brand-egg-screen > * { min-width: 0; }
+
+/* The layers take the wider track. The drawing is PORTRAIT and, once the panes
+   are fixed, its height is what limits it — so extra width on the left is dead
+   space beside the egg rather than a bigger egg, while extra width on the right
+   is shorter lines and fewer of them. */
+@media (min-width: 1040px) {
+  .admin .brand-egg-screen { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); }
+}
+
+.admin .brand-egg-stage .brand-egg {
+  /* Smaller than the component's own ceiling: this column is half a screen,
+     and the drawing at full width left the panel below it off the fold. */
+  max-width: 24rem;
+  margin-block: .5rem 1.25rem;
+}
+
+
+/* --------------------------------------------------------------------------
+   The skillet
+
+   The egg is fried in something. The drawing sits ON a cast-iron pan that is
+   deliberately far larger than the card holding it, so what you see is a
+   fragment of a skillet rather than a picture of one — the rim and the handle
+   run off the edges and the card crops them.
+
+   ⚠️ THE CLIP IS THE EFFECT. overflow: hidden on the card is not tidying up
+   after an oversized image, it is the whole idea: an image that fits would
+   read as an illustration of a pan placed behind the egg, and this reads as
+   the egg being in one. The card's own 36px radius does the cropping, so the
+   crop is the same shape as every other card on the screen.
+
+   Outside the two-pane block on purpose: the stacked layout gets the same
+   scenery, and only the SIZE is worth tuning per layout.
+   -------------------------------------------------------------------------- */
+
+.admin .brand-egg-stage > .admin-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.admin .brand-egg-skillet {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+
+  /* Square, sized off the card's HEIGHT, because this pane is portrait.
+
+     ⚠️ 180% IS A JUDGED VALUE, not a round number. At 150% the whole rim sat
+     inside the card and it read as a picture OF a pan; at 225% the rim was
+     gone altogether and it read as a dark background that happened to have an
+     egg on it. The pan has to be cropped enough to feel bigger than the frame
+     and still show enough curve to be a pan. aspect-ratio rather than
+     width: auto so the shape cannot drift if the source is ever re-exported
+     at a different size. */
+  height: 180%;
+  aspect-ratio: 1;
+  width: auto;
+  max-width: none;
+
+  /* It is underneath, and it is not a control. Without this the pan would
+     swallow hovers meant for the outer ring, which reaches the card's edges. */
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* The drawing rides above the pan. A z-index is needed rather than source
+   order alone because the skillet is positioned and the SVG is not.
+
+   ⚠️ THE SCALE BELONGS HERE, NOT IN THE TWO-PANE BLOCK. It sat there first and
+   the stacked layout kept a full-size egg, which overran the pan's cooking
+   surface and sat on the rim — the egg has to be smaller than the pan wherever
+   the pan is drawn, and that is every layout. A scale rather than a smaller
+   box, because the box is what the 300px floor is measured against and
+   shrinking it would quietly move the floor too. */
+.admin .brand-egg-stage .brand-egg {
+  position: relative;
+  z-index: 1;
+  scale: .86;
+}
+
+
+/* --------------------------------------------------------------------------
+   TWO PANES, ON A SCREEN WITH ROOM FOR THEM
+
+   ⚠️ THE PAGE ITSELF DOES NOT SCROLL HERE. The egg is held whole and still in
+   the left pane and the layers scroll inside the right one, which is the whole
+   argument for this screen: you read one layer while looking at where it sits
+   in the egg, and a drawing that leaves the top of the page is not doing that
+   job. Sticky was the first attempt and is not the same thing — the page still
+   scrolls, so the egg still travels and the reader still watches it move.
+
+   ⚠️ THE DRAWING SHRINKS TO FIT, IT DOES NOT GET CUT OFF. Its box is whatever
+   height is left, so a shorter laptop gets a smaller egg rather than an egg
+   running off the bottom of the screen — which is what happened when this
+   block asked for 640px of viewport and simply switched itself off below that.
+   A 768px-tall laptop is a normal laptop, and it was getting the fallback.
+
+   The floor is 300px of drawing, and the height gate is derived from it rather
+   than guessed: the topbar, the title, the page padding and the card's own
+   padding cost about 230px between them, so 540px of viewport is the point
+   below which 300px can no longer be honoured. Below that — a window dragged
+   to a sliver, a phone in landscape — the panes give up and the page scrolls
+   normally, which is the honest answer at that size.
+
+   ⚠️ THE FALLBACK IS A PLAIN SCROLLING PAGE, NOT A STICKY EGG. Sticky was
+   tried and dropped: on a screen too short for two panes the card is taller
+   than the viewport anyway, so sticking it pins something already cut off at
+   the bottom. Scrolling past it is the better of the two.
+
+   ⚠️ SCOPED WITH :has(), NOT BY EDITING admin.css. Locking the frame to the
+   viewport is right for this one screen and wrong for every other back-office
+   page, all of which are lists that must be free to grow. :has() lets the page
+   ask for it from its OWN stylesheet, so nothing about this reaches a screen
+   that does not render an egg. Same instinct as a page owning its own file.
+   -------------------------------------------------------------------------- */
+
+@media (min-width: 1040px) and (min-height: 540px) {
+
+  /* The frame stops being "at least the viewport" and becomes exactly it. */
+  .admin-frame:has(.brand-egg-screen) {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  /* A flex child will not shrink below its content unless it is told it may,
+     so every link in the chain down to the scroller needs min-height: 0.
+     Miss one and the right column grows instead of scrolling, and the page
+     gets its scrollbar back. */
+  .admin-frame:has(.brand-egg-screen) .admin-column { min-height: 0; }
+
+  /* ⚠️ A FLEX COLUMN, NOT A BLOCK WITH height: 100% ON THE GRID. The title
+     sits inside this box too, so "100% of the main area" is always taller than
+     what is actually left once the title has had its share — the panes ran
+     past the bottom of the screen by exactly the height of the heading, and
+     the card's foot was clipped. Letting the grid be the flex child that grows
+     asks for the REMAINDER instead of for the whole. */
+  .admin-frame:has(.brand-egg-screen) .admin-main {
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    /* The 4rem foot the other screens carry is for a page that ends; this one
+       does not end, it is a pane. */
+    padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
+  }
+
+  .admin-frame:has(.brand-egg-screen) .brand-egg-nav { flex: none; }
+
+  .admin .brand-egg-screen {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  /* --- left pane: the egg, whole and still ------------------------------- */
+
+  .admin .brand-egg-stage {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    /* The pane gives up gracefully rather than losing its bottom edge: between
+       the 300px floor and the 540px gate there is a sliver of window where the
+       card is taller than its pane, and .admin-main's overflow: hidden would
+       otherwise take a bite out of it with no way to reach what was bitten. */
+    overflow-y: auto;
+  }
+
+  .admin .brand-egg-stage > .admin-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ⚠️ THE DRAWING IS SIZED BY HEIGHT HERE, NOT BY WIDTH. Given a box and its
+     viewBox, the SVG scales the egg to fit and centres it (preserveAspectRatio
+     is the default), so the one thing that must be true — the whole egg, always
+     visible — is true at any pane size without a media query per height. The
+     max-width above is what governs when the page scrolls normally instead. */
+  .admin .brand-egg-stage .brand-egg {
+    /* ⚠️ flex-basis 0, NOT auto. With auto the drawing's base size is its own
+       aspect-ratio height — taller than the pane — and shrinking from there
+       left the card ~50px longer than the space it had, which the pane's
+       overflow: hidden then ate off the bottom: the approval line simply was
+       not there. Basis 0 makes the drawing take the space that is LEFT after
+       the panel and the status line, which is the correct reading of "the egg
+       gets whatever room remains". */
+    flex: 1 1 0;
+    /* ⚠️ THE FLOOR. Below this the egg stops shrinking and the pane scrolls
+       instead — five rings in less than 300px are five hairlines, and a
+       drawing nobody can read is not worth the room it is still taking. */
+    min-height: 300px;
+    width: 100%;
+    max-width: none;
+    height: auto;
+    margin-block: 0;
+  }
+
+
+
+  /* --- right pane: the layers, scrolling on their own -------------------- */
+
+  .admin .brand-egg-screen > .admin-stack {
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    /* Room for the scrollbar so it never sits on a card's edge, held open in
+       both states so the column does not jump when it appears. */
+    padding-right: .75rem;
+    scrollbar-gutter: stable;
+  }
+}
+
+
+/* --------------------------------------------------------------------------
+   The row of five, where the page title used to be
+
+   The screen's name went up into the topbar beside the brand's, and this took
+   the line it left. It is the third face of the same five layers, so it says
+   the least of the three: a number and a name, no state, no description. Those
+   belong to the card.
+
+   One row, and it stays one row — a nav that wraps to two lines on a narrow
+   window changes the height of everything below it, and everything below it is
+   a pane measured against the viewport. It scrolls sideways instead.
+   -------------------------------------------------------------------------- */
+
+.admin .brand-egg-nav {
+  display: flex;
+  gap: .5rem;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.admin .brand-egg-nav::-webkit-scrollbar { display: none; }
+
+.admin .brand-egg-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  flex: none;
+  padding: .4rem .875rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+  color: var(--ink-quiet);
+  font-size: .8rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease),
+              background-color var(--dur) var(--ease),
+              color var(--dur) var(--ease);
+}
+
+/* Hover, keyboard focus, and the pointer being on this layer's ring or card
+   somewhere else on the screen all look the same — the row is one of three
+   faces of one thing, and lighting them differently would hide that. */
+.admin .brand-egg-nav-item:hover,
+.admin .brand-egg-nav-item:focus-visible,
+.admin .brand-egg-nav-item.is-linked {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+.admin .brand-egg-nav-item.is-open {
+  border-color: var(--accent);
+  background: var(--sunken);
+  color: var(--ink);
+}
+
+.admin .brand-egg-nav-ring {
+  font-weight: 700;
+  /* The number is the one part that is the same mark in all three places: the
+     ring's position, the card's circle, and this. */
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* --------------------------------------------------------------------------
+   The five layer cards
+   -------------------------------------------------------------------------- */
+
+.admin .brand-egg-layer {
+  /* The card answers the ring: hovering either one lights both, so the link
+     between a paragraph and its band in the drawing is never something the
+     reader has to hold in their head. brand-egg.js sets .is-linked.
+     No cursor: pointer — the card is not a control. The RING is: it lights
+     this card and, clicked, scrolls it into view. A card that looked clickable
+     and did nothing would be the worse half of that pair. */
+  transition: border-color var(--dur) var(--ease),
+              background-color var(--dur) var(--ease);
+}
+
+.admin .brand-egg-layer:hover,
+.admin .brand-egg-layer.is-linked {
+  border-color: var(--accent);
+  background: var(--sunken);
+}
+
+/* The number, the title and the state, on one line. The number is first
+   because the five are ORDERED — layer 5 reads layer 2's result — and a list
+   whose order matters says so. */
+.admin .brand-egg-layer-head {
+  display: flex;
+  align-items: flex-start;
+  gap: .875rem;
+}
+
+.admin .brand-egg-layer-ring {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: var(--border-width) solid var(--rule-strong);
+  border-radius: 50%;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--ink-quiet);
+  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+/* The ring number is a circle rather than a square on purpose: it is a small
+   picture of the thing beside it. A composed layer fills it in, so the column
+   of five numbers is a second, glanceable copy of what the drawing says. */
+.admin .brand-egg-layer.is-composed .brand-egg-layer-ring {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.admin .brand-egg-layer-heading { flex: 1 1 auto; }
+
+.admin .brand-egg-layer-title {
+  font-family: "Libre Baskerville", Georgia, serif;
+  /* Overrides the global h3 for this screen. One size, not a scale. */
+  font-size: clamp(16px, 1.6vw, 1.15rem);
+  line-height: 1.3;
+}
+
+.admin .brand-egg-layer-purpose {
+  margin-top: .25rem;
+  font-size: .8rem;
+  line-height: 1.5;
+  color: var(--ink-quiet);
+}
+
+.admin .brand-egg-layer-text {
+  margin-top: 1rem;
+  line-height: 1.7;
+  max-width: 54ch;
+}
+
+/* A layer with nothing in it yet says so in words as well as by its hollow
+   ring. Absence is stated, never omitted — the same rule the entregables'
+   toMarkdown() follows, for the same reason: silence gets filled in by
+   whoever is reading, with whatever is most probable. */
+.admin .brand-egg-layer-empty {
+  margin-top: 1rem;
+  font-style: italic;
+  color: var(--ink-quiet);
+}
+
+/* Where the layer comes from. A footer rather than a line of body text: it is
+   provenance, and it is the answer to the question the screen invites — "says
+   who?" */
+.admin .brand-egg-layer-sources {
+  margin-top: 1rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--rule);
+  font-size: .75rem;
+  line-height: 1.6;
+  color: var(--ink-quiet);
+}
+
+.admin .brand-egg-layer-sources b {
+  font-weight: 500;
+  color: var(--ink);
+}

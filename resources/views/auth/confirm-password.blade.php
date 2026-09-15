@@ -1,38 +1,46 @@
-<x-layouts.auth title="Confirma tu contraseña">
+{{--
+    /user/confirm-password — Fortify POSTs to route('password.confirm').
 
-    <header class="auth-form__head">
-        <h1 class="auth-form__title">confirma</h1>
-        <p class="auth-form__sub">
-            Esta es una zona sensible. Escribe tu contraseña para continuar.
-        </p>
-    </header>
+    Reached from inside the app, before something sensitive (turning 2FA on,
+    reading recovery codes). The person is already signed in, so this asks for
+    the password they have rather than offering a new one.
+--}}
+<x-layouts.site-remake :css="['auth']"
+    title="Confirma tu contraseña"
+    :noindex="true">
 
-    <x-auth.feedback />
+    <article class="auth" data-plane>
+        <div class="container">
 
-    <form method="POST" action="{{ route('password.confirm') }}" novalidate>
-        @csrf
+          <h1 class="auth-heading" data-typewriter>
+              Confirma que eres tú
+          </h1>
 
-        <div class="auth-form__fields">
+          <div class="auth-body" data-fade-in>
 
-            <div class="bkf-field">
-                <label class="bkf-label" for="password">Contraseña</label>
-                <input
-                    class="bkf-input"
-                    id="password"
-                    name="password"
-                    type="password"
-                    autocomplete="current-password"
-                    @error('password') aria-invalid="true" @enderror
-                    required
-                    autofocus
-                >
-            </div>
+            <p class="auth-intro">
+                Esta es una zona sensible. Escribe tu contraseña para continuar.
+            </p>
 
-            <button type="submit" class="bkf-btn bkf-btn--primary bkf-btn--lg bkf-btn--block">
-                Continuar
-            </button>
+            <x-auth.feedback />
+
+            <form method="POST" action="{{ route('password.confirm') }}" class="auth-form">
+                @csrf
+
+                <div class="auth-field">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" name="password"
+                           autocomplete="current-password"
+                           @error('password') aria-invalid="true" @enderror
+                           required autofocus>
+                </div>
+
+                <button type="submit" class="button">Continuar</button>
+            </form>
+
+          </div>
 
         </div>
-    </form>
+    </article>
 
-</x-layouts.auth>
+</x-layouts.site-remake>

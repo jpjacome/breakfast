@@ -1,0 +1,139 @@
+/* ==========================================================================
+   NOSOTROS PAGE — "/nosotros"
+
+   Only the elements rendered by nosotros.blade.php. The navbar, footer and
+   page base belong to the layout and live in general.css.
+
+   It is one long letter, so the page is two columns: the letter on the left in
+   a measure short enough to read comfortably, and a photograph alone on the
+   right. The card underneath matches the home page's sections.
+   ========================================================================== */
+
+.nosotros {
+  max-width: var(--max-width);
+  margin-inline: auto;
+  padding: var(--gutter);
+  background: var(--bkf-yellow);
+  color: var(--bkf-black);
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.nosotros .container {
+  margin-inline: auto;
+  padding-block: clamp(2rem, 6vw, 5rem);
+  display: grid;
+  column-gap: clamp(2rem, 5vw, 4rem);
+  /* No row-gap: the heading's own margin-bottom sets the space beneath it, and
+     a gap on top of that would separate it from its paragraphs twice. */
+}
+
+/* 68ch keeps lines in the comfortable 60–75 character range. Capped even when
+   the column is wider: full-width prose is unreadable. */
+.nosotros-letter,
+.nosotros-heading { max-width: 68ch; }
+
+/* Stacked only; the two-column rule below puts the photo beside the text. */
+.nosotros-photo { margin-top: clamp(2rem, 5vw, 4rem); }
+
+.nosotros-photo img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: var(--border-radius);
+}
+
+@media (min-width: 950px) {
+  /* Two rows: the heading alone on the first, the letter and the photo side by
+     side on the second. The heading's neighbouring cell is left empty — that is
+     what lets the photo start level with the first paragraph rather than level
+     with the heading. */
+  .nosotros .container { grid-template-columns: minmax(0, 68ch) minmax(0, 1fr); }
+
+  .nosotros-heading { grid-area: 1 / 1; }
+  .nosotros-letter  { grid-area: 2 / 1; }
+
+  .nosotros-photo {
+    grid-area: 2 / 2;
+    align-self: start;   /* top of the photo, top of the paragraphs */
+    margin-top: 0;
+  }
+}
+
+.nosotros-heading {
+  font-size: clamp(28px, 3.4vw, 3.25rem);
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  margin-bottom: clamp(2rem, 4vw, 3rem) !important;
+}
+
+.nosotros-text > p {
+  font-size: clamp(15px, 1.55vw, 1.1rem);
+  line-height: 1.9;
+}
+.nosotros-text > p + p { margin-top: 1.5rem; }
+
+.nosotros-signature {
+  margin-top: clamp(2rem, 4vw, 3rem);
+  font-family: var(--font-serif);
+  font-size: clamp(18px, 1.9vw, 1.35rem);
+  line-height: 1.6;
+}
+
+.nosotros-close {
+  margin-top: clamp(2.5rem, 6vw, 4.5rem);
+  margin-bottom: 2rem;
+  padding-top: clamp(2rem, 4vw, 3rem);
+  border-top: var(--border-width) solid var(--ink);
+}
+
+.nosotros-close-text {
+  font-family: var(--font-serif);
+  font-size: clamp(20px, 2.4vw, 1.75rem);
+  line-height: 1.4;
+  max-width: 26ch;
+}
+
+/* Hand-annotated look on the closing line. <em> carries the emphasis for
+   screen readers; the italic it comes with is not wanted here, so it is
+   turned off and the mark does the emphasising instead. */
+.nosotros-underline-wavy,
+.nosotros-underline-straight {
+  font-style: normal;
+  text-decoration-line: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 6px;
+  /* Default is `auto`, which gaps the line around descenders (q, y, p). A drawn
+     mark runs straight through them. */
+  text-decoration-skip-ink: none;
+}
+
+/* Longhand, not the `text-decoration` shorthand: the shorthand would reset the
+   thickness set above back to auto. */
+.nosotros-underline-wavy { text-decoration-style: wavy; }
+
+/* A ring drawn over the phrase. CSS has no way to do this, so it is a stroked
+   SVG path laid on top; the phrase becomes the positioning context for it. */
+.nosotros-circled {
+  position: relative;
+  display: inline-block;
+  font-style: normal;
+}
+
+.nosotros-circled svg {
+  position: absolute;
+  left: -8%;
+  top: -26%;
+  width: 116%;
+  height: 152%;
+  overflow: visible;
+  pointer-events: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* preserveAspectRatio="none" lets the ring stretch to whatever width the phrase
+   is; without this the stretch would squash the stroke thin at the top and
+   thick at the sides. */
+.nosotros-circled path { vector-effect: non-scaling-stroke; }

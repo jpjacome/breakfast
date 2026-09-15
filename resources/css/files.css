@@ -1,0 +1,130 @@
+/* --------------------------------------------------------------------------
+   The file manager — /admin/archivos and /admin/archivos/{marca}
+   Only this screen's own elements. The buttons, fields, cards and empty state
+   are admin.css's, shared with every other back-office page.
+   -------------------------------------------------------------------------- */
+
+/* The folder grid: one brand per tile ------------------------------------- */
+
+.folder-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 1rem;
+}
+
+.folder {
+  display: grid;
+  gap: .375rem;
+  padding: 1.5rem;
+  border: var(--border-width) solid var(--rule);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color var(--duration) var(--ease);
+}
+
+.folder:hover,
+.folder:focus-visible { border-color: var(--bkf-yellow); }
+
+.folder-icon { width: 2rem; height: 2rem; color: var(--bkf-yellow); }
+.folder-name { font-weight: 700; }
+
+/* One folder's contents ---------------------------------------------------- */
+
+.file-upload { display: grid; gap: 1rem; margin-bottom: 1rem; }
+
+.file-grid {
+  list-style: none;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 1rem;
+}
+
+.file {
+  display: grid;
+  gap: .75rem;
+  padding: 1rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+}
+
+/* Square so a folder of mixed shapes still reads as a grid rather than a
+   ragged column. The image is contained, never cropped: a logo with its
+   corners cut off is worse than one with air around it. */
+.file-preview {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+  background: var(--page);
+}
+
+/* Video gets the same treatment as an image: the browser paints the first
+   frame from the metadata it fetched, so the poster IS the file. Contained
+   rather than cropped, for the same reason images are. */
+.file-preview img,
+.file-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Sorting. Links, not a control: the order is in the URL, so it survives a
+   reload and can be handed to somebody. */
+.file-sort {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+  /* Space above as well as below: it follows a paragraph of prose, and without
+     it the row reads as part of that sentence rather than as a control. */
+  margin: 1.5rem 0 1rem;
+  font-size: .8rem;
+  color: var(--ink-quiet);
+}
+
+.file-sort a {
+  color: inherit;
+  text-decoration: none;
+  padding: .2rem .6rem;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius);
+}
+
+.file-sort a:hover { border-color: var(--rule); }
+
+.file-sort a.is-current {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+
+/* The folder of files nobody has attributed to a brand yet. Dashed, like the
+   badge on the rows inside it: it is a holding place, not a brand. */
+.folder-unfiled { border-style: dashed; }
+
+/* Sized like the client's, so a file looks the same to the team that hands it
+   over and to the brand that receives it. */
+.file-icon {
+  width: 38%;
+  height: auto;
+  max-width: 72px;
+  color: var(--ink-quiet);
+  stroke-width: 1.25;
+}
+
+.file-body b { font-size: .9rem; }
+.file-body p { margin: .125rem 0 0; }
+
+.file-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+/* Confirms the copy without a dialog — same button as the process board. */
+.file-actions button[data-copied] { background: var(--bkf-yellow); color: var(--bkf-black); }

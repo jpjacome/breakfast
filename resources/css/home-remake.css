@@ -1,0 +1,398 @@
+/* ==========================================================================
+   HOME PAGE — "/v2"
+
+   Only the elements rendered by home-remake.blade.php: the hero, its copy
+   column, its photograph, its button, and the scrolling word band.
+
+   The page base, the skip link and the navbar are NOT here — they belong to
+   the layout and live in general.css.
+
+   Colours come straight from the palette in general.css: var(--bkf-yellow),
+   var(--bkf-black), var(--bkf-off-white), var(--bkf-brown). Nothing is
+   re-aliased. Shared layout values are var(--gutter), var(--max-width),
+   var(--font-serif), var(--duration), var(--ease).
+   ========================================================================== */
+
+
+/* --- hero ---------------------------------------------------------------- */
+
+.home-hero {
+  position: relative;              /* anchor for the pinned band */
+  background: var(--bkf-yellow);
+  color: var(--bkf-black);
+  display: grid;
+  align-items: stretch;
+
+  /* --- hero photograph parallax, both knobs here ---
+     travel: how far the photo drifts DOWN across the whole scroll of the
+     hero. It is also the extra height the photo is given, so it can never
+     expose an edge. Raise for a stronger effect.
+     zoom: scale it starts at, easing back to 1 as you scroll. */
+  --home-hero-photo-travel: 160px;
+  --home-hero-photo-zoom: 1.12;
+
+  /* --- the scrolling word loop, both knobs in one place ---
+     Change the letter size HERE, not on the span. The clearance the copy
+     column reserves is derived from it, so the button can never end up
+     underneath the band no matter what size you pick. */
+  /* Hover fill: how wide the photo is drawn inside each word, and how long it
+     takes to pan across. Width must exceed 100% or there is no slack to pan.
+     Pace shorter than the loop's 40s = fill outruns the letters; longer = it
+     lags behind. */
+  --home-scrolling-band-fill-width: 180%;
+  --home-scrolling-band-fill-pace: 18s;
+
+  --home-scrolling-band-font: clamp(120px, 15vw, 15rem);
+  --home-scrolling-band-height: calc(var(--home-scrolling-band-font) * 0.5);
+}
+
+/* The yellow plane stays full-bleed; only the CONTENT is measured against
+   --site-max, exactly like .home-letter. That is what makes the two sections'
+   columns identical — before this, the hero halved the viewport while the
+   carta halved a 1600px box. */
+.home-hero .container {
+  width: 100%;
+  max-width: var(--max-width);
+  margin-inline: auto;
+  display: grid;
+  align-items: stretch;
+}
+
+.home-hero-text {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+    padding: var(--gutter);
+}
+
+.home-hero-headline {
+  font-size: clamp(30px, 4vw, 4rem);
+  line-height: 1.08;
+  letter-spacing: -.02em;
+  max-width: 17ch;
+  margin: 1.5rem 0 !important;
+
+  /* Reserves the finished height while the typewriter fills it, so the
+     paragraph, button and photo below do not step down line by line.
+     In CSS rather than measured in JS — a measured value is taken once at
+     load and goes stale the moment the window is resized. */
+  min-height: 260px;
+}
+
+/* Hidden until the typewriter starts, so the finished headline never paints
+   for a frame first. Same .js guard as the navbar in general.css. */
+.js .home-hero,
+.js .home-hero-headline,
+.js .home-hero-paragraph,
+.js .home-hero-text .button,
+.js .home-hero-photo { visibility: hidden; }
+
+@media (prefers-reduced-motion: reduce) {
+  .js .home-hero,
+  .js .home-hero-headline,
+  .js .home-hero-paragraph,
+  .js .home-hero-text .button,
+  .js .home-hero-photo { visibility: visible; }
+}
+
+/* Caret — only present while typing. */
+.home-hero-headline.is-typing::after {
+  content: "";
+  display: inline-block;
+  width: .055em;
+  height: .8em;
+  margin-left: .05em;
+  translate: 0 .05em;
+  background: currentColor;
+  animation: home-caret-blink 900ms steps(1) infinite;
+}
+
+@keyframes home-caret-blink { 50% { opacity: 0; } }
+
+.home-hero-paragraph {
+  margin-top: clamp(1.5rem, 3vw, 2.5rem);
+  max-width: 54ch;
+    font-size: clamp(16px, 1.7vw, 1.2rem);
+  line-height: 1.9;
+  /* Brown rather than a grey tint: the palette's "cozy anchor". */
+  color: var(--bkf-brown);
+}
+
+/* The frame is the fixed shape; the photograph inside it is oversized so it
+   has room to travel without exposing an edge. Height moved off the <img>
+   and onto the frame, because an absolutely positioned child cannot give its
+   parent height. */
+.home-hero-photo {
+  position: relative;
+  overflow: hidden;
+  pointer-events: none;
+  /* One corner only — the other three meet the plane behind it. Same radius,
+     applied where there is an outside edge to round. */
+  border-radius: var(--border-radius) 0 0;
+  min-height: 320px;
+}
+
+.home-hero-photo img {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  top: calc(-1 * var(--home-hero-photo-travel));
+  height: calc(100% + var(--home-hero-photo-travel));
+  object-fit: cover;
+  will-change: transform;
+}
+
+/* The carta button keeps the yellow fill; the hero's is off-white.
+   The button itself is general.css — only this override is the home page's. */
+.home-letter .button::before { background: var(--bkf-yellow); }
+
+@media (min-width: 950px) {
+  .home-hero .container { grid-template-columns: 1fr 1fr; }
+  .home-hero-photo { min-height: min(82vh, 860px); }
+
+  /* Two-column layout only: the band crosses the copy column, so reserve
+     clearance. Stacked, it lands below the photograph and needs none. */
+  .home-hero-text { padding-bottom: calc(clamp(3.5rem, 8vw, 7rem) + var(--home-scrolling-band-height)); }
+}
+
+/* Stacked, the photo is the element the band overlaps — give it enough height
+   that the band never covers the whole frame. */
+@media (max-width: 949px) {
+  .home-hero-photo { min-height: calc(320px + var(--home-scrolling-band-height)); }
+
+  /* The desktop minimum is 120px, which is roughly a third of a phone screen
+     tall and swallows the photo. Overridden here rather than lowering the
+     clamp, so the desktop size is untouched. */
+  .home-hero { --home-scrolling-band-font: clamp(48px, 11vw, 96px); }
+}
+
+
+/* --- carta + lo que hacemos ----------------------------------------------
+   Two sections built the same way: a coloured plane holding an off-white
+   card, photograph left, copy right. Only the plane's colour differs, so the
+   layout is written once and each section sets its own background.
+
+   The texture is multiplied over the colour rather than laid on top of it,
+   otherwise the opaque image hides the colour entirely.
+   Paths stay relative — an absolute dev-server URL breaks the build.
+   ------------------------------------------------------------------------- */
+
+.home-letter,
+.home-services {
+  max-width: var(--max-width);
+  margin-inline: auto;
+  padding: var(--gutter);
+  display: flex;
+  margin-top: 0;
+  background-image: url('../images/bg2.png');
+  background-blend-mode: multiply;
+  background-size: cover;
+  background-position: center;
+  max-height: 150vh;
+  gap: 1rem;
+}
+
+.home-services { 
+  background-color: var(--bkf-yellow); 
+  background-image: none; 
+  margin-top: 0;
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.home-letter .container{
+  display: flex;
+  width: 100%;
+  background-color: var(--bkf-off-white);
+  border-radius: var(--border-radius);
+}
+
+.home-services .container {
+  display: flex;
+  width: 100%;
+  background-color: transparent;   /* `none` is not valid for a colour */
+  border-radius: var(--border-radius);
+}
+
+.home-letter-photo,
+.home-services-photo { flex: 1; }
+
+.home-letter-text,
+.home-services-text { flex: 1; }
+
+.home-letter-text .container,
+.home-services-text .container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  height: 100%;
+  padding: var(--gutter);
+}
+
+.home-letter-photo img,
+.home-services-photo img {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: var(--border-radius) 0 0 var(--border-radius);
+}
+
+.home-letter-heading,
+.home-services-heading {
+  font-size: clamp(28px, 3.2vw, 3rem);
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  margin-bottom: 1rem!important;
+}
+
+.home-letter-paragraph,
+.home-services-paragraph {
+  margin-top: clamp(1.5rem, 3vw, 2.5rem);
+  max-width: 54ch;
+  font-size: clamp(16px, 1.7vw, 1.2rem);
+  line-height: 1.9;
+  color: var(--bkf-brown);
+}
+
+@media (min-width: 950px) {
+  /* Taller crop when the photo is a column beside the copy. */
+  .home-letter-photo img,
+  .home-services-photo img { aspect-ratio: 3 / 4; }
+}
+
+
+/* --- tablets and phones --------------------------------------------------
+   Both cards stack: photograph on top, copy beneath.
+   ------------------------------------------------------------------------- */
+
+@media (max-width: 949px) {
+
+  /* Capped height only makes sense side by side. Stacked, it would clip the
+     copy — the card has to grow to whatever it holds. */
+  .home-letter,
+  .home-services { max-height: none; }
+
+  .home-letter .container,
+  .home-services .container { flex-direction: column; }
+
+  /* The headline stays 4 lines all the way down (max-width is in ch, so the
+     measure shrinks with the type), but the font does not — 250px would leave
+     a gap. 4 lines x 1.08 line-height, in em, so it tracks the clamp across
+     the whole tablet-to-phone range instead of only at one width. */
+  .home-hero-headline { min-height: 4.32em; }
+
+  /* A 3:4 portrait is most of a phone screen before a word is read, and the
+     rounded edge moves from the left side to the top. */
+  .home-letter-photo img,
+  .home-services-photo img {
+    aspect-ratio: 3 / 2;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+  }
+}
+
+
+/* --- phones ---------------------------------------------------------------
+   Photographs run corner to corner. A 36px radius is a small detail on a
+   1600px card and a heavy one across a 390px screen, where the image is
+   nearly the full width.
+
+   The hero's radius is on the FRAME, not the <img> — that is the element with
+   overflow: hidden, so rounding the image alone would do nothing there.
+   ------------------------------------------------------------------------- */
+
+@media (max-width: 640px) {
+  /* Zero, not the one radius: at this width the images sit inside a container
+     that already rounds them by clipping, so rounding them again would show as
+     a sliver of background inside its own corner. */
+  .home-hero-photo,
+  .home-letter-photo img,
+  .home-services-photo img { border-radius: 0; }
+}
+
+
+/* --- scrolling word band (inside the hero, pinned to its bottom edge) ----- */
+
+.home-scrolling-band {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 2;
+  height: fit-content;
+  display: flex;
+  align-items: center;
+  color: var(--bkf-yellow);
+  overflow: hidden;
+}
+
+.home-scrolling-band-track {
+  display: flex;
+  width: max-content;
+  animation: home-scrolling-band-loop 40s linear infinite;
+}
+
+.home-scrolling-band-group {
+  display: flex;
+  flex: none;
+  gap: clamp(50px, 6vw, 7rem);
+  padding-right: clamp(2rem, 5vw, 4rem);
+    margin-bottom: 2rem;
+
+}
+
+.home-scrolling-band-group > span {
+  font-family: var(--font-serif);
+  font-size: var(--home-scrolling-band-font);   /* set this in .home-hero */
+  line-height: 1;
+  white-space: nowrap;
+
+  /* Optical alignment to the section's bottom edge. The band's box is already
+     flush (bottom: 0); the gap is INSIDE it, because the font reserves
+     descender space below the baseline and "Procesos Creativos" has no
+     descending glyph. A negative bottom margin shrinks the band's fit-content
+     height by that much, dropping the baseline onto the section edge.
+     Tune this number: more negative sits the letters lower. */
+  margin-bottom: calc(var(--home-scrolling-band-font) * -0.18);
+  transition: 300ms var(--ease);
+}
+
+/* Hover fills the letters with the photograph, and the fill travels at its
+   own pace so it slides against the letters instead of riding along with them.
+
+   How the parallax works: the background is painted relative to each span, so
+   by default it moves exactly with the span and looks glued on. Panning
+   background-position the other way makes it lag. The image is sized wider
+   than the span (see --home-scrolling-band-fill-width) purely to create the
+   slack that panning needs — at `cover` it fits the width exactly and there is
+   nothing to pan across.
+
+   Path must be relative into resources/images so Vite rewrites it. A
+   /img/... path resolves against the dev server, 404s, and the letters vanish
+   (they are transparent — the image IS the fill). */
+.home-scrolling-band:hover .home-scrolling-band-group > span {
+  background-image: url('../images/scrolling-band-fill.jpg');
+  background-size: var(--home-scrolling-band-fill-width) auto;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  transition: 300ms var(--ease);
+  animation: home-scrolling-band-fill-drift
+             var(--home-scrolling-band-fill-pace) linear infinite;
+}
+
+/* Right to left across the slack, against the letters' own travel. Reverse
+   the two positions to send the fill the other way. */
+@keyframes home-scrolling-band-fill-drift {
+  from { background-position: 100% center; }
+  to   { background-position: 0% center; }
+}
+
+@keyframes home-scrolling-band-loop { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* A marquee that only "slows down" under reduced-motion still moves. Stop it. */
+@media (prefers-reduced-motion: reduce) {
+  .home-scrolling-band-track { animation: none; }
+}

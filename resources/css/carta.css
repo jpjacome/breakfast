@@ -1,0 +1,78 @@
+/* ==========================================================================
+   CARTA PAGE — "/carta"
+
+   Only the elements rendered by carta.blade.php. The navbar, footer and page
+   base belong to the layout and live in general.css.
+
+   Built exactly like the nosotros page: one long letter in a reading column,
+   with a photograph alone beside it.
+   ========================================================================== */
+
+.carta {
+  max-width: var(--max-width);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+  background: var(--bkf-yellow);
+  color: var(--bkf-black);
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.carta .container {
+  margin-inline: auto;
+  padding-block: clamp(2rem, 6vw, 5rem);
+  display: grid;
+  column-gap: clamp(2rem, 5vw, 4rem);
+}
+
+/* 68ch keeps lines in the comfortable 60–75 character range. */
+.carta-letter,
+.carta-heading { max-width: 68ch; }
+
+/* Stacked only; the two-column rule below puts the photo beside the letter. */
+.carta-photo { margin-top: clamp(2rem, 5vw, 4rem); }
+
+.carta-photo img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: var(--border-radius);
+}
+
+@media (min-width: 950px) {
+  .carta .container { grid-template-columns: minmax(0, 68ch) minmax(0, 1fr); }
+
+  .carta-heading { grid-area: 1 / 1; }
+  .carta-letter  { grid-area: 2 / 1; }
+
+  .carta-photo {
+    grid-area: 2 / 2;
+    align-self: start;
+    margin-top: 0;
+  }
+}
+
+.carta-heading {
+  font-size: clamp(28px, 3.4vw, 3.25rem);
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  margin-bottom: clamp(2rem, 4vw, 3rem) !important;
+}
+
+.carta-text > p {
+  font-size: clamp(15px, 1.55vw, 1.1rem);
+  line-height: 1.9;
+}
+.carta-text > p + p { margin-top: 1.5rem; }
+
+.carta-close {
+  margin-top: clamp(2.5rem, 6vw, 4.5rem);
+  margin-bottom: 2rem;
+  padding-top: clamp(2rem, 4vw, 3rem);
+  border-top: var(--border-width) solid var(--ink);
+}
+
+.carta-close-text {
+  font-family: var(--font-serif);
+  font-size: clamp(20px, 2.4vw, 1.75rem);
+  line-height: 1.4;
+}

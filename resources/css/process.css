@@ -1,0 +1,550 @@
+/* ==========================================================================
+   process.css — /admin/clientes/{marca}/proceso
+
+   Only what this page owns: the three step cards and the 48-entregable list.
+   Everything else (cards, buttons, fields, hints) is admin.css, and every
+   colour here is a token that already exists there.
+   ========================================================================== */
+
+
+/* --------------------------------------------------------------------------
+   The three steps
+   -------------------------------------------------------------------------- */
+
+.process-steps { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem; }
+.process-steps-head { display: flex; flex-direction: column; gap: .25rem; }
+
+.process-step-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1rem;
+}
+
+.process-step {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  padding: clamp(1.125rem, 2vw, 1.5rem);
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+}
+
+/* The step in progress is the only one that takes the brand fill. A finished
+   step is not a warning and not the thing to look at — it just stops being
+   loud, so the eye lands on where the work is. */
+.process-step-live { border-color: var(--accent); }
+.process-step-done { background: none; border-style: dashed; }
+
+.process-step-number { font-size: 1.5rem; line-height: 1; font-weight: 700; }
+.process-step-number span { font-size: .8rem; color: var(--ink-quiet); font-weight: 400; }
+
+.process-step-name {
+  margin: 0;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.process-step-name svg { width: 1.125rem; height: 1.125rem; }
+.process-step-live .process-step-name svg { color: var(--accent); }
+
+.process-step-note { margin: 0; font-size: .8rem; color: var(--ink-quiet); line-height: 1.5; }
+
+.process-step-state {
+  margin: 0;
+  font-size: .75rem;
+  color: var(--ink-quiet);
+  border-top: 1px solid var(--rule);
+  padding-top: .625rem;
+}
+
+.process-step-live .process-step-state { color: var(--ink); }
+.process-step-actions { margin-top: auto; padding-top: .25rem; }
+
+
+/* --------------------------------------------------------------------------
+   The 48
+   -------------------------------------------------------------------------- */
+
+.process-form { display: flex; flex-direction: column; gap: 1rem; }
+
+.process-list-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.process-filters { display: flex; flex-wrap: wrap; gap: .5rem; }
+
+.process-filters button {
+  font: inherit;
+  font-size: .75rem;
+  color: var(--ink-quiet);
+  background: none;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--border-radius);
+  padding: .375rem .875rem;
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+
+.process-filters button:hover { color: var(--ink); border-color: var(--accent); }
+
+.process-filters button[aria-pressed="true"] {
+  color: var(--ink);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.process-filters button:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--glow);
+}
+
+.process-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+  gap: 1rem;
+}
+
+.process-item {
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+  padding: clamp(1.125rem, 2vw, 1.5rem);
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+}
+
+/* Hidden by the filters, never removed from the form: a textarea that stops
+   being posted is an entregable somebody silently emptied. */
+.process-item[hidden] { display: none; }
+
+.process-item-label {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.process-item-number { color: var(--ink-quiet); font-weight: 400; font-size: .75rem; }
+.process-item-name { flex: 1; }
+
+.process-tag {
+  font-size: .625rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--border-radius);
+  padding: .125rem .5rem;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.process-item-hint { margin: 0; font-size: .75rem; color: var(--ink-quiet); line-height: 1.5; }
+
+/* "Insertar archivo", under each entregable — section 5 of the beta review.
+   A <details> so twenty filenames are not printed forty-eight times over: the
+   board is long enough already, and this is only wanted on the twelve
+   entregables that carry visuals. */
+.process-item-files { margin-top: .5rem; }
+
+.process-item-files summary {
+  display: inline-block;
+  font-size: .75rem;
+  color: var(--ink-quiet);
+  cursor: pointer;
+}
+
+.process-item-files summary:hover { color: var(--ink); }
+
+.process-file-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .375rem;
+  margin: .5rem 0;
+}
+
+.process-file {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  padding: .3125rem .625rem;
+  font: inherit;
+  font-size: .75rem;
+  color: var(--ink);
+  background: var(--sunken);
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+}
+
+.process-file:hover { border-color: var(--bkf-yellow); }
+.process-file svg { width: 1rem; height: 1rem; }
+
+.process-item textarea {
+  width: 100%;
+  padding: .625rem .875rem;
+  font: inherit;
+  font-size: .9rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--rule-strong);
+  border-radius: var(--border-radius);
+  min-height: 5rem;
+  resize: vertical;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+.process-item textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--glow);
+}
+
+/* An entregable with content keeps a solid edge; an empty one goes dashed, so
+   "what is still pending" reads down the page without opening anything. */
+.process-item[data-filled="0"] textarea { border-style: dashed; }
+
+.process-save {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+
+/* --------------------------------------------------------------------------
+   The assistant
+   --------------------------------------------------------------------------
+   Additions to the home screen's assistant (.assistant*, in admin.css), not
+   replacements for it: the file picker, the proposal cards and the thinking
+   line, which the home screen has no use for.
+   -------------------------------------------------------------------------- */
+
+
+/* The home screen caps the assistant at 46rem because it sits alone on an
+   otherwise empty page. Here it is the top of a stack, and a panel narrower
+   than the form under it reads as a widget that wandered onto the screen
+   rather than the thing driving it. Same width as everything below. */
+.brand-assistant {
+  max-width: 100%;
+  margin-inline: 0;
+}
+
+
+/* --- dropping a file onto the assistant -----------------------------------
+   The whole panel is the target. A drop zone you have to aim at is a drop zone
+   people miss, and the gesture for handing somebody a brandbook is dragging it
+   onto them, not hunting for a paperclip.
+
+   The panel says so only while something is being dragged over it: a permanent
+   dashed rectangle is a instruction nobody needs the other 99% of the time.
+   ------------------------------------------------------------------------- */
+
+.brand-assistant.is-dropping {
+  border-color: var(--bkf-yellow);
+  background: var(--glow);
+}
+
+/* Children would otherwise fire their own drag events and fight the counter
+   that keeps the state from flickering. */
+.brand-assistant.is-dropping > * { pointer-events: none; }
+
+.brand-assistant.is-dropping::after {
+  content: "Suelta el archivo aquí";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  font-size: .95rem;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+/* The overlay above is positioned against this. */
+.brand-assistant { position: relative; }
+
+
+/* --- the tracker ----------------------------------------------------------
+   Four cards, one per level, under the assistant. The bar itself comes from
+   admin.css, where the client page also uses it.
+
+   Split by level rather than one number over 42, because a brand with every
+   Extra filled and no Posicionamiento is not two thirds done — it has not
+   started. The split is what makes the count a decision about what to do next.
+   ------------------------------------------------------------------------- */
+
+
+/* --- inside the assistant -------------------------------------------------
+   Additions to the home screen's composer, not replacements for it.
+   ------------------------------------------------------------------------- */
+
+/* The paperclip is a label with the real input hidden inside it: a file input
+   cannot be styled to match the controls beside it, and the two have to be the
+   same object — clicking the icon has to open the dialog.
+
+   It wears .assistant-tool, so the shape, the size and the hover come from the
+   composer; the only thing left here is holding the invisible input over it. */
+.brand-attach { position: relative; cursor: pointer; }
+.brand-attach input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.brand-attached {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .375rem;
+  font-size: .72rem;
+  color: var(--ink-quiet);
+}
+
+/* Reading a brandbook takes a while and a silent screen reads as broken. The
+   orb is already animating, so this only has to name what it is doing. */
+.brand-thinking {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .8rem;
+  color: var(--ink-quiet);
+}
+
+.brand-thinking::before {
+  content: "";
+  width: .55rem;
+  height: .55rem;
+  border-radius: var(--border-radius);
+  background: var(--bkf-yellow);
+  animation: brand-pulse 1.1s var(--ease) infinite;
+}
+
+@keyframes brand-pulse {
+  0%, 100% { opacity: .25; transform: scale(.7); }
+  50%      { opacity: 1;   transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-thinking::before { animation: none; opacity: 1; }
+}
+
+/* A failed turn, in the thread. Not a message: an explanation of why there
+   isn't one. */
+.assistant-message-error {
+  align-self: stretch;
+  border: var(--border-width) solid var(--bkf-red);
+  color: var(--bkf-red);
+}
+
+
+/* --- a proposal waiting for a decision ------------------------------------
+   Only fields that already had an answer get here. An empty field is filled
+   straight into the form, because there is nothing to lose and a card per
+   empty field would mean forty cards on the first brandbook.
+   ------------------------------------------------------------------------- */
+
+.brand-proposals { display: grid; gap: .75rem; width: 100%; }
+.brand-proposals:empty { display: none; }
+
+.brand-proposal {
+  display: grid;
+  gap: .5rem;
+  padding: .875rem 1rem;
+  border: var(--border-width) solid var(--bkf-yellow);
+  border-radius: var(--border-radius);
+  font-size: .85rem;
+}
+
+.brand-proposal-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .5rem;
+  font-size: .72rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+}
+
+/* Old above, new below, both in full. A diff would be shorter and would hide
+   exactly the thing being decided. */
+.brand-proposal-values { display: grid; gap: .5rem; }
+
+.brand-proposal-value {
+  padding: .5rem .625rem;
+  border-radius: var(--border-radius);
+  background: var(--sunken);
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.brand-proposal-value b {
+  display: block;
+  margin-bottom: .25rem;
+  font-size: .65rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+}
+
+/* The proposed half of a card is a field, not a quote: it can be corrected
+   before it is accepted, so it has to look like something you can type in.
+   A real edge and the page's own surface, against the sunken box around it —
+   the same difference the board below uses between a filled row and its
+   ground. */
+.brand-proposal-value-editable { background: var(--sunken); }
+
+.brand-proposal-edit {
+  display: block;
+  width: 100%;
+  padding: .5rem .625rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  line-height: 1.45;
+  /* Auto-grown from the content in process-assistant.js, so a handle would
+     fight the script for the height. */
+  resize: none;
+  overflow: hidden;
+}
+
+.brand-proposal-edit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.brand-proposal-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+
+/* --- the questions it wants answered --------------------------------------
+   As buttons, because the single most common next action on this screen is
+   answering one of them and retyping it into the composer first is friction
+   for nothing.
+   ------------------------------------------------------------------------- */
+
+.brand-questions { display: grid; gap: .375rem; width: 100%; }
+
+.brand-question {
+  display: block;
+  width: 100%;
+  padding: .45rem .75rem;
+  border: var(--border-width) solid var(--rule);
+  border-radius: var(--border-radius);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: .82rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.brand-question:hover { border-color: var(--bkf-black); background: var(--bkf-yellow); }
+
+[hidden] { display: none !important; }
+
+
+
+/* --------------------------------------------------------------------------
+   The brand's folder
+   -------------------------------------------------------------------------- */
+
+.process-assets { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2.5rem; }
+.process-asset-form { display: grid; gap: 1rem; }
+
+.process-asset-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+
+.process-asset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  padding: .75rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+}
+
+.process-asset-kind {
+  flex: none;
+  display: grid;
+  place-items: center;
+  min-width: 3.25rem;
+  padding: .375rem .5rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--border-radius);
+  font-size: .625rem;
+  letter-spacing: .06em;
+  color: var(--ink-quiet);
+}
+
+.process-asset-main { flex: 1; min-width: 12rem; }
+.process-asset-main b { font-size: .9rem; }
+.process-asset-main p { margin: .125rem 0 0; }
+.process-asset-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+/* Confirms the copy without a dialog. The button says what happened and goes
+   back to itself, which is all the feedback a clipboard write needs. */
+.process-asset-actions button[data-copied] { background: var(--bkf-yellow); color: var(--bkf-black); }
+
+/* Who said this — only on the shared thread.
+   
+   The other two assistants key their threads on user_id, so every turn in them
+   is yours by construction. This one belongs to the brand, and several people
+   write into it, so a byline is the difference between a conversation and a
+   pile of messages. */
+.turn-author {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .5rem;
+  font-size: .75rem;
+  font-weight: 600;
+  color: var(--ink-quiet);
+}
+
+/* Smaller than the roster's, which is a row in a list. Here it sits above a
+   paragraph and should not outweigh it. */
+.turn-author .admin-avatar {
+  width: 24px;
+  height: 24px;
+  font-size: .625rem;
+}
+
+/* Brandy. A placeholder until her avatar lands — see x-turn-author. */
+.turn-author-brandy {
+  background: var(--bkf-yellow);
+  color: var(--bkf-black);
+}
+
+/* A turn whose author is gone: deleted account, or a row from before the
+   author was recorded. Quiet, because it is an absence rather than a person. */
+.turn-author-gone {
+  background: none;
+  border: 1px dashed var(--rule);
+  color: var(--ink-quiet);
+}

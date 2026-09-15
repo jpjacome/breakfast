@@ -1,10 +1,11 @@
 <?php
 
 use App\Enums\ClientStatus;
+use App\Enums\DeliverableItem;
 use App\Models\Client;
-use App\Models\ContextDocument;
 use App\Models\User;
-use Illuminate\Http\UploadedFile;
+use App\Services\Ai\Admin\PortfolioSnapshot;
+use App\Services\Ai\BrandContextRepository;
 use Illuminate\Support\Facades\Storage;
 
 /* ---------------------------------------------------------------------
@@ -106,128 +107,187 @@ test('the client list can be searched', function () {
         ->assertDontSee('Zapatos Sur');
 });
 
-/* ---------------------------------------------------------------------
- | Context documents
- --------------------------------------------------------------------- */
+/* -------------------------------------------------------------------------
+ | Editing a brand's own details
+ |
+ | Reported by a tester on 2026-08-14: the brand page showed name, industria
+ | and contacto and offered no way to change any of them. They were writable
+ | on the way in — /clientes/nueva and the draft autosave — and read-only
+ | forever after, so correcting a contact meant editing the database.
+ ------------------------------------------------------------------------- */
 
-test('an admin can upload a context file', function () {
-    Storage::fake('local');
+test('an admin edits a brand\'s details', function () {
+    $admin = User::factory()->admin()->create();
+    $client = Client::factory()->create([
+        'name' => 'Patito',
+        'industry' => 'Papelería',
+        'contact_name' => null,
+    ]);
 
+    $this->actingAs($admin)
+        ->put(route('admin.clients.update', $client), [
+            'brand' => [
+                'name' => 'Patito Studio',
+                'industry' => 'Diseño',
+                'status' => $client->status->value,
+                'contact_name' => 'María García',
+                'contact_email' => 'maria@patito.com',
+                'notes' => 'Cambió de contacto en agosto.',
+            ],
+        ])
+        ->assertRedirect(route('admin.clients.show', $client));
+
+    $client->refresh();
+
+    expect($client->name)->toBe('Patito Studio')
+        ->and($client->industry)->toBe('Diseño')
+        ->and($client->contact_name)->toBe('María García')
+        ->and($client->contact_email)->toBe('maria@patito.com')
+        ->and($client->notes)->toBe('Cambió de contacto en agosto.');
+});
+
+test('renaming a brand does not move its address', function () {
+    $admin = User::factory()->admin()->create();
+    $client = Client::factory()->create(['name' => 'Patito', 'slug' => 'patito']);
+
+    $this->actingAs($admin)->put(route('admin.clients.update', $client), [
+        'brand' => ['name' => 'Patito Studio', 'status' => $client->status->value],
+    ]);
+
+    // The slug is the brand's address in the URLs people bookmark AND in
+    // storage/app/marcas/{slug}. A corrected label must not strand a folder
+    // of logos under the old name.
+    expect($client->refresh()->slug)->toBe('patito');
+});
+
+test('clearing a contact stores null, not an empty string', function () {
+    $admin = User::factory()->admin()->create();
+    $client = Client::factory()->create(['contact_name' => 'María García']);
+
+    $this->actingAs($admin)->put(route('admin.clients.update', $client), [
+        'brand' => ['name' => $client->name, 'status' => $client->status->value, 'contact_name' => ''],
+    ]);
+
+    // "Sin contacto registrado" gets one representation instead of two.
+    expect($client->refresh()->contact_name)->toBeNull();
+});
+
+test('a live brand cannot be sent back to being a draft', function () {
+    $admin = User::factory()->admin()->create();
+    $client = Client::factory()->create(['status' => ClientStatus::Activo]);
+
+    $this->actingAs($admin)->put(route('admin.clients.update', $client), [
+        'brand' => ['name' => $client->name, 'status' => ClientStatus::Borrador->value],
+    ]);
+
+    // Unfinished is a state a brand leaves once. Only the new-brand screen
+    // understands a draft.
+    expect($client->refresh()->status)->toBe(ClientStatus::Activo);
+});
+
+test('a brand needs a name', function () {
+    $admin = User::factory()->admin()->create();
+    $client = Client::factory()->create(['name' => 'Patito']);
+
+    $this->actingAs($admin)
+        ->put(route('admin.clients.update', $client), [
+            'brand' => ['name' => '', 'status' => $client->status->value],
+        ])
+        ->assertSessionHasErrors('brand.name');
+
+    expect($client->refresh()->name)->toBe('Patito');
+});
+
+test('equipo cannot edit a brand they are not on', function () {
+    $staff = User::factory()->equipo()->create();
+    $client = Client::factory()->create(['name' => 'Patito']);
+
+    $this->actingAs($staff)
+        ->put(route('admin.clients.update', $client), [
+            'brand' => ['name' => 'Secuestrada', 'status' => $client->status->value],
+        ])
+        ->assertNotFound();
+
+    expect($client->refresh()->name)->toBe('Patito');
+});
+
+test('the brand page offers the edit form', function () {
     $admin = User::factory()->admin()->create();
     $client = Client::factory()->create();
 
     $this->actingAs($admin)
-        ->post(route('admin.clients.context.store', $client), [
-            'title' => 'Brief de marca 2026',
-            'kind' => 'brief',
-            'file' => UploadedFile::fake()->create('brief.pdf', 120, 'application/pdf'),
-        ])
-        ->assertRedirect();
-
-    $doc = ContextDocument::first();
-
-    expect($doc)->not->toBeNull()
-        ->and($doc->client_id)->toBe($client->id)
-        ->and($doc->uploaded_by)->toBe($admin->id)
-        ->and($doc->original_name)->toBe('brief.pdf')
-        ->and($doc->processed_at)->toBeNull();
-
-    Storage::disk('local')->assertExists($doc->path);
-});
-
-test('the stored path never contains the original filename', function () {
-    Storage::fake('local');
-
-    $this->actingAs(User::factory()->admin()->create());
-    $client = Client::factory()->create();
-
-    $this->post(route('admin.clients.context.store', $client), [
-        'title' => 'Raro',
-        'kind' => 'otro',
-        'file' => UploadedFile::fake()->create('../../evil name.pdf', 10, 'application/pdf'),
-    ]);
-
-    $doc = ContextDocument::first();
-
-    expect($doc->path)->toStartWith("context/{$client->id}/")
-        ->and($doc->path)->not->toContain('evil')
-        ->and($doc->path)->not->toContain('..');
-});
-
-test('unsupported file types are rejected', function () {
-    Storage::fake('local');
-
-    $this->actingAs(User::factory()->admin()->create());
-    $client = Client::factory()->create();
-
-    $this->post(route('admin.clients.context.store', $client), [
-        'title' => 'Ejecutable',
-        'kind' => 'otro',
-        'file' => UploadedFile::fake()->create('virus.exe', 10),
-    ])->assertSessionHasErrors('file');
-
-    expect(ContextDocument::count())->toBe(0);
-});
-
-test('a context file can be downloaded and deleted', function () {
-    Storage::fake('local');
-
-    $this->actingAs(User::factory()->admin()->create());
-    $client = Client::factory()->create();
-
-    $this->post(route('admin.clients.context.store', $client), [
-        'title' => 'Estrategia',
-        'kind' => 'estrategia',
-        'file' => UploadedFile::fake()->create('estrategia.pdf', 50, 'application/pdf'),
-    ]);
-
-    $doc = ContextDocument::first();
-    $path = $doc->path;
-
-    $this->get(route('admin.clients.context.download', [$client, $doc]))
+        ->get(route('admin.clients.show', $client))
         ->assertOk()
-        ->assertDownload('estrategia.pdf');
-
-    $this->delete(route('admin.clients.context.destroy', [$client, $doc]))
-        ->assertRedirect();
-
-    expect(ContextDocument::count())->toBe(0);
-    Storage::disk('local')->assertMissing($path);
+        ->assertSee('Editar datos de la marca')
+        ->assertSee(route('admin.clients.update', $client), escape: false);
 });
 
-test('a document cannot be reached through another client', function () {
-    Storage::fake('local');
+/*
+|--------------------------------------------------------------------------
+| Marca registrada — SEG-04 of the beta review
+|--------------------------------------------------------------------------
+| Three states, not two. The third one is the whole reason this is a nullable
+| boolean rather than a checkbox, and it is what these tests are really pinning.
+*/
 
-    $this->actingAs(User::factory()->admin()->create());
+test('marca registrada stores yes, no and sin definir as three distinct answers', function () {
+    $admin = User::factory()->admin()->create();
+    $client = Client::factory()->create();
 
-    $owner = Client::factory()->create();
-    $other = Client::factory()->create();
+    $save = fn (string $value) => $this->actingAs($admin)
+        ->put(route('admin.clients.update', $client), [
+            'brand' => [
+                'name' => $client->name,
+                'status' => $client->status->value,
+                'trademark_registered' => $value,
+            ],
+        ]);
 
-    $this->post(route('admin.clients.context.store', $owner), [
-        'title' => 'Privado',
-        'kind' => 'brief',
-        'file' => UploadedFile::fake()->create('privado.pdf', 10, 'application/pdf'),
+    $save('1');
+    expect($client->refresh()->trademark_registered)->toBeTrue()
+        ->and($client->trademarkLabel())->toBe('Sí');
+
+    $save('0');
+    expect($client->refresh()->trademark_registered)->toBeFalse()
+        ->and($client->trademarkLabel())->toBe('No');
+
+    // ⚠️ The one that a boolean column would have got wrong: choosing "sin
+    // definir" has to come back as null, not as false.
+    $save('');
+    expect($client->refresh()->trademark_registered)->toBeNull()
+        ->and($client->trademarkLabel())->toBe('Sin definir');
+});
+
+test('a brand nobody has been asked about is sin definir, not No', function () {
+    expect(Client::factory()->create()->trademarkLabel())->toBe('Sin definir');
+});
+
+test('marca registrada reaches both assistants', function () {
+    $client = Client::factory()->create(['trademark_registered' => true]);
+
+    // The ficha only rides along with real entregable content — see
+    // BrandContextRepository::for(), which keeps hasUsableContext() honest.
+    $client->deliverables->update([DeliverableItem::Relato->value => 'Nació en Cuenca.']);
+
+    // The client's own assistant, from its ficha…
+    expect(app(BrandContextRepository::class)->for($client->fresh())->toPrompt())
+        ->toContain('Marca registrada: Sí');
+
+    // …and the dashboard's, from the portfolio snapshot's expanded ficha.
+    expect(app(PortfolioSnapshot::class)->ficha($client))
+        ->toContain('Marca registrada: Sí');
+});
+
+test('the client sees marca registrada on their own brand page', function () {
+    $client = Client::factory()->create(['trademark_registered' => true]);
+    $client->deliverables->update([DeliverableItem::Relato->value => 'Nació en Cuenca.']);
+
+    $owner = User::factory()->clientOwner($client)->create([
+        'permissions' => ['estrategia' => 'read'],
     ]);
 
-    $doc = ContextDocument::first();
-
-    $this->get(route('admin.clients.context.download', [$other, $doc]))->assertNotFound();
-    $this->delete(route('admin.clients.context.destroy', [$other, $doc]))->assertNotFound();
-
-    expect(ContextDocument::count())->toBe(1);
-});
-
-test('client users cannot upload context', function () {
-    Storage::fake('local');
-
-    $client = Client::factory()->create();
-    $this->actingAs(User::factory()->clientOwner($client)->create());
-
-    $this->post(route('admin.clients.context.store', $client), [
-        'title' => 'Intento',
-        'kind' => 'brief',
-        'file' => UploadedFile::fake()->create('x.pdf', 10, 'application/pdf'),
-    ])->assertNotFound();
-
-    expect(ContextDocument::count())->toBe(0);
+    $this->actingAs($owner)
+        ->get(route('portal.estrategia'))
+        ->assertOk()
+        ->assertSee('Marca registrada');
 });

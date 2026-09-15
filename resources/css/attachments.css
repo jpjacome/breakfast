@@ -1,0 +1,125 @@
+/*
+ * What a chat turn carried.
+ *
+ * ⚠️ A COMPONENT STYLESHEET, not a page's. This renders inside BOTH shells —
+ * <x-layouts.app> on the admin side, <x-layouts.portal> on the client's — so
+ * neither shell's own file can hold it, and it may only use tokens BOTH shells
+ * define (CLAUDE.md §9). That is the rule permissions.css broke once on
+ * --box-edge, which only the portal had.
+ *
+ * Tokens used here: --rule, --surface, --page, --ink, --ink-quiet,
+ * --border-radius. All four shells define them.
+ */
+
+.turn-files {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  /* Centred, because a turn mixes a 92px thumbnail with a one-line chip and
+     the default stretch leaves the chips hanging off the top of the row. */
+  align-items: center;
+  gap: .5rem;
+  margin-top: .5rem;
+  padding: 0;
+}
+
+/* Square, so a turn carrying a tall screenshot and a wide one still reads as a
+   row rather than a ragged line. Contained, never cropped: a logo with its
+   corners cut off is worse than one with air around it. */
+.turn-file-open {
+  display: grid;
+  place-items: center;
+  width: 92px;
+  height: 92px;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+  background: var(--page);
+  cursor: pointer;
+}
+
+.turn-file-open img,
+.turn-file-open video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.turn-file-open:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+/* The play badge says "this opens somewhere else" before the click does. The
+   first frame of a video is often indistinguishable from a photograph. */
+.turn-file-play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / .35);
+  color: #fff;
+}
+
+.turn-file-play svg { width: 26px; height: 26px; }
+
+/* Anything that is not a picture: a PDF, a voice note, or a name whose file is
+   gone. A chip rather than a box, because there is nothing to look at. */
+.turn-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  max-width: 18rem;
+  padding: .35rem .75rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: .8rem;
+  text-decoration: none;
+}
+
+.turn-file-chip svg { width: 15px; height: 15px; flex: none; }
+.turn-file-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* A name with no file behind it: the turn predates the files being kept, or
+   this viewer may not open it. Dashed and quiet — it is a record of something,
+   not a thing to click. */
+.turn-file-gone {
+  border-style: dashed;
+  color: var(--ink-quiet);
+  background: none;
+}
+
+/* --- the lightbox -------------------------------------------------------- */
+
+.lightbox {
+  max-width: min(92vw, 1100px);
+  max-height: 92vh;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.lightbox::backdrop { background: rgb(0 0 0 / .72); }
+
+.lightbox figure { margin: 0; display: grid; }
+
+.lightbox-image {
+  max-width: 100%;
+  /* Room for the caption under it, inside the dialog's own 92vh. */
+  max-height: 80vh;
+  object-fit: contain;
+  background: var(--page);
+}
+
+.lightbox-caption {
+  padding: .75rem 1rem;
+  font-size: .8rem;
+  color: var(--ink-quiet);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

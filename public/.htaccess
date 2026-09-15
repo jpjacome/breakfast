@@ -23,3 +23,12 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# Keep the staging domain out of search results. Both breakfast.drpixel.app and
+# vamosdebreakfast.com share this document root, so the same pages would
+# otherwise be indexed twice and compete with each other. Host-conditional, so
+# the client's domain is untouched.
+<IfModule mod_headers.c>
+    SetEnvIf Host ^breakfast\.drpixel\.app$ STAGING
+    Header set X-Robots-Tag "noindex, nofollow" env=STAGING
+</IfModule>

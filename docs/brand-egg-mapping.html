@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Las cinco capas del Brand Egg</title>
+<style>
+  html { color-scheme: light dark; }
+  img { max-width: 100%; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Almarai:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* ---------------------------------------------------------------
+     Palette is Breakfast's own — general.css, nothing invented.
+     Yellow #ECBB12 · coffee #402A1B · off-white #E7E9EB · black
+     Green #39602F and orange #F86A00 carry state, not decoration.
+     --------------------------------------------------------------- */
+  :root {
+    --page:    #F2F3F4;
+    --surface: #FFFFFF;
+    --sunken:  #FAFAF8;
+    --ink:     #0A0A0A;
+    --quiet:   #5A5048;
+    --rule:    rgba(64, 42, 27, .18);
+    --rule-2:  rgba(64, 42, 27, .38);
+    --coffee:  #402A1B;
+    --yellow:  #ECBB12;
+    --green:   #39602F;
+    --orange:  #F86A00;
+
+    --serif: "Libre Baskerville", Georgia, "Times New Roman", serif;
+    --sans:  "Almarai", system-ui, -apple-system, sans-serif;
+    --mono:  "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page:    #0B0B0B;
+      --surface: #151412;
+      --sunken:  #111110;
+      --ink:     #E7E9EB;
+      --quiet:   #A49A90;
+      --rule:    rgba(231, 233, 235, .16);
+      --rule-2:  rgba(231, 233, 235, .34);
+      --coffee:  #C8A98F;
+      --green:   #7FA86F;
+      --orange:  #FF9440;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --page:    #0B0B0B;
+    --surface: #151412;
+    --sunken:  #111110;
+    --ink:     #E7E9EB;
+    --quiet:   #A49A90;
+    --rule:    rgba(231, 233, 235, .16);
+    --rule-2:  rgba(231, 233, 235, .34);
+    --coffee:  #C8A98F;
+    --green:   #7FA86F;
+    --orange:  #FF9440;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1080px;
+    margin-inline: auto;
+    padding-inline: 24px;
+    padding-block: clamp(2.5rem, 6vw, 5rem) 6rem;
+  }
+
+  h1, h2, h3 { font-family: var(--serif); text-wrap: balance; margin: 0; line-height: 1.2; }
+
+  /* --- masthead --------------------------------------------------- */
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--quiet);
+  }
+
+  h1 { font-size: clamp(30px, 5vw, 3.1rem); letter-spacing: -.02em; margin-top: .5rem; }
+
+  .standfirst {
+    max-width: 62ch;
+    margin-top: 1.25rem;
+    font-size: 1.05rem;
+    color: var(--quiet);
+  }
+
+  .figures {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2.5rem;
+    margin-top: 2.5rem;
+    padding-top: 2rem;
+    border-top: 2px solid var(--ink);
+  }
+  .figure b {
+    display: block;
+    font-family: var(--serif);
+    font-size: 2rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .figure span {
+    display: block;
+    margin-top: .5rem;
+    font-size: .8rem;
+    color: var(--quiet);
+    max-width: 22ch;
+  }
+  .figure.flag b { color: var(--orange); }
+
+
+  /* --- the egg as the table of contents -----------------------------
+     The drawing is lifted straight from the Blade component, so these are
+     the same shapes, the same five ids and the same hatch the admin screen
+     uses. What changes is that each ring is an <a>: here the egg IS the
+     navigation, which is the one thing a picture of it could never be.
+     ------------------------------------------------------------------ */
+
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  .egg-block {
+    display: grid;
+    grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+    gap: clamp(1.5rem, 4vw, 3rem);
+    align-items: center;
+    margin-top: 3rem;
+  }
+
+  /* The pan, cropped by the plate exactly as the admin screen crops it: far
+     larger than its frame, so what shows is a fragment of a skillet rather
+     than a picture of one. */
+  /* ⚠️ NO aspect-ratio HERE. A square plate around a PORTRAIT drawing meant
+     the egg had to be squeezed into it, and height:100% resolved against the
+     grid area rather than the content box — 357px of egg in a 298px box, so it
+     overflowed and read as off-centre. Letting the plate take the egg's own
+     proportion removes the conflict instead of correcting for it. */
+  .egg-plate {
+    position: relative;
+    overflow: hidden;
+    padding: 1.25rem;
+    border: 1px solid var(--rule);
+    border-radius: 36px;
+    background: var(--surface);
+  }
+
+  .skillet {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    height: 205%;
+    aspect-ratio: 1;
+    width: auto;
+    max-width: none;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .brand-egg {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+    scale: .86;
+  }
+
+  .brand-egg a { cursor: pointer; transition: opacity .2s ease, filter .2s ease; }
+  .brand-egg a:hover,
+  .brand-egg a:focus-visible { filter: drop-shadow(0 0 .7rem var(--yellow)); }
+
+  /* Hovering one ring steps the other four back, so the link between a shape
+     and a section is unmistakable before you click. No script: the parent's
+     :hover with :not(:hover) on the siblings does it. */
+  .brand-egg:hover a:not(:hover) { opacity: .35; }
+
+  /* Ring 4 is hatched, and it means here what it means in the app: this layer
+     is not settled. Its sources are the open decision. */
+  .brand-egg > a > g.is-empty .brand-egg-fill-white,
+  .brand-egg > a > g.is-empty .brand-egg-fill-yolk,
+  .brand-egg > a > g.is-empty .brand-egg-fill-shade { fill: url(#brand-egg-pending); }
+
+  .toc ol {
+    list-style: none;
+    margin: 1rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+  }
+  .toc li a {
+    display: flex;
+    gap: .875rem;
+    align-items: baseline;
+    padding: .75rem 1rem;
+    background: var(--surface);
+    color: inherit;
+    text-decoration: none;
+    font-size: .95rem;
+    transition: background .2s ease;
+  }
+  .toc li a:hover { background: var(--sunken); }
+  .toc li a b {
+    font-family: var(--serif);
+    color: var(--quiet);
+    font-variant-numeric: tabular-nums;
+  }
+  .toc li.open a b { color: var(--orange); }
+  .toc-note { margin: .875rem 0 0; font-size: .8rem; color: var(--quiet); max-width: 48ch; }
+
+  .layer { scroll-margin-top: 1.5rem; }
+
+  @media (max-width: 720px) {
+    .egg-block { grid-template-columns: 1fr; }
+    .egg-plate { max-width: 320px; margin-inline: auto; }
+  }
+
+  /* --- section headings ------------------------------------------- */
+
+  .section { margin-top: clamp(3rem, 7vw, 5rem); }
+
+  .section > h2 {
+    font-size: clamp(21px, 2.6vw, 1.7rem);
+    padding-bottom: .75rem;
+    border-bottom: 1px solid var(--rule-2);
+  }
+  .section > .lede {
+    max-width: 68ch;
+    margin-top: 1rem;
+    color: var(--quiet);
+    font-size: .95rem;
+  }
+
+  /* --- a layer ------------------------------------------------------
+     Numbered because the order is real: layer 5 reads layer 2's result,
+     so 2 has to be composed first. Not decoration.
+     ----------------------------------------------------------------- */
+
+  .layer {
+    display: grid;
+    grid-template-columns: 3.25rem 1fr;
+    gap: 0 1.25rem;
+    margin-top: 2.5rem;
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--rule);
+  }
+  .layer:first-of-type { border-top: none; }
+
+  .ring {
+    grid-row: span 2;
+    width: 3.25rem;
+    height: 3.25rem;
+    display: grid;
+    place-items: center;
+    border: 2px solid var(--ink);
+    border-radius: 50%;
+    font-family: var(--serif);
+    font-size: 1.15rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .layer-4 .ring { border-color: var(--orange); color: var(--orange); border-style: dashed; }
+
+  .layer h3 { font-size: 1.35rem; }
+  .layer .what { margin: .4rem 0 0; color: var(--quiet); font-size: .92rem; max-width: 60ch; }
+
+  .layer-body { grid-column: 2; margin-top: 1.5rem; }
+
+  .brief {
+    margin: 0 0 1.25rem;
+    padding: .875rem 1.125rem;
+    background: var(--sunken);
+    border-left: 2px solid var(--rule-2);
+    font-size: .88rem;
+    color: var(--quiet);
+  }
+  .brief b { color: var(--ink); font-weight: 700; }
+
+  /* --- entregable rows --------------------------------------------- */
+
+  .items { display: flex; flex-direction: column; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+
+  .item {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 1rem;
+    padding: .7rem 1rem;
+    background: var(--surface);
+    font-size: .92rem;
+  }
+  .item .col {
+    font-family: var(--mono);
+    font-size: .74rem;
+    color: var(--quiet);
+  }
+  .item.derived { background: var(--sunken); font-style: italic; color: var(--quiet); }
+  .item.proposed { background: var(--sunken); }
+
+  .chip {
+    font-family: var(--mono);
+    font-size: .64rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: .2rem .5rem;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .chip.obl { color: var(--green); }
+  .chip.opc { color: var(--quiet); }
+  .chip.q   { color: var(--orange); }
+
+  .note {
+    margin: .875rem 0 0;
+    font-size: .85rem;
+    color: var(--quiet);
+  }
+  .note.warn { color: var(--orange); }
+
+  /* --- the unassigned ---------------------------------------------- */
+
+  .groups { display: grid; gap: 1.25rem; margin-top: 2rem; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); }
+
+  .group {
+    border: 1px solid var(--rule);
+    padding: 1.25rem;
+    background: var(--surface);
+  }
+  .group.candidate { border: 2px solid var(--orange); }
+
+  .group h4 {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 1rem;
+  }
+  .group .count { font-family: var(--mono); font-size: .72rem; color: var(--quiet); }
+  .group ul { margin: .875rem 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .4rem; }
+  .group li { font-size: .86rem; display: flex; justify-content: space-between; gap: .75rem; align-items: baseline; }
+  .group li span { font-family: var(--mono); font-size: .62rem; color: var(--quiet); text-transform: uppercase; letter-spacing: .06em; }
+
+  footer {
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-size: .82rem;
+    color: var(--quiet);
+  }
+  code { font-family: var(--mono); font-size: .88em; }
+
+  @media (max-width: 560px) {
+    .layer { grid-template-columns: 1fr; }
+    .ring { grid-row: auto; margin-bottom: .75rem; }
+    .layer-body { grid-column: 1; }
+    .item { grid-template-columns: 1fr auto; }
+    .item .col { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Breakfast · The Brand Therapist</p>
+    <h1>Las cinco capas del Brand Egg</h1>
+    <p class="standfirst">
+      Qué entregable alimenta a qué capa, tal como está escrito hoy en
+      <code>BrandEggLayer::sources()</code> — el único sitio del código que lo decide.
+      Esta es la lista para revisar antes de construir el compositor.
+    </p>
+
+    <section class="egg-block">
+      <div class="egg-plate">
+        <img class="skillet" src="data:image/png;base64,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" alt="" aria-hidden="true" width="560" height="560">
+        <svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 0 9354.21 11198.02"
+             role="group" aria-label="Brand Egg"
+             style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
+             class="brand-egg">
+            <defs>
+                <style type="text/css">
+                    /* Renamed off Corel's names. See the note above: the names moved,
+                       the colours did not. */
+                    .brand-egg-fill-outline { fill: #020201; }
+                    .brand-egg-fill-white   { fill: #F9EFD7; }
+                    .brand-egg-fill-shade   { fill: #E7A608; }
+                    .brand-egg-fill-yolk    { fill: #FBC01B; }
+                </style>
+
+        
+                <pattern id="brand-egg-pending" width="160" height="160" patternUnits="userSpaceOnUse">
+                    <rect class="brand-egg-fill-white" width="160" height="160" fill-opacity=".22"/>
+                    <rect class="brand-egg-fill-white" width="72" height="160"/>
+                </pattern>
+            </defs>
+
+    
+            <a href="#capa-1" aria-label="Capa 1 — Esencia, tagline y valores">
+              <g id="brand-egg-esencia" class="has-text">
+                  <path class="brand-egg-fill-yolk" d="M3515.31 6136.49c-15.66,42.46 -40.12,66.61 -99.92,49.28 -40.58,-11.76 -52.71,-63.16 -31.9,-109.06 34.22,-75.46 181.96,-76.21 131.81,59.78zm861.3 -1101.52c-55.69,102 -279.33,147.29 -435.92,411.27 -51.06,86.08 -152.26,338.01 -241.36,386.09 -65.11,35.14 -114.95,-2.99 -117.75,-63.08 -7.98,-170.9 208.2,-444.73 304.34,-532.68 150.03,-137.25 190.46,-168.91 376.42,-252.42 44.39,-19.93 165.91,-43.78 114.27,50.81zm-1266.81 1700.59c19.03,236.55 96.23,497.19 220.34,653.59 128.93,162.47 313.99,232.65 517.29,362.36 203.77,130 353.55,267.36 514.87,363.89 694.27,415.39 1358.94,-13.38 1766.68,-539.09 121.18,-156.23 248.35,-341.57 323.24,-555.75 74.34,-212.59 86.21,-530.29 19.86,-763.56 -133.45,-469.16 -406.25,-816.42 -660.22,-1098.07 -255.96,-283.85 -650.16,-563.62 -1246.07,-469.1 -496.24,78.71 -838.32,416.22 -1053.46,704.48 -255.57,342.42 -446.74,791.59 -402.52,1341.25z"/>
+                  <path class="brand-egg-fill-outline" d="M3109.79 6735.56c-44.21,-549.67 146.95,-998.84 402.52,-1341.25 215.14,-288.26 557.22,-625.76 1053.46,-704.48 595.91,-94.52 990.11,185.24 1246.07,469.1 253.97,281.65 526.77,628.91 660.22,1098.07 66.35,233.27 54.48,550.96 -19.86,763.56 -74.89,214.18 -202.07,399.52 -323.24,555.75 -407.74,525.71 -1072.41,954.48 -1766.68,539.09 -161.32,-96.52 -311.1,-233.89 -514.87,-363.89 -203.3,-129.7 -388.36,-199.89 -517.29,-362.36 -124.12,-156.4 -201.32,-417.04 -220.34,-653.59zm1548.77 -2121.34c-494.4,53.31 -844.86,315.55 -1134.08,676.18 -271.73,338.82 -482.77,750.51 -473.41,1338.94 4.44,279.55 63.22,516.07 184.59,719.38 146.71,245.73 498.64,388.89 773.31,588.86 271.56,197.7 538.41,427.45 960.81,399.44 277.89,-18.44 474.93,-110.71 670.56,-225.39 154.49,-90.56 357.68,-284.31 478.5,-429.43 267.76,-321.61 549.08,-727.83 433.15,-1339.96 -93.01,-491.11 -495.96,-1066.89 -872.44,-1398.89 -79.17,-69.82 -164.55,-128.61 -268.14,-185.77 -206.11,-113.71 -478.51,-172.94 -752.87,-143.35z"/>
+                  <path class="brand-egg-fill-white" d="M4376.61 5034.97c51.64,-94.6 -69.88,-70.75 -114.27,-50.81 -185.96,83.51 -226.39,115.17 -376.42,252.42 -96.14,87.95 -312.31,361.77 -304.34,532.68 2.8,60.09 52.65,98.22 117.75,63.08 89.1,-48.08 190.3,-300.01 241.36,-386.09 156.58,-263.98 380.23,-309.27 435.92,-411.27z"/>
+                  <path class="brand-egg-fill-white" d="M3515.31 6136.49c50.14,-135.99 -97.6,-135.24 -131.81,-59.78 -20.81,45.89 -8.68,97.3 31.9,109.06 59.8,17.33 84.26,-6.81 99.92,-49.28z"/>
+                  <path class="brand-egg-fill-shade" d="M4004.56 7859.37c1197.45,305.19 1800.71,-209.67 2499.24,-1062.88 -10.55,81.02 -27.67,157.57 -50.86,223.89 -74.89,214.18 -202.07,399.52 -323.24,555.75 -407.74,525.71 -1072.41,954.48 -1766.68,539.09 -57.85,-34.61 -300.56,-212.96 -358.46,-255.85z"/>
+              </g>
+            </a>
+
+    
+            <a href="#capa-2" aria-label="Capa 2 — Personalidad">
+              <g id="brand-egg-personalidad" class="has-text">
+                  <path class="brand-egg-fill-white" d="M6942.49 7064.09c40.25,-16.84 43.66,-2.25 60.57,19.32 -0.96,39.66 -0.92,31.79 -23.72,51.16 -54.83,-0.87 -65.37,-26.41 -36.85,-70.48zm-2283.94 -2449.87c274.36,-29.58 546.76,29.64 752.87,143.35 103.6,57.16 188.97,115.95 268.14,185.77 376.48,332 779.43,907.78 872.44,1398.89 115.93,612.13 -165.39,1018.35 -433.15,1339.96 -120.82,145.12 -324.01,338.86 -478.5,429.43 -195.63,114.69 -392.67,206.96 -670.56,225.39 -422.4,28.01 -689.26,-201.74 -960.81,-399.44 -274.67,-199.97 -626.61,-343.13 -773.31,-588.86 -121.37,-203.3 -180.15,-439.83 -184.59,-719.38 -9.35,-588.43 201.69,-1000.12 473.41,-1338.94 289.22,-360.63 639.68,-622.86 1134.08,-676.18zm-2234.68 1879.79c23.29,420.85 205.33,706.39 400.32,927.92 56.59,64.3 109.45,104.81 168.56,169.59 83.4,91.4 448.73,367.72 543.17,452.05 61.93,55.3 124.14,100.47 176.57,161.6 281.62,328.32 430.96,668.66 863.24,799.37 592.69,179.22 1008.53,-151.98 1412.15,-477.5 432.21,-348.56 517.42,-290.63 829.82,-493.8 586.04,-381.13 724.66,-1301.95 507.68,-1953.91 -115.31,-346.5 -285.17,-581.71 -420.38,-911.77 -66.1,-161.38 -114.63,-328.48 -187.04,-479.34 -174.15,-362.83 -497.82,-663.56 -886.5,-786.08 -82.57,-26.03 -175.27,-44.32 -261.21,-65.12 -366.4,-88.67 -600.1,-253.47 -963.5,-363.62 -373.81,-113.3 -821.36,-54.88 -1083.26,144.4 -114.48,87.11 -226.54,206.28 -292.41,373.83 -69.98,178.02 -56.71,386.63 -68.57,589.5 -51.1,874.83 -792.45,940.76 -738.65,1912.89z"/>
+                  <path class="brand-egg-fill-outline" d="M2423.88 6494c-53.8,-972.13 687.55,-1038.05 738.65,-1912.89 11.85,-202.87 -1.41,-411.48 68.57,-589.5 65.86,-167.55 177.92,-286.72 292.41,-373.83 261.91,-199.28 709.46,-257.7 1083.26,-144.4 363.4,110.15 597.09,274.95 963.5,363.62 85.94,20.79 178.64,39.09 261.21,65.12 388.67,122.52 712.35,423.25 886.5,786.08 72.41,150.86 120.93,317.96 187.04,479.34 135.21,330.07 305.07,565.28 420.38,911.77 216.97,651.96 78.36,1572.78 -507.68,1953.91 -312.41,203.17 -397.62,145.24 -829.82,493.8 -403.63,325.51 -819.47,656.71 -1412.15,477.5 -432.28,-130.71 -581.62,-471.05 -863.24,-799.37 -52.43,-61.13 -114.63,-106.29 -176.57,-161.6 -94.44,-84.33 -459.77,-360.65 -543.17,-452.05 -59.11,-64.79 -111.97,-105.3 -168.56,-169.59 -194.99,-221.52 -377.03,-507.06 -400.32,-927.92zm1582.65 -3132.51c-406.97,48.83 -674.5,257.24 -810.99,546.87 -172.3,365.6 -6.6,717.6 -216.2,1145.26 -74.29,151.58 -191.3,278.61 -277.09,400.09 -99.7,141.18 -181.4,244.76 -254.91,431.33 -197.22,500.58 -70.92,1046 232.02,1459.62 27.4,37.41 51.16,60.85 79.21,94.59 132.16,158.96 556.55,515.15 712.37,640.24 193.3,155.16 343.41,335.96 486.58,537.75 20.32,28.63 51.79,65.76 74.16,89.91 141.06,152.35 265.3,267.68 509.97,349.49 616.14,206.02 1066.68,-151.07 1463.78,-463.95 124.14,-97.81 239.94,-192.62 400.89,-275.61 370.61,-191.07 581.55,-257.18 791.32,-570.9 187.28,-280.1 298.32,-660.74 288.54,-1078.26 -10.13,-432.78 -130.56,-750.62 -298.49,-1068 -80.94,-152.97 -152.12,-286.96 -220.23,-456.51 -66.3,-165.07 -113.83,-338.67 -185.14,-491.24 -139.96,-299.45 -378.69,-560.83 -669.71,-692.83 -144.34,-65.47 -356.52,-100.93 -515.19,-160.2 -157.97,-59 -323.32,-137.07 -478.13,-208.03 -333.76,-152.97 -676.52,-281.97 -1112.77,-229.63z"/>
+                  <path class="brand-egg-fill-outline" d="M6942.49 7064.09c-28.52,44.07 -17.98,69.61 36.85,70.48 22.8,-19.37 22.76,-11.5 23.72,-51.16 -16.92,-21.57 -20.32,-36.16 -60.57,-19.32z"/>
+              </g>
+            </a>
+
+    
+            <a href="#capa-3" aria-label="Capa 3 — Beneficios de marca">
+              <g id="brand-egg-beneficios" class="has-text">
+                  <g>
+                      <path class="brand-egg-fill-white" d="M3600.59 8576.96c28.73,-26.25 46.05,-25.45 71.03,-12.82 15.59,56.32 -3.89,80.16 -61.24,61.63l-9.79 -48.82zm3630.6 -430.69c-22.7,-57.57 52.46,-80.07 69.26,-37.36 23.19,58.91 -53.58,77.14 -69.26,37.36zm-3224.66 -4784.79c436.25,-52.34 779.02,76.66 1112.77,229.63 154.81,70.96 320.16,149.03 478.13,208.03 158.67,59.27 370.86,94.72 515.19,160.2 291.02,132 529.75,393.38 669.71,692.83 71.31,152.56 118.83,326.17 185.14,491.24 68.11,169.55 139.29,303.54 220.23,456.51 167.93,317.39 288.36,635.22 298.49,1068 9.78,417.52 -101.26,798.16 -288.54,1078.26 -209.77,313.72 -420.71,379.82 -791.32,570.9 -160.95,82.98 -276.75,177.8 -400.89,275.61 -397.11,312.88 -847.64,669.96 -1463.78,463.95 -244.67,-81.81 -368.91,-197.14 -509.97,-349.49 -22.37,-24.16 -53.84,-61.28 -74.16,-89.91 -143.17,-201.79 -293.28,-382.59 -486.58,-537.75 -155.82,-125.09 -580.21,-481.28 -712.37,-640.24 -28.05,-33.74 -51.82,-57.18 -79.21,-94.59 -302.94,-413.62 -429.24,-959.05 -232.02,-1459.62 73.51,-186.57 155.2,-290.15 254.91,-431.33 85.8,-121.49 202.8,-248.51 277.09,-400.09 209.59,-427.66 43.9,-779.66 216.2,-1145.26 136.5,-289.63 404.03,-498.04 810.99,-546.87zm-1237.51 1376.52c91.74,-25.65 74.79,54.25 49.17,69.03 -41.15,23.73 -69.52,-21.3 -49.17,-69.03zm3722.63 -974.65c-105.99,18.3 -100.94,-126.22 10.21,-86.7 24.77,43.5 13.43,59.63 -10.21,86.7zm-499.79 -488.33c37.31,-40.62 85.59,18.07 51.59,50.9 -32.65,31.52 -84.03,-15.59 -51.59,-50.9zm-2108.95 -749.91c-547.78,42.14 -919.26,282.28 -1161.64,570.88 -502.15,597.94 224.01,1221.91 -486.43,2045.22 -111.04,128.68 -288.91,350.43 -371.71,497.78 -244.47,435.09 -274.71,924.56 0.66,1361.51 286.98,455.36 943.89,760.78 1252.87,1336.74 52.99,98.78 102.62,180.27 152.66,282.09 167.84,341.59 257.25,508.28 536.19,758.72 139.13,124.91 389.49,243.38 577.33,290.49 613.91,153.98 898.61,-152.86 1307.04,-366.71 234.86,-122.97 373.04,-179.57 690.39,-174.57 302.58,4.77 515.99,26.95 794.47,-70.61 382.98,-134.17 739.61,-503.26 925.02,-804.53 319.79,-519.62 224.85,-797.91 -56.59,-1285.39 -535.37,-927.33 26.24,-1636.05 -387.5,-2153.9 -64.15,-80.29 -141,-154.5 -211.89,-222.85 -81.7,-78.78 -138.52,-132.17 -213.33,-221.73 -393.47,-471.02 -262,-1121.13 -1163.72,-1426.23 -106.91,-36.17 -216.25,-73.89 -334.01,-100.85 -122.85,-28.13 -241.68,-44.35 -364.83,-68.94 -233.06,-46.54 -443.66,-133.7 -683.34,-186.17 -235.66,-51.58 -554.88,-79.93 -801.62,-60.95z"/>
+                      <path class="brand-egg-fill-outline" d="M6491.65 3763.35c23.64,-27.07 34.98,-43.2 10.21,-86.7 -111.15,-39.53 -116.2,104.99 -10.21,86.7z"/>
+                      <path class="brand-egg-fill-outline" d="M2769.02 4738.01c-20.35,47.73 8.01,92.76 49.17,69.03 25.63,-14.78 42.57,-94.68 -49.17,-69.03z"/>
+                      <path class="brand-egg-fill-outline" d="M7231.19 8146.28c15.69,39.78 92.45,21.55 69.26,-37.36 -16.81,-42.71 -91.96,-20.21 -69.26,37.36z"/>
+                      <path class="brand-egg-fill-outline" d="M3610.38 8625.78c57.35,18.53 76.83,-5.31 61.24,-61.63 -24.97,-12.63 -42.3,-13.43 -71.03,12.82l9.79 48.82z"/>
+                      <path class="brand-egg-fill-outline" d="M5991.87 3275.02c-32.44,35.31 18.94,82.42 51.59,50.9 34,-32.82 -14.28,-91.51 -51.59,-50.9z"/>
+                  </g>
+                  <path class="brand-egg-fill-outline" d="M3882.91 2525.12c246.75,-18.98 565.97,9.37 801.62,60.95 239.68,52.46 450.28,139.63 683.34,186.17 123.15,24.59 241.99,40.81 364.83,68.94 117.76,26.96 227.1,64.68 334.01,100.85 901.72,305.09 770.25,955.21 1163.72,1426.23 74.81,89.56 131.63,142.96 213.33,221.73 70.89,68.36 147.74,142.56 211.89,222.85 413.74,517.85 -147.87,1226.57 387.5,2153.9 281.43,487.48 376.38,765.77 56.59,1285.39 -185.41,301.27 -542.04,670.36 -925.02,804.53 -278.48,97.56 -491.89,75.38 -794.47,70.61 -317.35,-5 -455.53,51.61 -690.39,174.57 -408.43,213.85 -693.13,520.69 -1307.04,366.71 -187.83,-47.11 -438.19,-165.58 -577.33,-290.49 -278.94,-250.44 -368.35,-417.13 -536.19,-758.72 -50.03,-101.82 -99.67,-183.31 -152.66,-282.09 -308.98,-575.96 -965.9,-881.37 -1252.87,-1336.74 -275.38,-436.96 -245.14,-926.42 -0.66,-1361.51 82.8,-147.36 260.67,-369.1 371.71,-497.78 710.44,-823.31 -15.72,-1447.29 486.43,-2045.22 242.37,-288.61 613.86,-528.75 1161.64,-570.88zm-1430.69 1282.72c23.07,272.82 62.14,542.71 -8.44,806.99 -66.91,250.53 -214.09,392.86 -336.98,552.7 -32.6,42.41 -66.85,81.26 -99.92,122.25 -263.78,326.95 -448.7,675.61 -414.75,1130.2 38.49,515.46 314.01,806.83 667.21,1112.62 324.32,280.79 611.18,494.92 837.33,930.68 238.42,459.41 379.97,781.54 744.55,1033.54 369.81,255.61 905.56,409.79 1373.66,160.63 195.88,-104.26 370.71,-220.87 568.05,-320.55 584.06,-295 891.12,24.82 1510,-249.6 98.58,-43.72 199.45,-103.35 280.44,-163.57 258.05,-191.85 460.44,-414.99 627.23,-696.37 310.56,-523.94 153.57,-858.35 -110.81,-1326.8 -517.67,-917.27 102.85,-1582.45 -420.74,-2188.18 -146.83,-169.86 -287.84,-264.51 -428.12,-460.8 -140.83,-197.05 -193.14,-392.56 -281.06,-597.84 -204.67,-477.86 -475.37,-663.91 -953.79,-824.95 -238.18,-80.18 -482.15,-99.77 -728.97,-159.89 -236.6,-57.63 -450.33,-147.88 -699.6,-188.39 -566.54,-92.07 -1059.83,-51.51 -1483.86,205.22 -194.71,117.88 -358.23,246.45 -479.03,409.83 -157.8,213.43 -190.31,382.41 -162.42,712.3z"/>
+              </g>
+            </a>
+
+    
+            <a href="#capa-4" aria-label="Capa 4 — Brand Assets / Icons, insumos sin decidir">
+              <g id="brand-egg-assets" class="is-empty">
+                  <path class="brand-egg-fill-white" d="M7357.91 9377.14c32.46,-2.62 47.94,3.34 68.27,12.26l2.9 73.32c-93.48,52.38 -126.61,-28.28 -71.17,-85.58zm-4693.77 -1302.3c23.62,66.4 -22.17,104.73 -59.7,69.21 -30.79,-29.15 -12.45,-91.32 59.7,-69.21zm-432.77 -3893.82c-11.83,12.23 -36.89,22 -55.02,4.28 -21.42,-20.93 -11.72,-40.9 3.52,-56.32 45.22,-45.77 85.44,16.92 51.49,52.04zm220.86 -373.19c-27.89,-329.89 4.62,-498.87 162.42,-712.3 120.8,-163.38 284.32,-291.94 479.03,-409.83 424.02,-256.72 917.31,-297.29 1483.86,-205.22 249.26,40.51 463,130.77 699.6,188.39 246.82,60.12 490.79,79.71 728.97,159.89 478.42,161.05 749.12,347.09 953.79,824.95 87.92,205.28 140.23,400.79 281.06,597.84 140.28,196.28 281.29,290.93 428.12,460.8 523.59,605.73 -96.93,1270.91 420.74,2188.18 264.38,468.46 421.37,802.86 110.81,1326.8 -166.79,281.38 -369.18,504.52 -627.23,696.37 -80.99,60.22 -181.86,119.85 -280.44,163.57 -618.87,274.43 -925.94,-45.4 -1510,249.6 -197.34,99.68 -372.18,216.28 -568.05,320.55 -468.1,249.16 -1003.85,94.98 -1373.66,-160.63 -364.58,-252 -506.12,-574.13 -744.55,-1033.54 -226.15,-435.76 -513.01,-649.88 -837.33,-930.68 -353.2,-305.79 -628.72,-597.16 -667.21,-1112.62 -33.94,-454.59 150.98,-803.25 414.75,-1130.2 33.07,-40.99 67.32,-79.84 99.92,-122.25 122.89,-159.84 270.07,-302.17 336.98,-552.7 70.58,-264.28 31.5,-534.17 8.44,-806.99zm66.89 -1494.33c50.28,-34.97 84.09,14.91 65.98,46.89 -19.62,34.66 -90.47,32.8 -65.98,-46.89zm2605.04 -126.82c-42.6,-40.52 -36.77,-91.36 41.29,-89.25 27.9,38.17 31.36,47.82 6.81,87.18l-48.1 2.08zm3163.87 2877.27c64.24,-1002.8 -408.21,-1017.13 -645.51,-1484.92 -162.36,-320.06 -187.76,-1103.43 -714.89,-1429.76 -521.89,-323.08 -1129.96,-231.71 -1743.61,-400.77 -575.99,-158.69 -957.04,-465.05 -1624.78,-520.3 -515.37,-42.65 -1047.56,171.74 -1346.51,537.8 -503.65,616.72 -360.3,1148.53 -390.25,2012.84 -14.92,430.73 -216.95,845.78 -439.03,1177.49 -74.42,111.15 -148.89,205.76 -221.45,310.12 -348.09,500.68 -530.75,933.89 -154.86,1576.22 136.97,234.06 318.4,425.59 475.79,596.74 87.02,94.63 186.68,174.65 274.08,267.08l212.47 193.37c22.89,20.06 39.62,40.62 64.44,60.99l534.69 537.9c175.02,187.75 285.7,401.56 487.58,584.92 214.16,194.51 543.83,340.8 768.87,574.25l129.17 141.33c40.1,49.45 74.38,89.12 125.8,144.81 245.57,265.93 520.14,424.43 966.3,287.99 715.79,-218.88 772.67,-601.82 1616.51,-454.38 311.11,54.36 662.07,97.46 933.51,-38.16 435.97,-217.82 657.53,-743.09 898.11,-1247.41 110.96,-232.6 228.58,-513.76 279.99,-791.59 133.99,-723.99 -351.13,-967.24 -473.85,-1629.1 -59.61,-321.46 -33.72,-677.18 -12.56,-1007.47z"/>
+                  <path class="brand-egg-fill-outline" d="M8288.02 5063.96c-21.16,330.29 -47.04,686 12.56,1007.47 122.72,661.86 607.84,905.11 473.85,1629.1 -51.42,277.83 -169.03,558.99 -279.99,791.59 -240.59,504.31 -462.14,1029.58 -898.11,1247.41 -271.45,135.62 -622.41,92.52 -933.51,38.16 -843.84,-147.43 -900.73,235.5 -1616.51,454.38 -446.16,136.44 -720.73,-22.05 -966.3,-287.99 -51.42,-55.68 -85.7,-95.36 -125.8,-144.81l-129.17 -141.33c-225.04,-233.45 -554.71,-379.74 -768.87,-574.25 -201.88,-183.36 -312.55,-397.17 -487.58,-584.92l-534.69 -537.9c-24.83,-20.38 -41.55,-40.94 -64.44,-60.99l-212.47 -193.37c-87.4,-92.43 -187.06,-172.45 -274.08,-267.08 -157.4,-171.15 -338.82,-362.68 -475.79,-596.74 -375.89,-642.33 -193.23,-1075.54 154.86,-1576.22 72.55,-104.36 147.03,-198.97 221.45,-310.12 222.08,-331.71 424.11,-746.76 439.03,-1177.49 29.95,-864.32 -113.41,-1396.12 390.25,-2012.84 298.95,-366.06 831.14,-580.45 1346.51,-537.8 667.75,55.25 1048.79,361.61 1624.78,520.3 613.65,169.06 1221.73,77.69 1743.61,400.77 527.13,326.32 552.53,1109.7 714.89,1429.76 237.3,467.8 709.76,482.13 645.51,1484.92zm75.36 48.32c78.49,-1078.54 -396.85,-1104.67 -626.39,-1540.25 -80.28,-152.35 -96.16,-232.37 -138.23,-412.66 -91.12,-390.48 -271.47,-845.08 -581.78,-1051.04 -564.77,-374.85 -1091.19,-250.71 -1756.88,-427.33 -591.68,-156.98 -987.95,-465.37 -1649.97,-533.71 -730.57,-75.42 -1242.09,265.23 -1531.79,638.93 -400.34,516.41 -333.49,1107.31 -336.1,1847.69 -2.5,708.57 -318.23,1139.32 -624.9,1558.83 -344.65,471.47 -573.26,933.76 -226.88,1602 124.91,240.98 289.73,431.44 471.26,620.87 47.27,49.33 87.62,96.22 136.68,143.57 25.11,24.24 45.25,41.58 70.53,64.81 25.02,22.99 41.53,45.8 65.99,69.19l285.55 255.65c422.46,372.75 492.1,452.87 798.62,844.09 208.14,265.66 254.32,338.33 555.01,536.68 108.76,71.74 226.1,140.14 322.6,218.55 77.02,62.58 222.12,188.67 284.37,266.35 151.86,189.5 361.82,417.73 603.26,487.49 154.3,44.58 320.36,44.59 480.66,12.65 275.65,-54.92 539.14,-213.63 760.85,-329.92 327.32,-171.7 464.7,-210.09 889.1,-150.87 340.32,47.48 634.8,114.38 956.66,-13.24 271.76,-107.76 432.73,-304.27 576.23,-515.55 110.71,-163 296.14,-523.45 380.46,-711.51 232.18,-517.83 521.55,-1092.32 201.06,-1714.29 -124.32,-241.27 -272.91,-456.51 -336.85,-755.2 -72.24,-337.48 -54.44,-663.43 -29.09,-1011.82z"/>
+                  <path class="brand-egg-fill-outline" d="M7357.91 9377.14c-55.45,57.3 -22.32,137.95 71.17,85.58l-2.9 -73.32c-20.32,-8.92 -35.8,-14.88 -68.27,-12.26z"/>
+                  <path class="brand-egg-fill-outline" d="M5124.15 2186.69l48.1 -2.08c24.55,-39.36 21.09,-49 -6.81,-87.18 -78.06,-2.1 -83.9,48.73 -41.29,89.25z"/>
+                  <path class="brand-egg-fill-outline" d="M2664.14 8074.85c-72.14,-22.11 -90.49,40.06 -59.7,69.21 37.52,35.52 83.32,-2.81 59.7,-69.21z"/>
+                  <path class="brand-egg-fill-outline" d="M2179.87 4128.99c-15.24,15.42 -24.94,35.39 -3.52,56.32 18.12,17.72 43.19,7.95 55.02,-4.28 33.94,-35.12 -6.27,-97.81 -51.49,-52.04z"/>
+                  <path class="brand-egg-fill-outline" d="M2519.11 2313.51c-24.48,79.7 46.36,81.56 65.98,46.89 18.11,-31.99 -15.71,-81.87 -65.98,-46.89z"/>
+              </g>
+            </a>
+
+    
+            <a href="#capa-5" aria-label="Capa 5 — Brand Universe / Emotions">
+              <g id="brand-egg-universo" class="has-text">
+                  <path class="brand-egg-fill-white" d="M5847.68 10416.95c-10.59,-97.6 128.6,-104.41 134.06,-17.97 5.83,92.4 -125.3,98.71 -134.06,17.97zm-5281.82 -3111.31c-16.06,-97.11 120.19,-114.99 135.01,-28.11 17.37,101.82 -121.08,112.31 -135.01,28.11zm8230.85 -957.18l-51.21 4.02c-20.27,-42.81 -17.64,-49.7 9.89,-79.53 98.37,-2.2 42.46,59.88 41.33,75.51zm-433.33 -1236.2c-25.36,348.38 -43.15,674.33 29.09,1011.82 63.94,298.69 212.54,513.93 336.85,755.2 320.48,621.97 31.11,1196.46 -201.06,1714.29 -84.32,188.06 -269.75,548.52 -380.46,711.51 -143.5,211.27 -304.47,407.79 -576.23,515.55 -321.86,127.62 -616.34,60.72 -956.66,13.24 -424.39,-59.22 -561.77,-20.83 -889.1,150.87 -221.71,116.3 -485.21,275 -760.85,329.92 -160.3,31.94 -326.36,31.93 -480.66,-12.65 -241.44,-69.76 -451.4,-297.98 -603.26,-487.49 -62.26,-77.69 -207.35,-203.78 -284.37,-266.35 -96.5,-78.41 -213.84,-146.8 -322.6,-218.55 -300.69,-198.35 -346.87,-271.02 -555.01,-536.68 -306.52,-391.22 -376.15,-471.34 -798.62,-844.09l-285.55 -255.65c-24.46,-23.39 -40.98,-46.21 -65.99,-69.19 -25.27,-23.23 -45.41,-40.57 -70.53,-64.81 -49.06,-47.35 -89.41,-94.25 -136.68,-143.57 -181.53,-189.43 -346.35,-379.88 -471.26,-620.87 -346.38,-668.24 -117.77,-1130.53 226.88,-1602 306.66,-419.51 622.39,-850.26 624.9,-1558.83 2.61,-740.38 -64.24,-1331.28 336.1,-1847.69 289.71,-373.7 801.23,-714.35 1531.79,-638.93 662.02,68.34 1058.29,376.73 1649.97,533.71 665.69,176.62 1192.11,52.47 1756.88,427.33 310.31,205.96 490.66,660.56 581.78,1051.04 42.07,180.28 57.95,260.3 138.23,412.66 229.54,435.59 704.89,461.71 626.39,1540.25zm430.7 -718.88c-48.18,5.18 -34.26,2.56 -62.32,-17.34l-6.81 -66.53c30.64,-16.46 45.36,-19.44 83.8,-11.03 26.12,51.72 18.91,59.68 -14.67,94.89zm-7919.77 -1427.73c43.59,-38.54 49.24,-46.84 105.65,-20.28 54.3,153.14 -121.78,160.5 -105.65,20.28zm6374.99 -1315.21c8.86,78.23 -30.04,99.99 -98.09,81.23 -49.84,-83.64 16.69,-149.67 98.09,-81.23zm-5396.93 -161.6c-17.26,-90.52 112.49,-117.18 133.16,-36.83 24.93,96.9 -117.36,119.75 -133.16,36.83zm1516 -752.3c70.6,-43.21 115.94,66.65 58.46,99 -70.37,39.61 -131.44,-54.34 -58.46,-99zm-231.35 -583.71c-505.76,25.81 -1108.23,170.55 -1538.9,409.3 -289.27,160.37 -523.32,313.06 -722.74,581.55 -336.85,453.53 -451.29,936.51 -396.51,1533.62 36.98,403.08 194.48,652.12 359.7,932.71 262.61,445.95 536.18,901.1 227.06,1453.83 -46.72,83.55 -144.18,204.48 -218.35,274.17 -30.76,28.9 -47.22,58.8 -76.18,88.25 -173.72,176.72 -385.09,524.54 -482.88,820.37 -120.55,364.7 -178.64,724.78 -4.04,1077.46 66.85,135.03 195.35,254.7 326.29,320.77 479.34,241.83 868.58,144.37 1573.49,697.43 52.5,41.19 130.86,111.62 171.83,156.69 390.75,429.82 478.62,720.61 767.02,1184.78 88.84,143 169.71,257.93 265.57,381.75 292.4,377.68 688.9,657.77 1141.69,819.62 339.8,121.46 729.93,181.56 1125.51,177.8 709.38,-6.74 1543.9,-233.15 2062.29,-535.44 245.33,-143.05 361.97,-233.9 559.24,-407.12 107.31,-94.23 213.97,-228.41 303.72,-343.71 369.29,-474.44 545.79,-1065.3 604.22,-1676.43 33.4,-349.32 13.28,-876.77 -66.13,-1203.93 -83.51,-344.04 -220.97,-677.59 -257.64,-1046.29 -77.2,-776.3 277.96,-1273.86 51.01,-2382.44 -141.42,-690.79 -437.1,-1210.73 -801.93,-1795.7 -156.85,-251.51 -382.6,-534.33 -633.8,-670.83 -346.75,-188.41 -717.64,-134.06 -1144.64,-153.05 -1292.32,-57.47 -1589.97,-777.1 -3194.91,-695.2z"/>
+                  <path class="brand-egg-fill-outline" d="M3137.02 152.85c1604.94,-81.9 1902.59,637.72 3194.91,695.2 427,18.99 797.9,-35.37 1144.64,153.05 251.2,136.5 476.95,419.32 633.8,670.83 364.83,584.97 660.51,1104.9 801.93,1795.7 226.95,1108.57 -128.21,1606.13 -51.01,2382.44 36.67,368.7 174.13,702.25 257.64,1046.29 79.41,327.15 99.53,854.6 66.13,1203.93 -58.43,611.13 -234.93,1201.99 -604.22,1676.43 -89.75,115.3 -196.41,249.48 -303.72,343.71 -197.27,173.22 -313.91,264.07 -559.24,407.12 -518.4,302.28 -1352.91,528.7 -2062.29,535.44 -395.58,3.76 -785.72,-56.34 -1125.51,-177.8 -452.79,-161.85 -849.29,-441.94 -1141.69,-819.62 -95.87,-123.83 -176.73,-238.76 -265.57,-381.75 -288.39,-464.17 -376.27,-754.96 -767.02,-1184.78 -40.97,-45.07 -119.32,-115.49 -171.83,-156.69 -704.91,-553.06 -1094.15,-455.6 -1573.49,-697.43 -130.95,-66.06 -259.44,-185.73 -326.29,-320.77 -174.61,-352.69 -116.52,-712.77 4.04,-1077.46 97.79,-295.83 309.16,-643.66 482.88,-820.37 28.96,-29.46 45.42,-59.36 76.18,-88.25 74.18,-69.69 171.63,-190.62 218.35,-274.17 309.12,-552.73 35.54,-1007.89 -227.06,-1453.83 -165.23,-280.58 -322.72,-529.63 -359.7,-932.71 -54.78,-597.12 59.65,-1080.09 396.51,-1533.62 199.42,-268.5 433.47,-421.19 722.74,-581.55 430.67,-238.75 1033.14,-383.49 1538.9,-409.3zm-41.03 -146.01c-398.03,25.76 -777.48,97.47 -1121.17,217.54 -307.1,107.28 -652.11,291.85 -869.44,463.36 -231.07,182.35 -444.01,419.4 -594.13,738.91 -155.68,331.32 -236.95,708.1 -207.64,1135.13 31.83,463.79 153.2,657.77 341.87,990.18 147.54,259.93 357.41,602.56 382.12,960.96 50.67,734.99 -528.65,646.29 -924.23,1753.28 -123.6,345.89 -159.02,793.01 21.31,1111.38 165.88,292.85 419.29,415.88 818.38,523.86 383.91,103.88 657.19,193.29 951.13,382.61 129.48,83.39 276.75,207.03 362.16,304.79 466.84,534.38 609.2,1030.55 918.14,1420.13 51.25,64.62 97.59,125.5 146.14,191.81 48.7,66.52 179.17,193.87 246.32,256.94 41.18,38.68 54.33,52.44 92.03,81.5 293.81,226.51 502.21,350.01 859.78,474.29 331.91,115.37 768.6,191.33 1156.28,184.04 697.31,-13.11 1624.18,-246.55 2124.86,-540.07 460.39,-269.89 751.41,-555.55 1036.4,-963.27 96.39,-137.89 164.02,-270.44 241.27,-435.12 273.4,-582.82 353.24,-1645.45 198.63,-2336.82 -82.71,-369.83 -221.8,-679.03 -260.25,-1075.62 -42.12,-434.49 54.01,-812.53 100.59,-1224.86 132.53,-1173.09 -316.45,-2163.42 -905.51,-3050.65 -164.71,-248.08 -398.52,-539.75 -657.06,-685.96 -615.42,-348.04 -1113.63,39.45 -2264.67,-411 -323.52,-126.61 -604.89,-281.54 -971.25,-362.76 -368.44,-81.68 -827.7,-130.1 -1222.07,-104.58z"/>
+                  <path class="brand-egg-fill-outline" d="M565.86 7305.65c13.93,84.2 152.38,73.71 135.01,-28.11 -14.82,-86.88 -151.08,-69 -135.01,28.11z"/>
+                  <path class="brand-egg-fill-outline" d="M1852.37 1488.86c15.81,82.92 158.09,60.06 133.16,-36.83 -20.67,-80.35 -150.43,-53.69 -133.16,36.83z"/>
+                  <path class="brand-egg-fill-outline" d="M5847.68 10416.95c8.76,80.74 139.89,74.43 134.06,-17.97 -5.46,-86.44 -144.65,-79.63 -134.06,17.97z"/>
+                  <path class="brand-egg-fill-outline" d="M874.31 2965.67c-16.13,140.21 159.95,132.86 105.65,-20.28 -56.4,-26.56 -62.05,-18.25 -105.65,20.28z"/>
+                  <path class="brand-egg-fill-outline" d="M7249.3 1650.46c-81.41,-68.44 -147.93,-2.41 -98.09,81.23 68.05,18.75 106.95,-3.01 98.09,-81.23z"/>
+                  <path class="brand-egg-fill-outline" d="M3368.37 736.56c-72.98,44.66 -11.91,138.6 58.46,99 57.48,-32.35 12.14,-142.2 -58.46,-99z"/>
+                  <path class="brand-egg-fill-outline" d="M8794.08 4393.39c33.58,-35.22 40.79,-43.17 14.67,-94.89 -38.44,-8.41 -53.16,-5.43 -83.8,11.03l6.81 66.53c28.07,19.89 14.14,22.52 62.32,17.34z"/>
+                  <path class="brand-egg-fill-outline" d="M8796.71 6348.47c1.13,-15.63 57.04,-77.71 -41.33,-75.51 -27.52,29.83 -30.15,36.72 -9.89,79.53l51.21 -4.02z"/>
+              </g>
+            </a>
+        </svg>
+      </div>
+
+      <nav class="toc" aria-label="Las cinco capas">
+        <p class="eyebrow">Haz click en un anillo</p>
+        <ol>
+          <li><a href="#capa-1"><b>1</b> Esencia, tagline y valores</a></li>
+          <li><a href="#capa-2"><b>2</b> Personalidad</a></li>
+          <li><a href="#capa-3"><b>3</b> Beneficios de marca</a></li>
+          <li class="open"><a href="#capa-4"><b>4</b> Brand Assets / Icons</a></li>
+          <li><a href="#capa-5"><b>5</b> Brand Universe / Emotions</a></li>
+        </ol>
+        <p class="toc-note">
+          La yema es la esencia y cada anillo la envuelve. El cuarto está rayado
+          porque sus insumos son la decisión que falta.
+        </p>
+      </nav>
+    </section>
+
+    <div class="figures">
+      <div class="figure">
+        <b>5</b>
+        <span>capas, sintetizadas de los entregables — nunca del toolkit directamente</span>
+      </div>
+      <div class="figure">
+        <b>10</b>
+        <span>entregables distintos alimentan alguna capa</span>
+      </div>
+      <div class="figure flag">
+        <b>38</b>
+        <span>de los 48 no alimentan ninguna capa</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="section">
+    <h2>Las cinco capas</h2>
+    <p class="lede">
+      Cada capa es una lectura derivada: al modelo se le pide <b>la relación</b> entre sus
+      entregables, escrita como un solo párrafo. No es un resumen ni una lista, y no puede
+      decir nada que no esté en el texto que recibió. El número importa: la capa 5 lee el
+      resultado de la 2, así que la 2 se compone primero.
+    </p>
+
+    <!-- 1 -->
+    <article class="layer" id="capa-1">
+      <div class="ring">1</div>
+      <div>
+        <h3>Esencia, tagline y valores</h3>
+        <p class="what">Lo que la marca es: su esencia, su promesa y los valores que la sostienen. La yema.</p>
+      </div>
+      <div class="layer-body">
+        <p class="brief">
+          <b>Del brief:</b> Relato de Marca · Promesa · Statement · Manifesto · Valores · Tagline
+        </p>
+        <div class="items">
+          <div class="item"><span>Relato de marca</span><span class="col">relato</span><span class="chip obl">oblig</span></div>
+          <div class="item"><span>Brand promise</span><span class="col">brand_promise</span><span class="chip obl">oblig</span></div>
+          <div class="item"><span>Brand statement</span><span class="col">brand_statement</span><span class="chip obl">oblig</span></div>
+          <div class="item"><span>Manifesto</span><span class="col">manifesto</span><span class="chip opc">opcional</span></div>
+          <div class="item"><span>Valores de marca</span><span class="col">valores</span><span class="chip obl">oblig</span></div>
+          <div class="item"><span>Claim <em>— ¿es éste el «tagline»?</em></span><span class="col">claim</span><span class="chip q">por confirmar</span></div>
+        </div>
+        <p class="note">
+          Dos de los seis son opcionales, así que esta capa se compondrá a menudo con
+          material incompleto. Un entregable vacío se nombra como no definido con la frase
+          aprobada — nunca como tarea pendiente de Breakfast.
+        </p>
+      </div>
+    </article>
+
+    <!-- 2 -->
+    <article class="layer" id="capa-2">
+      <div class="ring">2</div>
+      <div>
+        <h3>Personalidad</h3>
+        <p class="what">Cómo se comporta y habla la marca, leída desde sus arquetipos y valores.</p>
+      </div>
+      <div class="layer-body">
+        <p class="brief">
+          <b>Del brief:</b> Arquetipos de Personalidad · Valores
+        </p>
+        <div class="items">
+          <div class="item"><span>Arquetipos de marca</span><span class="col">arquetipos</span><span class="chip obl">oblig</span></div>
+          <div class="item"><span>Valores de marca</span><span class="col">valores</span><span class="chip obl">oblig</span></div>
+        </div>
+        <p class="note">
+          La única capa cuyos dos insumos son obligatorios: siempre tendrá con qué componerse.
+          Se compone antes que la 5, que lee su resultado.
+        </p>
+      </div>
+    </article>
+
+    <!-- 3 -->
+    <article class="layer" id="capa-3">
+      <div class="ring">3</div>
+      <div>
+        <h3>Beneficios de marca</h3>
+        <p class="what">Lo que la marca aporta de verdad a quien la elige.</p>
+      </div>
+      <div class="layer-body">
+        <p class="brief">
+          <b>Del brief:</b> Statement · Relato de marca · Insight y Público
+        </p>
+        <div class="items">
+          <div class="item"><span>Brand statement</span><span class="col">brand_statement</span><span class="chip obl">oblig</span></div>
+          <div class="item"><span>Relato de marca</span><span class="col">relato</span><span class="chip obl">oblig</span></div>
+          <div class="item"><span>Insight principal de marca</span><span class="col">insight</span><span class="chip obl">oblig</span></div>
+          <div class="item"><span>Públicos</span><span class="col">publicos</span><span class="chip obl">oblig</span></div>
+        </div>
+        <p class="note">
+          «Insight y Público» del brief son <b>dos</b> entregables distintos de los 48, y entran los dos.
+        </p>
+      </div>
+    </article>
+
+    <!-- 4 -->
+    <article class="layer layer-4" id="capa-4">
+      <div class="ring">4</div>
+      <div>
+        <h3>Brand Assets / Icons</h3>
+        <p class="what">Los activos visuales de la marca: su look and feel y su archivo.</p>
+      </div>
+      <div class="layer-body">
+        <p class="brief">
+          <b>Del brief:</b> Brand Assets · Look and feel · Relato de Marca
+        </p>
+        <div class="items">
+          <div class="item"><span>Look and feel</span><span class="col">look_and_feel</span><span class="chip obl">oblig</span></div>
+          <div class="item"><span>Relato de marca</span><span class="col">relato</span><span class="chip obl">oblig</span></div>
+          <div class="item proposed"><span><b>«Brand Assets» — sin resolver</b></span><span class="col">—</span><span class="chip q">sin resolver</span></div>
+        </div>
+        <p class="note warn">
+          Ésta es la única capa incompleta. «Brand Assets» no es uno de los 48: es el nombre de
+          la sección de <b>archivos</b> de la marca. Si se refiere a los entregables gráficos
+          (los once de abajo), esta capa es texto como las otras cuatro y se construye ya. Si se
+          refiere a los archivos subidos, queda atada al trabajo de imágenes y sale después.
+        </p>
+      </div>
+    </article>
+
+    <!-- 5 -->
+    <article class="layer" id="capa-5">
+      <div class="ring">5</div>
+      <div>
+        <h3>Brand Universe / Emotions</h3>
+        <p class="what">El mundo emocional que la marca abre: a dónde lleva y qué se siente ahí.</p>
+      </div>
+      <div class="layer-body">
+        <p class="brief">
+          <b>Del brief:</b> Personalidad · Valores · Manifesto · Promesa · Look and Feel
+        </p>
+        <div class="items">
+          <div class="item derived"><span>Personalidad — el resultado de la capa 2, no un entregable</span><span class="col">capa 2</span><span class="chip q">por confirmar</span></div>
+          <div class="item"><span>Valores de marca</span><span class="col">valores</span><span class="chip obl">oblig</span></div>
+          <div class="item"><span>Manifesto</span><span class="col">manifesto</span><span class="chip opc">opcional</span></div>
+          <div class="item"><span>Brand promise</span><span class="col">brand_promise</span><span class="chip obl">oblig</span></div>
+          <div class="item"><span>Look and feel</span><span class="col">look_and_feel</span><span class="chip obl">oblig</span></div>
+          <div class="item proposed"><span>Brand universe (gráfico) <em>— a añadir</em></span><span class="col">brand_universe</span><span class="chip q">por confirmar</span></div>
+        </div>
+        <p class="note warn">
+          Existe un entregable obligatorio llamado <b>Brand universe (gráfico)</b> y esta capa
+          no lo leía. Queda marcado para añadirse — falta confirmar que el universo
+          <em>gráfico</em> debe alimentar la capa <em>emocional</em>.
+        </p>
+      </div>
+    </article>
+  </section>
+
+  <section class="section">
+    <h2>Los 38 que no alimentan ninguna capa</h2>
+    <p class="lede">
+      No es necesariamente un error: el Egg es una síntesis de lo esencial, no un índice de
+      los 48. Pero conviene mirarlo una vez, porque <b>doce de ellos son obligatorios</b> —
+      trabajo que Breakfast siempre hace y que hoy no llega a la memoria principal de la marca.
+      El primer grupo es el que decide la capa 4.
+    </p>
+
+    <div class="groups">
+      <div class="group candidate">
+        <h4>Identidad visual</h4>
+        <p class="count">11 · candidatos a la capa 4</p>
+        <ul>
+          <li>Emblemas de marca <span>oblig</span></li>
+          <li>Contexto y simbología <span>oblig</span></li>
+          <li>Brand universe (gráfico) <span>oblig</span></li>
+          <li>Identificativo principal <span>oblig</span></li>
+          <li>Identificativo secundario <span>opc</span></li>
+          <li>Colores <span>oblig</span></li>
+          <li>Tipografía <span>opc</span></li>
+          <li>Aplicaciones <span>opc</span></li>
+          <li>Personaje <span>opc</span></li>
+          <li>Audiologo <span>opc</span></li>
+          <li>Ilustraciones <span>opc</span></li>
+        </ul>
+        <p class="note">
+          Varios de éstos guardan el <b>enlace al archivo</b> como su texto. Si la capa 4 los
+          lee, recibe también las imágenes — y deja de depender del trabajo de toolkit.
+        </p>
+      </div>
+
+      <div class="group">
+        <h4>Voz y territorio</h4>
+        <p class="count">7</p>
+        <ul>
+          <li>Tono de comunicación <span>oblig</span></li>
+          <li>Temas de conversación <span>oblig</span></li>
+          <li>Territorio de marca <span>oblig</span></li>
+          <li>Brand X <span>oblig</span></li>
+          <li>Lineamientos de comunicación <span>opc</span></li>
+          <li>Prisma de Kapferer <span>opc</span></li>
+          <li>Arquitectura de marca <span>opc</span></li>
+        </ul>
+        <p class="note">
+          Tono y Temas de conversación son el material natural de la capa 2 (Personalidad) y
+          hoy no entran. Vale la pena preguntarlo.
+        </p>
+      </div>
+
+      <div class="group">
+        <h4>Contenido y campañas</h4>
+        <p class="count">11 · todos opcionales</p>
+        <ul>
+          <li>Campaña paid <span>opc</span></li>
+          <li>Pilares de contenido <span>opc</span></li>
+          <li>Distribución de contenido <span>opc</span></li>
+          <li>Idea de evento <span>opc</span></li>
+          <li>Do's and don'ts de influencers <span>opc</span></li>
+          <li>Banco de ideas de contenido <span>opc</span></li>
+          <li>Optimización de perfiles sociales <span>opc</span></li>
+          <li>Referencias de contenido <span>opc</span></li>
+          <li>Branded content (idea) <span>opc</span></li>
+          <li>Perfil del contenido <span>opc</span></li>
+          <li>Framework cultural <span>opc</span></li>
+        </ul>
+        <p class="note">Ejecución, no definición de marca. Quedan fuera con razón.</p>
+      </div>
+
+      <div class="group">
+        <h4>Service design</h4>
+        <p class="count">6 · todos opcionales</p>
+        <ul>
+          <li>Fase awareness <span>opc</span></li>
+          <li>Fase interacción <span>opc</span></li>
+          <li>Fase consideración <span>opc</span></li>
+          <li>Fase compra <span>opc</span></li>
+          <li>Fase service <span>opc</span></li>
+          <li>Fase loyalty expansion <span>opc</span></li>
+        </ul>
+        <p class="note">Recorrido del cliente. Fuera del Egg.</p>
+      </div>
+
+      <div class="group">
+        <h4>Análisis e implementación</h4>
+        <p class="count">3</p>
+        <ul>
+          <li>Análisis de la categoría <span>oblig</span></li>
+          <li>Checklist de implementación <span>oblig</span></li>
+          <li>Análisis digital y competidores <span>opc</span></li>
+        </ul>
+        <p class="note">
+          Insumo y salida del proceso, no definición. El checklist ya tiene su propia pantalla
+          en el portal del cliente.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Generado desde <code>App\Enums\BrandEggLayer</code> y <code>App\Enums\DeliverableItem</code>
+    el 14 de septiembre de 2026 · el plan completo está en <code>portal/docs/brand-egg.md</code>
+  </footer>
+
+</div>
+
+</body>
+</html>

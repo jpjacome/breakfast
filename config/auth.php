@@ -96,7 +96,34 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
-            'expire' => 60,
+
+            /*
+            | Seven days, not Laravel's 60 minutes.
+            |
+            | This one value covers both mails, because both are the same
+            | thing: a link that lets its holder set a password. An hour was
+            | killing invitations — somebody added on a Friday found a dead
+            | link on Monday — and lengthening it costs less than it looks,
+            | for two reasons. A token is spent the moment it is used, so a
+            | link that was acted on is already dead. And asking for a reset
+            | does not touch the existing password, so a request nobody made
+            | locks nobody out.
+            |
+            | What the window still buys: an invitation nobody ever accepted
+            | eventually stops being a working key, both in a forgotten inbox
+            | and in this table. Do not remove it — nothing else expires
+            | these rows except the scheduled auth:clear-resets in
+            | routes/console.php, which only deletes what is already expired.
+            |
+            | Worded for readers by BuildsPasswordResetLink::linkLifetime();
+            | the mail says "7 días", never "10080 minutos".
+            */
+            'expire' => 60 * 24 * 7,
+
+            // Seconds between requests for the same address. Unchanged: it
+            // stops someone hammering the form, and the "Reenviar" buttons in
+            // /admin mint their token directly to sidestep it — see
+            // InviteUserToClient::sendSetupLink().
             'throttle' => 60,
         ],
     ],

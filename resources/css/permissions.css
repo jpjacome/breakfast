@@ -1,0 +1,123 @@
+/* --------------------------------------------------------------------------
+   The permission grid — x-portal.permission-grid
+
+   A COMPONENT stylesheet, not a page one. Everywhere else the rule is one file
+   per blade, but this grid is a single component rendered inside two different
+   shells — the owner's /portal/equipo and Breakfast's /admin/clientes/{marca} —
+   and neither shell's stylesheet can own it: whichever one held it would leave
+   the other rendering an unstyled fieldset. It lived in dashboard.css and did
+   exactly that on the admin side.
+
+   So it ships with the component instead. Each page that renders the grid
+   names this file, and there is one copy of these rules rather than two that
+   drift.
+
+   Nothing here is scoped under .dashboard or .admin, for the same reason. Every
+   colour is a role token both shells define, so the grid takes the surface it
+   is standing on and needs no theme block of its own.
+   -------------------------------------------------------------------------- */
+
+.permissions { margin: 0; padding: 0; border: 0; }
+
+.permissions-legend {
+  padding: 0;
+  font-size: .85rem;
+  font-weight: 700;
+}
+
+.permissions-note {
+  margin-top: .375rem;
+  margin-bottom: 1rem;
+  font-size: .85rem;
+  color: var(--ink-quiet);
+}
+
+.permissions-grid { display: grid; }
+
+/* One track pair shared by the header and every row, so the checkbox column
+   lines up without the header and the rows knowing each other's width. */
+.permissions-header,
+.permissions-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4rem;
+  align-items: center;
+  gap: .5rem;
+}
+
+.permissions-header {
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: .7rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+}
+.permissions-header span + span { text-align: center; }
+
+.permissions-row { padding: .75rem 0; border-bottom: 1px solid var(--rule); }
+
+.permissions-section { display: flex; align-items: flex-start; gap: .625rem; min-width: 0; }
+.permissions-section b { display: block; font-size: .9rem; font-weight: 500; }
+
+/* Sized here rather than inherited: the icon rules in both shells are scoped to
+   their own body class, so without this the icons render at Tabler's native
+   24px in whichever shell is not looking. */
+.permissions-section svg { width: 20px; height: 20px; flex: none; margin-top: 2px; opacity: .6; }
+
+.permissions-description { font-size: .8rem; color: var(--ink-quiet); line-height: 1.45; }
+
+.permissions-box { display: grid; place-items: center; cursor: pointer; }
+
+/* appearance: none drops the browser's blue box; the rest draws the square from
+   whichever scope is hosting it, so one control looks the same on
+   /portal/equipo and in /admin, in either theme. */
+.permissions-box input {
+  appearance: none;
+  margin: 0;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-content: center;
+  background: var(--surface);
+  border: 2px solid var(--box-edge);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+
+/* The tick is a clipped square, so it scales with the box and needs no SVG.
+   Coffee, not black: it is a mark on the yellow box, not type. */
+.permissions-box input::after {
+  content: "";
+  width: 11px;
+  height: 11px;
+  background: var(--bkf-brown);
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+  transform: scale(0);
+  transition: transform var(--dur) var(--ease);
+}
+
+.permissions-box input:checked { background: var(--bkf-yellow); }
+.permissions-box input:checked::after { transform: scale(1); }
+
+.permissions-ceiling {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-top: 1rem;
+  margin-bottom: 0;
+}
+.permissions-ceiling svg { width: 16px; height: 16px; flex: none; }
+
+/* The narrow breakpoint is the grid's own, not the portal rail's. It used to
+   ride along inside dashboard.css's 900px slide-over block, which meant the
+   admin copy never got it. */
+@media (max-width: 900px) {
+  .permissions-header,
+  .permissions-row { grid-template-columns: minmax(0, 1fr) 3rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .permissions-box input,
+  .permissions-box input::after { transition: none; }
+}

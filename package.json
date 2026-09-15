@@ -4,12 +4,17 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "watch": "vite build --watch"
     },
     "devDependencies": {
         "concurrently": "^9.0.1",
         "fontaine": "^0.8.0",
         "laravel-vite-plugin": "^3.1",
         "vite": "^8.0.0"
+    },
+    "dependencies": {
+        "gsap": "^3.15.0",
+        "three": "^0.185.1"
     }
 }

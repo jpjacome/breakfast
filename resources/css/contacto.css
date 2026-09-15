@@ -1,0 +1,173 @@
+/* ==========================================================================
+   CONTACTO PAGE — "/contacto"
+
+   Only the elements rendered by contacto.blade.php. The navbar, footer and
+   page base belong to the layout and live in general.css.
+
+   Same shape as the nosotros and podcast pages: a heading across the first
+   column, then the copy and form in a reading measure with the photograph
+   alone beside it. What is new here is the form.
+   ========================================================================== */
+
+.contacto {
+  max-width: var(--max-width);
+  margin-inline: auto;
+  padding: var(--gutter);
+  background: var(--bkf-yellow);
+  color: var(--bkf-black);
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.contacto .container {
+  margin-inline: auto;
+  padding-block: clamp(2rem, 6vw, 5rem);
+  display: grid;
+  column-gap: clamp(2rem, 5vw, 4rem);
+}
+
+.contacto-body,
+.contacto-heading { max-width: 68ch; }
+
+/* Stacked only; the two-column rule below puts the photo beside the form. */
+.contacto-photo { margin-top: clamp(2rem, 5vw, 4rem); }
+
+.contacto-photo img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: var(--border-radius);
+}
+
+@media (min-width: 950px) {
+  .contacto .container { grid-template-columns: minmax(0, 68ch) minmax(0, 1fr); }
+
+  .contacto-heading { grid-area: 1 / 1; }
+  .contacto-body    { grid-area: 2 / 1; }
+
+  .contacto-photo {
+    grid-area: 2 / 2;
+    align-self: start;
+    margin-top: 0;
+  }
+}
+
+.contacto-heading {
+  font-size: clamp(28px, 3.4vw, 3.25rem);
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  margin-bottom: clamp(2rem, 4vw, 3rem) !important;
+}
+
+.contacto-body{
+  margin-bottom: 2rem;
+}
+
+.contacto-intro {
+  font-size: clamp(15px, 1.55vw, 1.1rem);
+  line-height: 1.9;
+  margin-bottom: clamp(2rem, 4vw, 3rem);
+}
+
+/* Confirmation after a successful submit. */
+.contacto-status {
+  margin-bottom: 2rem;
+  padding: 1rem 1.25rem;
+  background: var(--bkf-black);
+  color: var(--bkf-yellow);
+  border-radius: var(--border-radius);
+  font-size: clamp(15px, 1.55vw, 1.1rem);
+  line-height: 1.6;
+}
+
+.contacto-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  margin-top: 4rem;
+}
+
+/* The browser's own fieldset border and padding are not wanted — the legend
+   is doing the grouping visually. */
+.contacto-fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.contacto-legend {
+  padding: 0;
+  margin-bottom: 1rem;
+  font-family: var(--font-serif);
+  font-size: clamp(17px, 1.9vw, 1.25rem);
+}
+
+/* First and last name sit side by side once there is room for two usable
+   fields; below that they stack rather than become two cramped boxes. */
+.contacto-field-pair {
+  display: grid;
+  gap: 1.75rem;
+}
+@media (min-width: 560px) {
+  .contacto-field-pair { grid-template-columns: 1fr 1fr; }
+}
+
+.contacto-field {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+}
+
+.contacto-field label {
+  font-size: .95rem;
+  font-weight: 700;
+}
+
+.contacto-field input,
+.contacto-field textarea {
+  width: 100%;
+  padding: .875rem 1.125rem;
+  font: inherit;
+  font-size: 1rem;
+  color: var(--bkf-black);
+  background: transparent;
+  border: var(--border-width) solid var(--ink);
+  border-radius: var(--border-radius);
+  transition: box-shadow var(--duration) var(--ease);
+}
+
+.contacto-field textarea {
+  resize: vertical;
+  /* The pill radius belongs on one-line fields; on a six-row box it bows the
+     corners away from the text. */
+  border-radius: var(--border-radius);
+}
+
+.contacto-field input:focus-visible,
+.contacto-field textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px var(--bkf-yellow-200);
+}
+
+.contacto-hint {
+  font-size: .9rem;
+  line-height: 1.5;
+  opacity: .8;
+}
+
+.contacto-error {
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--bkf-red);
+}
+
+/* Off-screen rather than display:none — some bots skip anything not rendered,
+   and this one should look real to them. */
+.contacto-honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.contacto-form .button { align-self: flex-start; }

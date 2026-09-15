@@ -1,0 +1,59 @@
+/* =============================================================================
+   /admin/equipo — the Breakfast team roster.
+
+   Only the brand checklist lives here. Everything else on that screen is
+   admin.css: the cards, the rows, the disclosures, the buttons.
+   ============================================================================= */
+
+/* The checklist is a fieldset so the boxes are announced as one group, and a
+   fieldset carries a browser border and padding that nothing else here has. */
+.brand-checklist-field {
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+/* Matches .admin-field label, because it does the same job in the same column. */
+.brand-checklist-field legend {
+  padding: 0;
+  font-size: .8rem;
+  font-weight: 700;
+}
+
+/* Scrolls at about seven brands. The roster will outgrow the panel long before
+   it outgrows the company, and a checklist that pushes the save button off the
+   screen is worse than one you scroll. */
+.brand-checklist {
+  display: grid;
+  gap: 2px;
+  max-height: 14rem;
+  overflow-y: auto;
+  padding: .5rem;
+  border: 1.5px solid var(--rule-strong);
+  border-radius: var(--border-radius);
+}
+
+/* No radius of its own: --border-radius is 36px, which is right for the box
+   around the list and a pill on a row inside it. */
+.brand-checklist-item {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .25rem .5rem;
+  font-size: .875rem;
+  cursor: pointer;
+}
+
+.brand-checklist-item:hover { background: var(--sunken); }
+
+.brand-checklist-item input {
+  width: auto;
+  flex: none;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--accent);
+}

@@ -1,0 +1,29 @@
+/* =============================================================================
+   /admin/cuenta — your own account.
+
+   Only the two-step setup lives here. The cards, the fields, the buttons and
+   the disclosures are admin.css, same as every other admin screen.
+   ============================================================================= */
+
+/* Fortify draws the QR with its own white ground, which is right for phone
+   cameras and wrong for a white card — so it takes an edge to sit on. Inline
+   block, so the frame stops at the code instead of running the card's width. */
+.two-factor-qr {
+  display: inline-block;
+  margin-block: 1.25rem;
+  padding: .75rem;
+  background: var(--bkf-white);
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+}
+
+.two-factor-qr svg { display: block; }
+
+/* Eight codes on eight lines inside one .admin-secret, so a single gesture
+   selects the set — they are shown once and are worthless half-copied. The
+   break-all that suits a long secret would split them mid-code. */
+.two-factor-codes {
+  white-space: pre-line;
+  line-height: 1.9;
+  word-break: normal;
+}

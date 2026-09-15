@@ -59,13 +59,31 @@ return [
     | Application Timezone
     |--------------------------------------------------------------------------
     |
-    | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
+    | Ecuador time, where most of the brands are, and NOT the Laravel default
+    | of UTC. On UTC the portal's clock ran five hours ahead of everyone
+    | reading it: starting a process step on the evening of the 13th recorded
+    | "En curso desde el 14 de agosto", a meeting typed as 14:00 was stored as
+    | 14:00 UTC — 09:00 for the person attending it — and the "Hoy es …" line
+    | both assistants get in block 3 named tomorrow.
+    |
+    | One setting rather than a conversion at each render: it moves now(), the
+    | datetime-local form parsing, every ->translatedFormat() and every
+    | comparison against now() together, so a new date cannot be written that
+    | forgets to convert. The cost is that the database holds local time, which
+    | is the right trade while everyone keeps one clock. If Breakfast ever
+    | takes on brands in another country this has to become UTC in the database
+    | plus a timezone on the user record — a real change, not a config edit.
+    |
+    | America/Guayaquil is UTC-5 and observes no DST, so there is no shifting
+    | offset to reason about. (Galápagos is Pacific/Galapagos, an hour behind;
+    | it is not modelled, because a per-user timezone is the change above.)
+    |
+    | ⚠️ Rows written before this switch keep their UTC values and read five
+    | hours late. They were left alone deliberately — fix forward.
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'America/Guayaquil',
 
     /*
     |--------------------------------------------------------------------------

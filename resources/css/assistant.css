@@ -1,0 +1,476 @@
+/* --------------------------------------------------------------------------
+   The assistant panel — x-admin.assistant and x-portal.assistant
+
+   A COMPONENT stylesheet, like permissions.css. The same panel now appears in
+   both shells: Breakfast's dashboard and the client's. Whichever shell's file
+   held these rules would leave the other one rendering an unstyled form, which
+   is exactly what happened to the permission grid.
+
+   Every colour is a role token both shells define, so the panel takes the
+   surface it is standing on. Nothing here is scoped under .admin or
+   .dashboard, for the same reason.
+   -------------------------------------------------------------------------- */
+
+/* --- the assistant, on the home screen -----------------------------------
+   The screen, not a widget on it. It takes the top of the page at full width
+   and the old dashboard contents sit underneath in .dash-foot, deliberately
+   quieter than they were.
+   ------------------------------------------------------------------------- */
+
+/* One centred column: greeting, orb, conversation, composer. The orb is the
+   thing you land on, so nothing sits beside it competing for the middle. */
+.assistant {
+  display: grid;
+  justify-items: center;
+  gap: 1.5rem;
+  padding: clamp(1.5rem, 4vw, 2.75rem) clamp(1.25rem, 3vw, 2.25rem);
+  border: 1px solid var(--bkf-yellow);
+  border-radius: var(--border-radius);
+  margin-bottom: 2rem;
+}
+
+.assistant > * { min-width: 0; max-width: 100%; }
+
+.assistant-greeting {
+  font-family: "Libre Baskerville", Georgia, serif;
+  font-size: clamp(22px, 2.6vw, 1.9rem);
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+  text-align: center;
+}
+
+/* Brandy's one-line introduction, under the greeting. Quiet: the greeting is
+   the display line and this is the sentence that explains it. */
+.assistant-intro {
+  margin: -.25rem 0 0;
+  font-size: .95rem;
+  color: var(--ink-quiet);
+  text-align: center;
+  max-width: 46ch;
+}
+
+.assistant-orb { display: grid; place-items: center; width: 100%; }
+.assistant-orb .orb-canvas { width: min(100%, 220px); aspect-ratio: 1; }
+
+/* No minimum height: with nothing said yet the composer sits directly under
+   the orb, which is the state this screen is in most of the time. It only
+   takes up room once there is something in it. */
+.assistant-thread {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  width: 100%;
+  /* Tracks the composer below it, so the conversation and the box you type in
+     share one edge instead of the thread sprawling the full card. */
+  max-width: 46rem;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+/* Hidden until there is something in it. NOT :empty — the thread is rendered
+   with last session's turns inside it now, and Blade leaves whitespace text
+   nodes behind even when there are none, which defeats :empty. Asking for an
+   actual message works whether the turn came from the server or from JS. */
+.assistant-thread:not(:has(.assistant-message)) { display: none; }
+
+.assistant-hint {
+  font-size: .85rem;
+  line-height: 1.6;
+  color: var(--ink-quiet);
+  text-align: center;
+  max-width: 54ch;
+}
+
+.assistant-message {
+  padding: .75rem 1rem;
+  border-radius: var(--border-radius);
+  font-size: .925rem;
+  line-height: 1.6;
+  max-width: 62ch;
+}
+
+/* The question is the quiet one: it is already known to whoever typed it. */
+.assistant-message-user {
+  align-self: flex-end;
+  background: var(--sunken);
+  color: var(--ink-quiet);
+}
+
+.assistant-message-assistant {
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--bkf-yellow);
+}
+
+/* ------------------------------------------------------------------
+   The shape of a reply
+   ------------------------------------------------------------------
+   Headings, lists and tables, because the models write them and the beta
+   review asked to see them — "mantener una lectura visual similar a ChatGPT
+   dentro del lenguaje gráfico de Breakfast". Read by assistant-text.js, which
+   builds nodes rather than parsing markup.
+
+   Only tokens BOTH shells define: this file is loaded by <x-layouts.app> and
+   <x-layouts.portal> alike, and a token only the portal has renders the admin
+   side unstyled. That has happened before — see permissions.css in CLAUDE.md §9.
+   ------------------------------------------------------------------ */
+
+.assistant-message h3,
+.assistant-message h4,
+.assistant-message h5 {
+  margin: 1.25rem 0 .5rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* Below the panel's own type, on purpose: a reply is inside a page that
+   already has a title, and a heading in it is a signpost, not a banner. */
+.assistant-message h3 { font-size: 1.05rem; }
+.assistant-message h4 { font-size: .95rem; }
+.assistant-message h5 { font-size: .9rem; color: var(--ink-quiet); }
+
+/* The first thing in a reply never needs space above it. */
+.assistant-message > :first-child { margin-top: 0; }
+
+.assistant-message ul,
+.assistant-message ol {
+  margin: .625rem 0;
+  padding-left: 1.25rem;
+}
+
+.assistant-message li { margin: .25rem 0; }
+.assistant-message li::marker { color: var(--ink-quiet); }
+
+.assistant-message code {
+  padding: .1em .35em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .875em;
+  background: var(--sunken);
+  border-radius: .3rem;
+}
+
+/* ⚠️ THE TABLE SCROLLS, THE PAGE DOES NOT. A five-column comparison is wider
+   than this panel on any phone, and a table that widens its container puts a
+   horizontal scrollbar on the whole document. The wrapper is built by
+   assistant-text.js around every table for exactly this. */
+.assistant-table {
+  margin: .75rem 0;
+  overflow-x: auto;
+}
+
+.assistant-message table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: .875rem;
+}
+
+.assistant-message th,
+.assistant-message td {
+  padding: .5rem .625rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--rule);
+  /* Cells wrap rather than truncate; the scroller handles the overflow. */
+  min-width: 6rem;
+}
+
+.assistant-message th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.assistant-message tbody tr:last-child td { border-bottom: 0; }
+
+/* The blank line the model wrote between two thoughts. Both shells zero every
+   paragraph margin (`.admin p`, `.website p`), so without this a four-point
+   answer arrives as one wall — the reply is split into paragraphs by
+   assistant-text.js and then looks exactly as if it had not been. */
+.assistant-message p + p { margin-top: .75rem; }
+
+/* "Reintentar", inside the error turn it belongs to.
+   A failed question is put back in the box and this sends it again — see
+   restore() in assistant.js. It sits in the message rather than under the
+   composer because it belongs to THAT failure: two errors in a row would
+   otherwise share one ambiguous button. */
+.assistant-retry {
+  display: block;
+  margin-top: .625rem;
+  padding: .375rem .875rem;
+  font: inherit;
+  font-size: .85rem;
+  color: var(--ink);
+  background: var(--sunken);
+  border: 1.5px solid var(--rule);
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.assistant-retry:hover {
+  background: var(--surface);
+  border-color: var(--bkf-yellow);
+}
+
+/* The routes the assistant names, made clickable — "ve a /admin/clientes/nueva"
+   is an instruction until it is a link, and it has to LOOK like one inside a
+   paragraph of plain reply.
+
+   --accent, which is the emphasis colour this shell already uses and what
+   .admin-link turns on hover, so a link in a reply matches a link anywhere else
+   in the back office. It is coffee on the light page and yellow on the dark
+   one: literal yellow would be right in dark and unreadable on near-white, and
+   the token is the thing that already knows which theme it is in.
+
+   The underline stays. Colour alone is not a signal everyone receives, and the
+   underline is what carries it for whoever does not see this one.
+
+   Breaks anywhere because a path is one long word and a narrow rail would
+   otherwise be widened by it. */
+.assistant-route {
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+  overflow-wrap: anywhere;
+  transition: background var(--dur) var(--ease);
+}
+
+.assistant-route:hover { background: var(--glow); }
+
+/* Two rows: the question, then the scope under it.
+   The card spans the column, but the controls do not: a text field the width of
+   a desktop screen is a worse place to type one sentence, so the composer and
+   the hint keep a reading measure and sit centred in the card. */
+.assistant-composer {
+  display: grid;
+  gap: .625rem;
+  justify-items: center;
+  width: 100%;
+  max-width: 46rem;
+}
+/* ONE control, not a field with buttons parked beside it.
+   ------------------------------------------------------------------------
+   The border, the fill and the radius belong to this row, and everything in
+   it — paperclip, question, microphone, send — sits INSIDE that shape. It
+   used to be a bordered input with three separate bordered circles floating
+   to its right, which read as four controls that happened to be adjacent
+   rather than one place to write a message.
+
+   Reading order is the layout: what you ATTACH on the left, what you TYPE in
+   the middle, what you DO with it on the right. The paperclip is first in the
+   markup too, so tabbing follows the same line the eye does.
+
+   36px on a ~52px row is more radius than the corners can spend, so the
+   browser scales it down and the row comes out a stadium. That is the one
+   radius doing what it does everywhere else, not a second value. */
+.assistant-ask {
+  display: flex;
+  /* flex-end, not center: the field grows downwards as somebody writes a
+     second and third line, and the paperclip and the send button belong beside
+     the LAST line — centred, they drift into the middle of the message. */
+  align-items: flex-end;
+  gap: .25rem;
+  width: 100%;
+  /* A flex item will not shrink below its content, and the input inside is
+     content. Without this the row grows past the card instead of the input
+     giving way — which is what put the send button through the right edge in
+     the narrow panel. See .assistant-input below for the other half. */
+  min-width: 0;
+  padding: .3125rem;
+  background: var(--surface);
+  border: 1.5px solid var(--bkf-brown);
+  border-radius: var(--border-radius);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+/* Coffee on a black page is barely an edge, so dark keeps the tint. */
+[data-theme="dark"] .assistant-ask,
+[data-theme="dark"] .assistant-brand { border-color: var(--rule-strong); }
+
+/* The whole row lights up, because the whole row is the control. The input
+   inside draws no ring of its own — two rings for one focus. */
+.assistant-ask:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--glow);
+}
+
+/* Bare: the shape around it is the field now. */
+.assistant-input {
+  flex: 1;
+  /* The floor was 12rem, which is what overflowed the compact panel — below
+     ~330px the row could not fit and had nowhere to give. It shrinks now; the
+     placeholder truncates, which is the correct thing to lose. */
+  min-width: 0;
+  padding: .5rem;
+  font: inherit;
+  font-size: .9rem;
+  color: var(--ink);
+  background: none;
+  border: 0;
+}
+.assistant-input:focus-visible { outline: none; }
+
+/* A textarea now, so a long question can be read before it is sent.
+   Height is set by assistant-composer.js as you type — one row until there is
+   a reason for more, capped at about eight. resize:none because the handle
+   would fight the auto-fitting and put a grabbable corner inside the pill. */
+textarea.assistant-input {
+  resize: none;
+  overflow-y: hidden;
+  line-height: 1.5;
+  /* Matches the button height at one row, so an empty composer is the same
+     pill it was when this was an <input>. */
+  min-height: 2.25rem;
+}
+
+/* The scope picker below the row keeps its own edge — it is a separate
+   control on a separate line, not part of the composer's shape. */
+.assistant-brand {
+  padding: .625rem .875rem;
+  font: inherit;
+  font-size: .9rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1.5px solid var(--bkf-brown);
+  border-radius: var(--border-radius);
+}
+.assistant-brand:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--glow);
+}
+
+/* The one button on the row that does the thing, so it is the one that is
+   filled. A circle is a shape, not a radius — same exception the avatar takes.
+   flex: none so it is never the thing that gives when the row is tight. */
+.assistant-send {
+  flex: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+}
+.assistant-send svg { width: 18px; height: 18px; }
+
+.assistant-composer :disabled { opacity: .5; cursor: not-allowed; }
+
+/* --- what used to be the dashboard --------------------------------------- */
+
+.dash-foot { margin-top: clamp(2rem, 5vw, 3.5rem); display: grid; gap: 1.5rem; }
+
+/* Numbers as a line of type rather than tiles: they are reference now, not the
+   point of the screen. */
+.dash-stats {
+  display: flex;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.dash-stat { display: flex; align-items: baseline; gap: .5rem; }
+.dash-stat-value { font-size: 1.5rem; font-weight: 700; letter-spacing: -.02em; }
+
+.dash-lists { display: grid; gap: clamp(1.5rem, 3vw, 2.5rem); align-items: start; }
+.dash-lists > * { min-width: 0; }
+
+@media (min-width: 1000px) {
+  .dash-lists { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); }
+}
+
+
+/* --------------------------------------------------------------------------
+   Attaching things: an image, a voice note
+   -------------------------------------------------------------------------- */
+
+/* Paperclip and microphone. Quiet next to the send arrow, which is the one
+   button on this row that does the thing.
+
+   No border any more: these sit INSIDE the composer's own edge, and an
+   outlined circle within an outlined pill draws a box around a box. Hover
+   tints instead, which is the same move the ghost button makes. */
+.assistant-tool {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--ink-quiet);
+  cursor: pointer;
+  transition: color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.assistant-tool:hover { color: var(--ink); background: var(--sunken); }
+.assistant-tool svg { width: 18px; height: 18px; }
+
+/* Recording. Filled rather than merely tinted: this is the one state on the
+   screen where something is being captured, and a subtle hint is not enough
+   to make somebody remember to stop it. */
+.assistant-tool.is-recording {
+  background: var(--bkf-red);
+  border-color: var(--bkf-red);
+  color: var(--bkf-white);
+  animation: assistant-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes assistant-pulse {
+  50% { opacity: .55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-tool.is-recording { animation: none; }
+}
+
+/* The tray. Hidden while empty — see the thread rule above for why :empty is
+   not what asks the question. */
+.assistant-attached {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .375rem;
+  justify-content: center;
+  width: 100%;
+  max-width: 46rem;
+}
+
+.assistant-attached:not(:has(.assistant-chip)) { display: none; }
+
+.assistant-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .375rem;
+  padding: .25rem .5rem .25rem .625rem;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--border-radius);
+  font-size: .75rem;
+  color: var(--ink-quiet);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assistant-chip-drop {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: .9rem;
+  line-height: 1;
+  color: inherit;
+  cursor: pointer;
+}
+
+.assistant-chip-drop:hover { color: var(--bkf-red); }
+
+/* The whole panel is the drop target. A zone you have to aim at is a zone
+   people miss, and the gesture for handing somebody a screenshot is dragging
+   it onto them. Said only while something is being dragged: a permanent
+   dashed rectangle is an instruction nobody needs the rest of the time. */
+.assistant.is-dropping {
+  border-color: var(--bkf-yellow);
+  background: var(--glow);
+}

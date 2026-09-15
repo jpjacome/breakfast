@@ -1,66 +1,86 @@
-<x-layouts.auth title="Nueva contraseña">
+{{--
+    /reset-password/{token} — Fortify POSTs to route('password.update').
 
-    <header class="auth-form__head">
-        <h1 class="auth-form__title">nueva clave</h1>
-        <p class="auth-form__sub">
-            Elige una contraseña nueva. Mínimo 8 caracteres.
-        </p>
-    </header>
+    THE FIRST PAGE OF THIS APP MOST PEOPLE EVER SEE. The invitation mail lands
+    here: an account exists, and this is where its owner picks a password. It
+    is also where "olvidé mi contraseña" lands, which is why the heading says
+    what the page does rather than welcoming anybody — one screen, two arrivals.
 
-    <x-auth.feedback />
+    Same shell and same vocabulary as /login, because it is the same door.
+    On success Fortify redirects to /login with passwords.reset flashed, so
+    the way in is the next thing they see; nothing here has to link to it.
+--}}
+<x-layouts.site-remake :css="['auth']"
+    title="Elige tu contraseña"
+    description="Elige la contraseña de tu cuenta en el portal de Breakfast."
+    :noindex="true">
 
-    <form method="POST" action="{{ route('password.update') }}" novalidate>
-        @csrf
-        <input type="hidden" name="token" value="{{ $request->route('token') }}">
+    <article class="auth" data-plane>
+        <div class="container">
 
-        <div class="auth-form__fields">
+          <h1 class="auth-heading" data-typewriter>
+              Elige tu contraseña
+          </h1>
 
-            <div class="bkf-field">
-                <label class="bkf-label" for="email">Correo</label>
-                <input
-                    class="bkf-input"
-                    id="email"
-                    name="email"
-                    type="email"
-                    inputmode="email"
-                    autocomplete="username"
-                    value="{{ old('email', $request->email) }}"
-                    @error('email') aria-invalid="true" @enderror
-                    required
-                    autofocus
-                >
-            </div>
+          <div class="auth-body" data-fade-in>
 
-            <div class="bkf-field">
-                <label class="bkf-label" for="password">Contraseña nueva</label>
-                <input
-                    class="bkf-input"
-                    id="password"
-                    name="password"
-                    type="password"
-                    autocomplete="new-password"
-                    @error('password') aria-invalid="true" @enderror
-                    required
-                >
-            </div>
+            <p class="auth-intro">
+                Mínimo 8 caracteres. Con ella entras al portal desde cualquier
+                dispositivo, así que elige una que no vayas a olvidar.
+            </p>
 
-            <div class="bkf-field">
-                <label class="bkf-label" for="password_confirmation">Confirmar contraseña</label>
-                <input
-                    class="bkf-input"
-                    id="password_confirmation"
-                    name="password_confirmation"
-                    type="password"
-                    autocomplete="new-password"
-                    required
-                >
-            </div>
+            <x-auth.feedback />
 
-            <button type="submit" class="bkf-btn bkf-btn--primary bkf-btn--lg bkf-btn--block">
-                Guardar contraseña
-            </button>
+            <form method="POST" action="{{ route('password.update') }}" class="auth-form">
+                @csrf
+
+                {{-- The token from the link. Without it the broker has no way
+                     to know which account this is, and the post fails. --}}
+                <input type="hidden" name="token" value="{{ $request->route('token') }}">
+
+                <div class="auth-field">
+                    <label for="email">Correo</label>
+                    {{-- Prefilled from the link and rarely touched, but not
+                         read-only: the broker checks the token against this
+                         address, and somebody forwarded the mail to their real
+                         inbox needs to be able to correct it. --}}
+                    <input type="email" id="email" name="email"
+                           value="{{ old('email', $request->email) }}"
+                           inputmode="email"
+                           autocomplete="username"
+                           @error('email') aria-invalid="true" @enderror
+                           required>
+                </div>
+
+                <div class="auth-field">
+                    <label for="password">Contraseña nueva</label>
+                    <input type="password" id="password" name="password"
+                           autocomplete="new-password"
+                           @error('password') aria-invalid="true" @enderror
+                           required autofocus>
+                </div>
+
+                <div class="auth-field">
+                    <label for="password_confirmation">Confírmala</label>
+                    <input type="password" id="password_confirmation"
+                           name="password_confirmation"
+                           autocomplete="new-password"
+                           required>
+                </div>
+
+                <button type="submit" class="button">Guardar contraseña</button>
+            </form>
+
+            <p class="auth-foot">
+                ¿El enlace ya no sirve? Duran unos días.
+                <a href="{{ route('password.request') }}">Pide uno nuevo</a>
+                o escríbenos a
+                <a href="mailto:info@vamosdebreakfast.com">info@vamosdebreakfast.com</a>.
+            </p>
+
+          </div>
 
         </div>
-    </form>
+    </article>
 
-</x-layouts.auth>
+</x-layouts.site-remake>

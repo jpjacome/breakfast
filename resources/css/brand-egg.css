@@ -1,0 +1,133 @@
+/* --------------------------------------------------------------------------
+   The Brand Egg — x-brand-egg
+
+   A COMPONENT stylesheet, not a page one. The same drawing renders inside
+   <x-layouts.app> on /admin/clientes/{marca}/brand-egg and inside
+   <x-layouts.portal> on the client's read-only view, so neither shell's own
+   file can own it: whichever one held these rules would leave the other
+   rendering a raw SVG. Same category as permissions.css and checklist.css,
+   and it carries the same constraint —
+
+   ⚠️ IT MAY ONLY USE TOKENS BOTH SHELLS DEFINE.
+
+   That is not theoretical: permissions.css shipped broken on --box-edge, which
+   only the portal had, and the admin side rendered an unstyled grid. Checked
+   against admin.css and dashboard.css on 2026-09-11, both define: --page,
+   --ink, --surface, --rule, --rule-strong, --ink-quiet, --accent, --good/--bad
+   (admin only, so NOT used here), --box-edge. The common set is what is used
+   below. Nothing else.
+
+   ⚠️ NO LIGHT PLANE. Breakfast's decision of 2026-09-11: the egg's own palette
+   is the artwork and stays exactly as Corel drew it, so the four fills are
+   literal hex in the component's <style> and there is no backing surface
+   painted under the drawing in either theme. If the near-black outline proves
+   too dark on the dark page, that is a change to ask for, not to smuggle in
+   here as a background.
+   -------------------------------------------------------------------------- */
+
+.brand-egg {
+  display: block;
+  width: 100%;
+  max-width: 34rem;
+  height: auto;
+  margin-inline: auto;
+  overflow: visible;
+}
+
+/* ⚠️ EVERY RULE BELOW IS WRITTEN TWICE, FOR TWO SHAPES OF THE SAME DRAWING.
+   A ring is a <g> directly inside the <svg> — except on a screen that passes
+   $hrefs to the component, where each ring is wrapped in an <a> and the shape
+   becomes .brand-egg > a > g. The child combinator is deliberate (a descendant
+   selector would also catch the nested <g> inside ring 3 and dim it on its
+   own), so the price of keeping it is naming both paths. Adding a rule here
+   means adding both halves; the map screen goes unstyled if you forget.
+   -------------------------------------------------------------------------- */
+
+/* Every ring is a control, so every ring is a target. What moves on hover is
+   the ring's own outline and nothing else — the fills never shift, because a
+   fill laid over a ring would hide the layers drawn before it (see the
+   component's docblock). */
+.brand-egg > g,
+.brand-egg > a > g {
+  outline: none;
+  transition: opacity var(--duration) var(--ease),
+              filter var(--duration) var(--ease);
+  cursor: pointer;
+}
+
+/* A ring answers hover AND focus the same way, on purpose: a control that only
+   answers a mouse is not a control, and the keyboard path here is the ring.
+   .is-linked is the same lift arriving from the other direction — the pointer
+   is on the layer's CARD rather than on the ring. Three ways in, one look, so
+   the drawing and the text beside it are never lit differently. */
+.brand-egg > g:hover,
+.brand-egg > g:focus-visible,
+.brand-egg > g.is-linked,
+.brand-egg > a:hover > g,
+.brand-egg > a:focus-visible > g {
+  filter: drop-shadow(0 0 .75rem var(--accent));
+}
+
+/* The ring whose text is open stays lit while you read it. */
+.brand-egg > g.is-open,
+.brand-egg > a > g.is-open {
+  filter: drop-shadow(0 0 1rem var(--accent));
+}
+
+/* Everything else steps back while one ring is lit, so the drawing points at
+   what you are reading instead of leaving you to find it. On the <svg> rather
+   than on each ring: the class lands on whichever element the script touched,
+   and the siblings answer it. */
+.brand-egg.has-lit > g:not(:hover):not(:focus-visible):not(.is-linked):not(.is-open),
+.brand-egg.has-lit > a:not(:hover) > g:not(.is-linked):not(.is-open) {
+  opacity: .45;
+}
+
+/* ⚠️ STATE TAKES A FILL AWAY, IT NEVER ADDS A SHAPE. The rings are evenodd
+   compound paths painted inner -> outer, so anything painted on top of one
+   hides every layer beneath it. Emptying a ring's own fill is the one change
+   that touches that ring alone — and it happens to be exactly what the state
+   means, rather than a colour chosen to stand for it.
+
+   The outline paths are left alone in both states. They are the drawing. */
+
+/* Never composed: the band is hatched rather than filled.
+   ⚠️ NOT fill: none, AND NOT A PALE WASH EITHER. Both were tried. Hollow works
+   on a white card, where the near-black contour still draws the ring, and
+   fails in dark, where that contour is #020201 on a near-black surface and the
+   only reason the other four rings can be seen is that their cream differs
+   from the ground — take the fill away there and the layer does not read as
+   empty, it disappears. A tenth-weight wash fixed that until the skillet went
+   in behind the egg, and then the pan showed through and the band read as a
+   hole punched in the white.
+
+   Stripes cannot be read as a hole. They are the same cream as every other
+   ring (see the <pattern> in the component), so a pending layer is the right
+   colour and visibly unfinished, on either theme and over the pan. */
+.brand-egg > g.is-empty .brand-egg-fill-white,
+.brand-egg > g.is-empty .brand-egg-fill-yolk,
+.brand-egg > g.is-empty .brand-egg-fill-shade,
+.brand-egg > a > g.is-empty .brand-egg-fill-white,
+.brand-egg > a > g.is-empty .brand-egg-fill-yolk,
+.brand-egg > a > g.is-empty .brand-egg-fill-shade {
+  fill: url(#brand-egg-pending);
+}
+
+/* ⚠️ THERE IS NO THIRD RING STATE. Sin generar, sin aprobar, aprobado and
+   desactualizado are asked once per BRAND (docs/brand-egg.md §5), so they
+   belong to the whole egg and are never painted onto one band. A ring that
+   claimed to be "stale" would be claiming to know something no column records.
+   Where the brand's own state gets printed is an open question — the line that
+   used to carry it went with the panel, and step 6 of docs/brand-egg.md §11 is
+   where approval actually arrives. */
+
+/* ⚠️ NO PANEL RULES HERE ANY MORE. There was a readout under the drawing —
+   the hovered ring's label, its purpose and its entregables — and it is gone
+   because every word of it was already on that layer's card beside the egg,
+   and reserving its height cost the drawing the room that is the whole point
+   of its pane. What the ring does now is light its card and, on click, bring
+   it into view; brand-egg.js is where that lives.
+
+   Written down because the markup it styled is gone too, so a future reader
+   will not find it by grep: if the client's read-only view ever wants a
+   readout, it is a new decision, not a restoration. Less is always more. */

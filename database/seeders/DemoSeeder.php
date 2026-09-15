@@ -2,15 +2,14 @@
 
 namespace Database\Seeders;
 
+use App\Enums\AccessLevel;
 use App\Enums\ClientStatus;
-use App\Enums\ContextDocumentKind;
+use App\Enums\PortalSection;
 use App\Enums\UserRole;
 use App\Models\Client;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 /**
  * Development accounts and one demo brand.
@@ -51,7 +50,21 @@ class DemoSeeder extends Seeder
             ]
         );
 
-        // --- Client side ----------------------------------------------------
+        /*
+         * The brand owner, granted by Breakfast — the normal shape: she sees
+         * all of her brand. Read on every grantable section, because Read is
+         * the only level a grantable section has: the client portal is
+         * read-only throughout. See User::grantCeiling().
+         *
+         * Equipo is not in here: User::accessTo() gives it by role, because
+         * that is what being the owner means.
+         */
+        $ownerPermissions = [];
+
+        foreach (PortalSection::grantable() as $section) {
+            $ownerPermissions[$section->value] = AccessLevel::Read->value;
+        }
+
         $clientUser = User::updateOrCreate(
             ['email' => 'client@example.com'],
             [
@@ -60,80 +73,41 @@ class DemoSeeder extends Seeder
                 'email_verified_at' => now(),
                 'role' => UserRole::ClienteOwner,
                 'client_id' => $client->id,
+                'permissions' => $ownerPermissions,
             ]
         );
 
-        $this->seedContextFromBrief($client, $admin);
+        /*
+         * A teammate, granted by María rather than by Breakfast, and strictly
+         * within what she holds: two of her four sections, nothing else.
+         * Exercising the "same or less" rule — and the absence of the other
+         * two is the whole representation of no access, since there is no
+         * "none" level.
+         */
+        $member = User::updateOrCreate(
+            ['email' => 'member@example.com'],
+            [
+                'name' => 'Diego Ruiz',
+                'password' => Hash::make(self::PASSWORD),
+                'email_verified_at' => now(),
+                'role' => UserRole::ClienteMiembro,
+                'client_id' => $client->id,
+                'permissions' => [
+                    PortalSection::Estrategia->value => AccessLevel::Read->value,
+                    PortalSection::Reuniones->value => AccessLevel::Read->value,
+                ],
+            ]
+        );
 
         $this->command->newLine();
         $this->command->info('Cuentas de desarrollo listas (contraseña: '.self::PASSWORD.')');
         $this->command->table(
-            ['Correo', 'Rol', 'Marca', 'Entra a'],
+            ['Correo', 'Rol', 'Marca', 'Entra a', 'Alcance'],
             [
-                [$admin->email, $admin->role->label(), '—', '/admin'],
-                [$clientUser->email, $clientUser->role->label(), $client->name, '/portal'],
+                [$admin->email, $admin->role->label(), '—', '/admin', 'Todo'],
+                [$clientUser->email, $clientUser->role->label(), $client->name, '/portal', 've las 4 secciones'],
+                [$member->email, $member->role->label(), $client->name, '/portal', 've 2 de 4'],
             ]
         );
-    }
-
-    /**
-     * If the real brief PDFs are sitting in brief/, load them as context so
-     * the document list isn't empty on a fresh install. Skipped silently
-     * when they aren't there (CI, a teammate's clone).
-     */
-    private function seedContextFromBrief(Client $client, User $uploader): void
-    {
-        // Match on a substring rather than the full filename: the creative
-        // direction PDF's name contains a COMBINING acute accent (o + U+0301),
-        // which is a different byte sequence from a precomposed "ó" and will
-        // never match an exact string literal here.
-        $rules = [
-            'brief' => [
-                'title' => 'Brief · The Brand Therapist',
-                'kind' => ContextDocumentKind::Brief,
-                'description' => 'Qué necesita el cliente del portal, en un tweet.',
-            ],
-            'creativa' => [
-                'title' => 'Dirección creativa Breakfast',
-                'kind' => ContextDocumentKind::Estrategia,
-                'description' => "Personalidad, cromática, do's y don'ts.",
-            ],
-        ];
-
-        foreach ((array) glob(base_path('brief/*.pdf')) as $source) {
-            $filename = basename($source);
-            $haystack = mb_strtolower($filename);
-
-            $meta = null;
-            foreach ($rules as $needle => $candidate) {
-                if (str_contains($haystack, $needle)) {
-                    $meta = $candidate;
-                    break;
-                }
-            }
-
-            if ($meta === null) {
-                continue;
-            }
-
-            if ($client->contextDocuments()->where('title', $meta['title'])->exists()) {
-                continue;
-            }
-
-            $path = "context/{$client->id}/".Str::random(40).'.pdf';
-            Storage::disk('local')->put($path, file_get_contents($source));
-
-            $client->contextDocuments()->create([
-                'uploaded_by' => $uploader->id,
-                'title' => $meta['title'],
-                'description' => $meta['description'],
-                'kind' => $meta['kind'],
-                'disk' => 'local',
-                'path' => $path,
-                'original_name' => $filename,
-                'mime' => 'application/pdf',
-                'size_bytes' => filesize($source),
-            ]);
-        }
     }
 }

@@ -1,0 +1,75 @@
+/* ==========================================================================
+   LOGIN PAGE — "/login"
+
+   What /login has that its five sibling screens do not: a photograph, and the
+   second column to put it in. Everything else it wears — the yellow card, the
+   heading, the fields, the message box — is the entrance vocabulary in
+   auth.css, which every one of those screens loads too. The page names both.
+
+   Same shape as nosotros and contacto: a heading across the first column, the
+   form in a reading measure below it, and a photograph alone beside it.
+   ========================================================================== */
+
+/* Stacked only; the two-column rule below puts the photo beside the form. */
+.login-photo { margin-top: clamp(2rem, 5vw, 4rem); }
+
+.login-photo img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: var(--border-radius);
+}
+
+/* The grid is opened here rather than in auth.css: one column is right for a
+   screen that is only a form, and this page is the one with something to put
+   in the second. */
+@media (min-width: 950px) {
+  .login .container { grid-template-columns: minmax(0, 68ch) minmax(0, 1fr); }
+
+  .login .auth-heading { grid-area: 1 / 1; }
+  .login .auth-body    { grid-area: 2 / 1; }
+
+  .login-photo {
+    grid-area: 2 / 2;
+    align-self: start;
+    margin-top: 0;
+  }
+}
+
+
+/* ==========================================================================
+   LEGAL PAGES — "/legal/privacidad", "/legal/terminos"
+
+   Two placeholders on the same yellow card as the login page. They live here
+   rather than in a file of their own because they are one heading and one
+   paragraph; give them their own stylesheet when there is actual text to set.
+   ========================================================================== */
+
+.legal {
+  max-width: var(--max-width);
+  margin-inline: auto;
+  padding: var(--gutter);
+  background: var(--bkf-yellow);
+  color: var(--bkf-black);
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.legal .container { padding-block: clamp(2rem, 6vw, 5rem); }
+
+.legal-heading {
+  font-size: clamp(28px, 3.4vw, 3.25rem);
+  line-height: 1.15;
+  letter-spacing: -.02em;
+  margin-bottom: clamp(1.5rem, 3vw, 2rem) !important;
+}
+
+.legal .legal-text {
+  max-width: 54ch;
+  font-size: clamp(15px, 1.55vw, 1.1rem);
+  line-height: 1.9;
+}
+
+.legal-text a {
+  text-decoration-line: underline;
+  text-underline-offset: 4px;
+}

@@ -1,0 +1,368 @@
+/* ==========================================================================
+   THE BRAND EGG'S MAP — /brand-egg
+
+   Which entregable feeds which layer. Public but unlisted: no login, noindex,
+   and nothing links to it, so it exists to be sent to Breakfast for review.
+
+   ⚠️ THIS PAGE IS ON THE PUBLIC SITE, WHICH LOADS NEITHER admin.css NOR
+   dashboard.css. Every role token the back office takes for granted —
+   --surface, --rule, --ink-quiet, --sunken, --accent — is undefined out here,
+   and a stylesheet written against them renders as unstyled HTML. That is not
+   hypothetical: permissions.css shipped exactly that bug on --box-edge.
+
+   So this file DECLARES what it needs, once, on .egg-map — and that block also
+   covers the drawing, because brand-egg.css asks for --accent and the <svg>
+   sits inside .egg-map. Only --duration, --ease, --border-radius and the
+   --bkf-* palette come from general.css, which every page loads.
+
+   The public site is never themed: it is the yellow-and-black brand in one
+   state, so there is no dark half to write here.
+   ========================================================================== */
+
+.egg-map {
+  /* The four the back office would have given us, built from the palette. */
+  --surface: var(--bkf-white);
+  --sunken: color-mix(in srgb, var(--bkf-brown) 5%, transparent);
+  --rule: color-mix(in srgb, var(--bkf-brown) 20%, transparent);
+  --ink-quiet: rgba(0, 0, 0, .62);
+
+  /* The drawing's own hover colour. brand-egg.css names it; nothing out here
+     defines it, so the glow would silently be nothing. */
+  --accent: var(--bkf-brown);
+
+  background: var(--page);
+  color: var(--ink);
+  padding-block: clamp(3rem, 8vw, 6rem);
+}
+
+.egg-map-inner {
+  max-width: 1080px;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+
+/* --------------------------------------------------------------------------
+   Type
+
+   The site's two faces, used the way the site uses them: Libre Baskerville for
+   anything that is a heading, Almarai for everything read in sentences.
+   -------------------------------------------------------------------------- */
+
+.egg-map-display,
+.egg-map-title,
+.egg-map-layer-title,
+.egg-map-group h3 {
+  font-family: var(--font-serif);
+  text-wrap: balance;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.egg-map-display { font-size: clamp(30px, 5vw, 3.1rem); letter-spacing: -.02em; margin-top: .5rem; }
+.egg-map-title { font-size: clamp(21px, 2.6vw, 1.7rem); }
+.egg-map-layer-title { font-size: clamp(17px, 2vw, 1.35rem); line-height: 1.25; }
+
+.egg-map-eyebrow {
+  margin: 0;
+  font-size: .72rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+}
+
+.egg-map-lead {
+  max-width: 64ch;
+  margin: 1.25rem 0 0;
+  color: var(--ink-quiet);
+  line-height: 1.7;
+}
+
+.egg-map-hint {
+  margin: .375rem 0 0;
+  font-size: .8rem;
+  line-height: 1.6;
+  color: var(--ink-quiet);
+}
+
+.egg-map-head { margin-bottom: 3rem; }
+
+
+/* --------------------------------------------------------------------------
+   The top: the egg, the index it drives, and the three counts
+   -------------------------------------------------------------------------- */
+
+.egg-map-top {
+  display: grid;
+  gap: clamp(1.5rem, 4vw, 2.5rem);
+  align-items: center;
+  margin-bottom: 3rem;
+}
+
+@media (min-width: 900px) {
+  .egg-map-top { grid-template-columns: minmax(0, 320px) minmax(0, 1fr); }
+  .egg-map-figures { grid-column: 1 / -1; }
+}
+
+/* The pan, cropped by the plate exactly as the admin screen crops it: far
+   larger than its frame, so what shows is a fragment of a skillet rather than
+   a picture of one.
+
+   ⚠️ NO aspect-ratio HERE. The drawing is portrait, and a square plate forces
+   it into a box it does not fit — the egg then sits off-centre inside its own
+   frame. The plate takes the egg's proportion instead. */
+.egg-map-plate {
+  position: relative;
+  overflow: hidden;
+  padding: 1.25rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--border-radius);
+  background: var(--surface);
+}
+
+.egg-map-skillet {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  height: 205%;
+  aspect-ratio: 1;
+  width: auto;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+}
+
+.egg-map-plate .brand-egg {
+  position: relative;
+  z-index: 1;
+  max-width: none;
+  scale: .86;
+}
+
+/* Each ring is a real <a> here — see $ringOpen in the component. */
+.egg-map-plate .brand-egg a {
+  cursor: pointer;
+  transition: opacity var(--duration) var(--ease), filter var(--duration) var(--ease);
+}
+.egg-map-plate .brand-egg a:hover,
+.egg-map-plate .brand-egg a:focus-visible {
+  filter: drop-shadow(0 0 .7rem var(--bkf-yellow));
+}
+
+/* Hovering one ring steps the other four back, so the link between a shape and
+   a section is unmistakable before you click. No script: the parent's :hover
+   with :not(:hover) on the siblings does it. */
+.egg-map-plate .brand-egg:hover a:not(:hover) { opacity: .35; }
+
+
+/* --- the index ----------------------------------------------------------- */
+
+.egg-map-toc ol {
+  list-style: none;
+  margin: 1rem 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+}
+
+.egg-map-toc li a {
+  display: flex;
+  gap: .875rem;
+  align-items: baseline;
+  padding: .75rem 1rem;
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  transition: background var(--duration) var(--ease);
+}
+.egg-map-toc li a:hover { background: var(--sunken); }
+
+.egg-map-toc li a b {
+  font-family: var(--font-serif);
+  color: var(--ink-quiet);
+  font-variant-numeric: tabular-nums;
+}
+.egg-map-toc li.is-pending a b { color: var(--bkf-orange); }
+
+
+/* --- the three counts ---------------------------------------------------- */
+
+.egg-map-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.5rem;
+  margin: 0;
+  padding-top: 1.75rem;
+  border-top: var(--border-width) solid var(--ink);
+}
+.egg-map-figures div { margin: 0; }
+
+.egg-map-figures dt {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.egg-map-figures .flag dt { color: var(--bkf-orange); }
+
+.egg-map-figures dd {
+  margin: .5rem 0 0;
+  max-width: 24ch;
+  font-size: .8rem;
+  line-height: 1.5;
+  color: var(--ink-quiet);
+}
+
+
+/* --------------------------------------------------------------------------
+   One layer
+
+   Numbered because the order is real: layer 5 reads layer 2's result, so 2 has
+   to be composed first. The number is information, not a marker.
+   -------------------------------------------------------------------------- */
+
+.egg-map-layer {
+  display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr);
+  gap: 0 1.25rem;
+  padding-top: 1.75rem;
+  margin-top: 2.5rem;
+  border-top: 1px solid var(--rule);
+  scroll-margin-top: 1.5rem;
+}
+
+.egg-map-ring {
+  grid-row: span 3;
+  width: 3.25rem;
+  height: 3.25rem;
+  display: grid;
+  place-items: center;
+  border: var(--border-width) solid var(--ink);
+  border-radius: 50%;
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+.egg-map-layer.is-pending .egg-map-ring {
+  border-style: dashed;
+  border-color: var(--bkf-orange);
+  color: var(--bkf-orange);
+}
+
+.egg-map-sources {
+  margin-top: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+}
+
+.egg-map-source {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 1rem;
+  margin: 0;
+  padding: .7rem 1rem;
+  background: var(--surface);
+  font-size: .92rem;
+}
+.egg-map-source.derived {
+  background: var(--sunken);
+  font-style: italic;
+  color: var(--ink-quiet);
+}
+.egg-map-source.unresolved { background: var(--sunken); }
+
+/* The case value IS the column name in brand_deliverables — one vocabulary,
+   no mapping table. Set in mono because here it is an identifier, not prose. */
+.egg-map-col {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .74rem;
+  color: var(--ink-quiet);
+}
+
+.egg-map-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .62rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  padding: .2rem .5rem;
+  border: 1px solid currentColor;
+  color: var(--ink-quiet);
+}
+.egg-map-badge.req { color: var(--bkf-green); }
+.egg-map-badge.open { color: var(--bkf-orange); }
+
+.egg-map-note {
+  grid-column: 2;
+  margin: 1rem 0 0;
+  max-width: 78ch;
+  font-size: .85rem;
+  line-height: 1.6;
+  color: var(--bkf-orange);
+}
+
+
+/* --------------------------------------------------------------------------
+   What feeds nothing
+   -------------------------------------------------------------------------- */
+
+.egg-map-rest {
+  margin-top: 4rem;
+  padding-top: 2rem;
+  border-top: var(--border-width) solid var(--ink);
+}
+
+.egg-map-groups {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(255px, 1fr));
+}
+
+.egg-map-group {
+  padding: 1.25rem;
+  border: 1px solid var(--rule);
+  background: var(--surface);
+}
+.egg-map-group.is-candidate { border: var(--border-width) solid var(--bkf-orange); }
+
+.egg-map-group h3 { font-size: 1rem; }
+
+.egg-map-count {
+  margin: .25rem 0 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .72rem;
+  color: var(--ink-quiet);
+}
+
+.egg-map-group ul {
+  margin: .875rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: .4rem;
+}
+.egg-map-group li {
+  display: flex;
+  justify-content: space-between;
+  gap: .75rem;
+  align-items: baseline;
+  font-size: .86rem;
+}
+
+
+@media (max-width: 600px) {
+  .egg-map-layer { grid-template-columns: 1fr; }
+  .egg-map-ring { grid-row: auto; margin-bottom: .75rem; }
+  .egg-map-note { grid-column: 1; }
+  .egg-map-source { grid-template-columns: minmax(0, 1fr) auto; }
+}

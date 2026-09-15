@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 /*
@@ -14,9 +15,29 @@ use Tests\TestCase;
 |
 */
 
+/*
+|--------------------------------------------------------------------------
+| No test may reach the internet
+|--------------------------------------------------------------------------
+| An HTTP call that no test faked throws instead of going out. Without this, a
+| request the fake did not match simply left the machine: on 2026-08-13,
+| switching AI_PROVIDER on a laptop made the client tests call the real
+| OpenRouter API — with the real key, spending real credits and sending the
+| test prompts to a provider. The only symptom was a handful of assertion
+| failures that read like ordinary breakage.
+|
+| In beforeEach rather than at the top of this file: Pest.php is evaluated
+| before the application boots, and the Http facade has no root yet.
+|
+| A test that needs to talk to something must fake it. That is the point.
+*/
+
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
+    ->beforeEach(fn () => Http::preventStrayRequests())
     ->in('Feature');
+
+pest()->beforeEach(fn () => Http::preventStrayRequests())->in('Unit');
 
 /*
 |--------------------------------------------------------------------------

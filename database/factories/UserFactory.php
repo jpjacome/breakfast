@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\BrandRole;
 use App\Enums\UserRole;
 use App\Models\Client;
 use App\Models\User;
@@ -62,5 +63,34 @@ class UserFactory extends Factory
             'role' => UserRole::ClienteOwner,
             'client_id' => $client?->id ?? Client::factory(),
         ]);
+    }
+
+    /**
+     * Every client user made here lands in brand_user as well — ACC-01.
+     *
+     * client_id and role on the row are the factory's shorthand for "make this
+     * person a member of that brand", which is what they meant when an account
+     * had one brand. The pivot is what the app reads; this keeps the shorthand
+     * working so the suite did not have to be rewritten in the same pass that
+     * changed the storage. See the brand_user migration.
+     *
+     * Use ->brands([...]) or attach directly for the multi-brand cases.
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            if ($user->client_id === null || $user->role->isBreakfast()) {
+                return;
+            }
+
+            $user->brands()->syncWithoutDetaching([
+                $user->client_id => [
+                    'role' => $user->role === UserRole::ClienteOwner
+                        ? BrandRole::Owner->value
+                        : BrandRole::Miembro->value,
+                    'permissions' => $user->getRawOriginal('permissions'),
+                ],
+            ]);
+        });
     }
 }

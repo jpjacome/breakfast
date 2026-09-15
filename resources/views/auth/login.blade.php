@@ -1,79 +1,89 @@
 {{--
     /login — Fortify POSTs to route('login').
 
+    Same layout as every other page of the site: the yellow card between the
+    navbar and the footer, a typed heading, the content in a reading measure
+    and a photograph beside it. Only the middle column differs — here it is
+    the form instead of a letter.
+
     Note there is no "create an account" link: registration is disabled by
     design. Breakfast creates the client and invites its users.
 --}}
+<x-layouts.site-remake :css="['auth', 'login']"
+    title="Entrar"
+    description="Entra al portal de Breakfast para ver tu estrategia, tus entregas y tu contenido."
+    :noindex="true">
 
-<x-layouts.auth title="Entrar">
+    <article class="auth login" data-plane>
+        <div class="container">
 
-    <header class="auth-form__head">
-        <h1 class="auth-form__title">entrar</h1>
-        <p class="auth-form__sub">
-            Bienvenido de vuelta. Entra con el correo con el que te invitamos.
-        </p>
-    </header>
+          <h1 class="auth-heading" data-typewriter>
+              Bienvenido de vuelta
+          </h1>
 
-    <x-auth.feedback />
+          <div class="auth-body" data-fade-in>
 
-    <form method="POST" action="{{ route('login') }}" novalidate>
-        @csrf
+            <p class="auth-intro">
+                Tu estrategia, tus entregas y tu contenido, en un solo lugar.
+            </p>
 
-        <div class="auth-form__fields">
+            {{-- Where "tu contraseña quedó lista" lands after somebody sets
+                 one, as well as a failed sign-in. The same component reports
+                 on all six entrance screens. --}}
+            <x-auth.feedback />
 
-            <div class="bkf-field">
-                <label class="bkf-label" for="email">Correo</label>
-                <input
-                    class="bkf-input"
-                    id="email"
-                    name="email"
-                    type="email"
-                    inputmode="email"
-                    autocomplete="username"
-                    placeholder="maria@lamarca.com"
-                    value="{{ old('email') }}"
-                    @error('email') aria-invalid="true" @enderror
-                    required
-                    autofocus
-                >
-            </div>
+            <form method="POST" action="{{ route('login') }}" class="auth-form">
+                @csrf
 
-            <div class="bkf-field">
-                <div class="auth-form__row">
-                    <label class="bkf-label" for="password">Contraseña</label>
-                    @if (Route::has('password.request'))
-                        <a class="auth-link" href="{{ route('password.request') }}">¿La olvidaste?</a>
-                    @endif
+                <div class="auth-field">
+                    <label for="email">Correo</label>
+                    <input type="email" id="email" name="email"
+                           value="{{ old('email') }}"
+                           inputmode="email"
+                           autocomplete="username"
+                           placeholder="maria@lamarca.com"
+                           @error('email') aria-invalid="true" @enderror
+                           required autofocus>
                 </div>
-                <input
-                    class="bkf-input"
-                    id="password"
-                    name="password"
-                    type="password"
-                    autocomplete="current-password"
-                    @error('password') aria-invalid="true" @enderror
-                    required
-                >
-            </div>
 
-            <div class="auth-form__row">
-                <label class="auth-check">
+                <div class="auth-field">
+                    <div class="auth-label-row">
+                        <label for="password">Contraseña</label>
+                        @if (Route::has('password.request'))
+                            <a href="{{ route('password.request') }}" class="auth-forgot">¿La olvidaste?</a>
+                        @endif
+                    </div>
+                    <input type="password" id="password" name="password"
+                           autocomplete="current-password"
+                           @error('password') aria-invalid="true" @enderror
+                           required>
+                </div>
+
+                {{-- Square and black rather than the browser's rounded blue box,
+                     which is the one control the UA styles in its own colour. --}}
+                <label class="auth-remember">
                     <input type="checkbox" name="remember" value="1" @checked(old('remember'))>
                     <span>Mantener sesión iniciada</span>
                 </label>
-            </div>
 
-            <button type="submit" class="bkf-btn bkf-btn--primary bkf-btn--lg bkf-btn--block">
-                Entrar
-            </button>
+                <button type="submit" class="button">Entrar</button>
+            </form>
+
+            <p class="auth-foot">
+                El acceso al portal es por invitación. Si tu marca trabaja con nosotros
+                y todavía no tienes acceso, escríbenos a
+                <a href="mailto:info@vamosdebreakfast.com">info@vamosdebreakfast.com</a>.
+            </p>
+
+          </div>
+
+          <figure class="login-photo" data-fade-in>
+              <img src="{{ asset('img/servicios/mesa-ventana.webp') }}"
+                   alt="Mesa de café junto a una ventana con dos cortados, un periódico y bollería"
+                   loading="lazy">
+          </figure>
 
         </div>
-    </form>
+    </article>
 
-    <p class="auth-form__foot">
-        El acceso al portal es por invitación. Si tu marca trabaja con nosotros
-        y todavía no tienes acceso, escríbenos a
-        <a href="mailto:hola@vamosdebreakfast.com">hola@vamosdebreakfast.com</a>.
-    </p>
-
-</x-layouts.auth>
+</x-layouts.site-remake>

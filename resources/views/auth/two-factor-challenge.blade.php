@@ -1,52 +1,59 @@
-<x-layouts.auth title="Código de verificación">
+{{--
+    /two-factor-challenge — Fortify POSTs to route('two-factor.login').
 
-    <header class="auth-form__head">
-        <h1 class="auth-form__title">un paso más</h1>
-        <p class="auth-form__sub">
-            Escribe el código de tu app de autenticación. Si no la tienes a mano,
-            usa uno de tus códigos de recuperación.
-        </p>
-    </header>
+    Between the password and the way in. Both boxes post to the same endpoint
+    and only one is ever filled: the code from the app, or a recovery code for
+    the day the phone is not in the room.
+--}}
+<x-layouts.site-remake :css="['auth']"
+    title="Código de verificación"
+    :noindex="true">
 
-    <x-auth.feedback />
+    <article class="auth" data-plane>
+        <div class="container">
 
-    <form method="POST" action="{{ route('two-factor.login') }}" novalidate>
-        @csrf
+          <h1 class="auth-heading" data-typewriter>
+              Un paso más
+          </h1>
 
-        <div class="auth-form__fields">
+          <div class="auth-body" data-fade-in>
 
-            <div class="bkf-field">
-                <label class="bkf-label" for="code">Código</label>
-                <input
-                    class="bkf-input bkf-tabular"
-                    id="code"
-                    name="code"
-                    type="text"
-                    inputmode="numeric"
-                    autocomplete="one-time-code"
-                    placeholder="000000"
-                    required
-                    autofocus
-                >
-                <span class="bkf-hint">6 dígitos</span>
-            </div>
+            <p class="auth-intro">
+                Escribe el código de tu app de autenticación. Si no la tienes a
+                mano, usa uno de tus códigos de recuperación.
+            </p>
 
-            <div class="bkf-field">
-                <label class="bkf-label" for="recovery_code">O un código de recuperación</label>
-                <input
-                    class="bkf-input"
-                    id="recovery_code"
-                    name="recovery_code"
-                    type="text"
-                    autocomplete="one-time-code"
-                >
-            </div>
+            <x-auth.feedback />
 
-            <button type="submit" class="bkf-btn bkf-btn--primary bkf-btn--lg bkf-btn--block">
-                Verificar
-            </button>
+            <form method="POST" action="{{ route('two-factor.login') }}" class="auth-form">
+                @csrf
+
+                {{-- Neither box is required, deliberately: one of the two is
+                     filled and the other is not, so marking either would make
+                     the browser refuse a perfectly good submission. Fortify
+                     decides which arrived. --}}
+                <div class="auth-field">
+                    <label for="code">Código</label>
+                    <input type="text" id="code" name="code" class="auth-code"
+                           inputmode="numeric"
+                           autocomplete="one-time-code"
+                           placeholder="000000"
+                           autofocus>
+                    <span class="auth-hint">6 dígitos</span>
+                </div>
+
+                <div class="auth-field">
+                    <label for="recovery_code">O un código de recuperación</label>
+                    <input type="text" id="recovery_code" name="recovery_code"
+                           autocomplete="one-time-code">
+                </div>
+
+                <button type="submit" class="button">Verificar</button>
+            </form>
+
+          </div>
 
         </div>
-    </form>
+    </article>
 
-</x-layouts.auth>
+</x-layouts.site-remake>
