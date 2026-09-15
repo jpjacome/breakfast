@@ -640,6 +640,12 @@ the column name.
 
 ## 12. What is not built, and what is dead
 
+⚠️ **Built but never wired:** `LlmClient::stream()` and
+`BrandAssistant::streamAnswer()` are both complete and **nothing calls them** —
+every panel uses `complete()`. It matters because streaming is what a real stop
+button would need (CLAUDE.md §7), and because it is gated on whether this host
+flushes at all (§3, `tools/flush-probe.php`).
+
 **Not built:** subscriptions / Stripe (`docs/suscripciones.md`) · **layer 4 of
 the Brand Egg** — the rest of that plan landed on 2026-09-15, and step 10 is the
 only part gated on work outside it (brief point 2, Brandy understanding the
