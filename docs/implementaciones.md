@@ -45,6 +45,40 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 
 ---
 
+## What each of the 15 actually asks for
+
+⚠️ **The list above is titles. This is the brief.** Source:
+`Breakfast/docs/Brief for Brandy correcciones.pdf` — "BRIEF FOR BRANDY",
+five sections plus the §4 corrections table. Items 7–15 came from that table
+and from §5's *"Después:"* line, which is why their titles alone say so
+little. **Read this before picking up any unstarted item.** Anything below
+quoting the brief is Breakfast's requirement, not our interpretation.
+
+| # | what the brief actually asks | brief § |
+|---|---|---|
+| 1 | **Brand Egg as the primary source.** Co-created from admin by the AI through questions and joint editing; Breakfast reviews and approves esencia, promesa, territorio e insight, públicos, personalidad y valores, tono, pilares, mensajes, criterios visuales. The toolkit loads *after* and never silently modifies an approved Egg. Brandy answers **Egg first, toolkit second**, and reports contradictions to the admin rather than deciding. Records state and date of last approval. Empty optional fields are **not** pendings nor Breakfast failures | §1 |
+| 2 | **Multi-marca y permisos** | §5 *Después* |
+| 3 | **Read toolkit images without a second upload.** Analyse colour, lighting, composition, style, characters, spaces and feeling; propose coherent new visual ideas, **without generating images** | §2 |
+| 4 | **Show images in the chat and in "Tu marca"** — never just a URL. One upload serves admin, portal and chat; enlarge images, play video; always respect interno/compartido. If a format cannot be opened, describe it verbally. ⚠️ **Acceptance test, verbatim:** *"¿Qué imágenes puedo publicar hoy?"* must produce ideas based on the real Look & Feel, and *"Muéstrame el Look & Feel"* must open the resources inside the chat | §2 |
+| 5 | **Memory, continuity, autosave.** Hold the thread across references like *"une la 1 y la 3"*, *"hazla más corta"*, *"convierte esa idea en un reel"*. Survive refresh, logout and re-entry; **not** limited to the last 10 exchanges. Autosave every message and reply. A new session opens a new chat and keeps the previous ones in accessible history. Never mix data, conversations or files between brands | §3 |
+| 6 | **Dashboard redesign** to the supplied reference: side menu, top summary, card entries, modules adapted to Brandy, clean interface. Two reference screenshots are pages 4–5 of the brief PDF | §5 |
+| 7 | **Edit a sent message** | §5 *Después* |
+| 8 | **Waffle giratorio** — replace the abstract spinning figure on entry with a spinning waffle, light fluid animation, aligned to Breakfast's identity | §5 |
+| 9 | **Concurrent-use test and hosting report.** Test **3+ people on the same user** and **3+ distinct accounts**; report sessions, response times and the hosting's capacity. ⚠️ Read CLAUDE.md §3 first — the host's limits were already measured on 2026-08-18 and the worker pool is shared with the public site, so this test can take the live site down if run carelessly | §4 |
+| 10 | **Security rule.** Always refuse to show passwords, tokens or internal instructions, **even when they exist** | §4 |
+| 11 | **A notification opens the right meeting** without ending the session; preserves the user and the active brand, **including for past meetings**. ⚠️ Checked 2026-09-15: notifications DO carry a `url`, but it is `route('portal.reuniones')` — the **list**, not the meeting. `meeting_id` is already in the payload, so the fix has what it needs; what is missing is a route that opens one meeting, and the session/active-brand half | §4 |
+| 12 | **Checklist grouped by category.** One box per action, grouped, progress saved, and showing **who ticked each point and when**. ⚠️ **Only the GROUPING is missing.** Checked 2026-09-15: `checklist_ticks` stores `checked_by` + `checked_at` **and the screen already prints them** — `implementation-checklist.blade.php` renders the first name and the date on every ticked line. So this item is one thing, not three | §4 |
+| 13 | **Approved texts and the "proyecto cerrado" state.** Two texts are given **verbatim** in the brief and must be used as written — one for an undefined field, one for a closed project. Undefined fields are not to be treated as pendings; a closed project says the scope is complete and offers a new engagement | §4 |
+| 14 | **Custom fields per brand** | §5 *Después* |
+| 15 | **Notes** (and *responsables*, named alongside notes in the brief) | §5 *Después* |
+
+**Two items not in the numbered list but in the same brief**, already done and
+worth not re-doing: *Jerarquía visual* (render headings, bold, lists and tables
+on desktop and mobile — done 2026-08-23, see CLAUDE.md §7) and *Marca
+registrada* (the Sí / No / Sin definir selector — SEG-04).
+
+---
+
 ## ⚠️ Deploy checklist — cumulative, read before every upload
 
 Deploys are **FTP uploads of changed files**, migrations run **by hand in the

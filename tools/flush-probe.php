@@ -1,85 +1,138 @@
 <?php
 
 /**
- * Does this host let PHP flush incrementally?
+ * What this host actually allows — measured, not guessed.
  *
- * The one question that decides whether streaming answers — and therefore a
- * REAL cancel button — are possible on iFastNet. If output only reaches the
- * browser when the script ends, a "stop" button can never be more than a lie:
- * the worker keeps running, the provider keeps generating and billing, and the
- * abandoned answer still gets written to the thread.
+ * THREE QUESTIONS, ONE UPLOAD, because each one costs a trip to the FTP client
+ * and a file left sitting on a live server:
  *
- * ⚠️ WHY IT IS IN tools/ AND NOT IN public/. Anything under public/ is live the
- * moment it is uploaded. This file is deliberately somewhere the web server
- * cannot reach, so the repo can carry the diagnostic without the server ever
- * serving it by accident. You upload it to public/ to run it, and you take it
- * straight back off.
+ *   mode=info    what PHP says about itself. Instant, harmless.
+ *   mode=flush   does output reach the browser incrementally? Decides whether
+ *                streaming answers — and therefore a REAL stop button — are
+ *                possible at all (CLAUDE.md §7).
+ *   mode=hold    hold one PHP worker for N seconds and report which process
+ *                served it. Fire several at once and the PIDs and start times
+ *                say how many workers the pool actually has, which is the
+ *                number item 9 of the cycle asks for.
  *
- * ⚠️ AND IT IS TOKEN-GATED, which limite.php was not. That August probe sat
+ * ⚠️ IT LIVES IN tools/ AND NOT IN public/. Anything under public/ is live the
+ * moment it is uploaded. This sits where the web server cannot reach it, so the
+ * repo carries the diagnostic without the server ever serving it by accident.
+ * You upload it to run it, and you take it straight back off.
+ *
+ * ⚠️ TOKEN-GATED AND CAPPED, WHICH limite.php WAS NOT. That August probe sat
  * publicly reachable into September, allocating 512 MB to anyone who found it,
- * on a worker pool shared with every other domain on the account. A probe that
- * refuses to run without a secret cannot be stumbled into by a crawler while
- * you forget about it — but it is still a worker held for ten seconds, so
- * DELETE IT WHEN YOU ARE DONE.
+ * on a worker pool shared with every other site on the account. This one
+ * refuses without a secret and will not hold a worker longer than HOLD_MAX, so
+ * a crawler that stumbles on it cannot turn it into an outage. It is still a
+ * held worker: DELETE IT WHEN YOU ARE DONE.
+ *
+ * ⚠️ THE POOL IS SHARED WITH THE PUBLIC MARKETING SITE and three sibling
+ * projects. Holding workers is exactly what makes the front end answer 503 for
+ * everything behind it — so ramp up slowly, keep holds short, and stop at the
+ * first 503 rather than pushing on for a rounder number.
  *
  * ── HOW TO RUN ────────────────────────────────────────────────────────────
  *
- *  1. Edit TOKEN below to something only you know.
- *  2. FTP this file to  public_html/drpixel/breakfast/public/flush-probe.php
- *
- *     ⚠️ NOT public_html/. That is the account root, which is somebody else's
- *     WordPress site — this project lives in a SUBDIRECTORY of a shared
- *     account. See CLAUDE.md §3.
- *
- *  3. From your machine — the -N is what matters, it tells curl not to buffer:
- *
- *       curl -N "https://vamosdebreakfast.com/flush-probe.php?t=YOURTOKEN"
- *
- *     and again with the proxy-buffering hint turned off, to see if the
- *     headers are what is being ignored:
- *
- *       curl -N "https://vamosdebreakfast.com/flush-probe.php?t=YOURTOKEN&raw=1"
- *
- *  4. DELETE public_html/drpixel/breakfast/public/flush-probe.php.
- *
- * ── HOW TO READ IT ────────────────────────────────────────────────────────
- *
- *  Lines trickle out one per second   → flushing WORKS. Streaming and a real
- *                                       cancel are possible.
- *  Everything appears at once at ~10s → BUFFERED. There is an openresty proxy
- *                                       in front of PHP with gzip on
- *                                       (confirmed 2026-09-15), and it is
- *                                       holding the whole response. Streaming
- *                                       is off the table unless the headers
- *                                       below can defeat it.
- *
- *  If `raw=1` trickles and the default does not, the padding is what matters —
- *  something downstream has a minimum buffer size. If neither trickles, the
- *  proxy is buffering regardless and no application-level fix will change it.
+ *  1. Change TOKEN below.
+ *  2. FTP to  public_html/drpixel/breakfast/public/probe.php
+ *     ⚠️ NOT public_html/ — that is the account root, a different site.
+ *  3. Check it answers:
+ *       curl -s "https://vamosdebreakfast.com/probe.php?t=TOKEN&mode=info"
+ *  4. Hand the URL over and the timings get driven from there.
+ *  5. DELETE public_html/drpixel/breakfast/public/probe.php
  */
-const TOKEN = 'Psycho2psychote';
+const TOKEN = 'change-me-before-uploading';
 
-if (($_GET['t'] ?? '') !== TOKEN) {
+/** No hold may exceed this, whatever the query string asks for. */
+const HOLD_MAX = 12;
+
+if (! hash_equals(TOKEN, (string) ($_GET['t'] ?? ''))) {
     http_response_code(404);
     exit;
 }
 
 $started = microtime(true);
+$mode = $_GET['mode'] ?? 'info';
 
-/*
- * Everything that is known to defeat incremental output, turned off.
- *
- * X-Accel-Buffering is the nginx/openresty one and the reason there is any
- * hope here at all: it asks the proxy not to buffer this particular response.
- * If the trickle only happens WITH these headers, that tells you exactly what
- * the real streaming endpoint has to send.
- */
+/* ---------------------------------------------------------------------------
+   mode=info — what PHP says about itself
+   --------------------------------------------------------------------------- */
+
+if ($mode === 'info') {
+    header('Content-Type: text/plain; charset=utf-8');
+
+    $load = function_exists('sys_getloadavg') ? sys_getloadavg() : null;
+
+    echo 'php            ', PHP_VERSION, "\n";
+    echo 'sapi           ', PHP_SAPI, "\n";
+    echo 'pid            ', getmypid(), "\n";
+    echo 'memory_limit   ', ini_get('memory_limit'), "\n";
+    echo 'max_execution  ', ini_get('max_execution_time'), "\n";
+    echo 'post_max_size  ', ini_get('post_max_size'), "\n";
+    echo 'upload_max     ', ini_get('upload_max_filesize'), "\n";
+    echo 'zlib.output    ', ini_get('zlib.output_compression') ?: '0', "\n";
+    echo 'output_buffer  ', ini_get('output_buffering') ?: '0', "\n";
+    echo 'loadavg        ', $load ? implode(' ', array_map(fn ($n) => round($n, 2), $load)) : 'n/a', "\n";
+    echo 'server         ', $_SERVER['SERVER_SOFTWARE'] ?? 'n/a', "\n";
+    exit;
+}
+
+/* ---------------------------------------------------------------------------
+   mode=hold — hold one worker, and say which one
+   ---------------------------------------------------------------------------
+
+   The whole measurement is in the three numbers it returns. Fire N of these at
+   once from one machine and compare:
+
+     · different PIDs          → they really did run in parallel
+     · the SAME pid twice      → they were served one after another, so the
+                                 pool was already full
+     · staggered `began` times → requests queued rather than ran together, and
+                                 the stagger IS the queue
+
+   A 503 instead of a reply means the front end gave up before PHP was reached
+   at all — which is the failure the public site shows, and the point to stop.
+   --------------------------------------------------------------------------- */
+
+if ($mode === 'hold') {
+    header('Content-Type: text/plain; charset=utf-8');
+    header('X-Accel-Buffering: no');
+
+    $seconds = min(HOLD_MAX, max(1, (int) ($_GET['s'] ?? 3)));
+    $id = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) ($_GET['id'] ?? '?'));
+
+    // Wall clock as well as sleep(), so a worker that is descheduled still
+    // reports how long it really held rather than what it asked for.
+    $beganAt = microtime(true);
+    sleep($seconds);
+    $endedAt = microtime(true);
+
+    printf("id=%s pid=%d began=%.3f ended=%.3f held=%.3f\n",
+        $id, getmypid(), $beganAt, $endedAt, $endedAt - $beganAt);
+    exit;
+}
+
+/* ---------------------------------------------------------------------------
+   mode=flush — does output arrive incrementally?
+   ---------------------------------------------------------------------------
+
+   Lines one per second        → flushing WORKS; streaming is possible.
+   Everything at once at ~10s  → BUFFERED. There is an openresty proxy in front
+                                 of PHP with gzip on (confirmed 2026-09-15) and
+                                 it is holding the whole response.
+
+   Run it twice: with padding (default) and with &raw=1. If only the padded one
+   trickles, something downstream simply needs a few KB before it forwards
+   anything — a different answer from "buffered", and the one that makes people
+   abandon streaming for the wrong reason.
+   --------------------------------------------------------------------------- */
+
 header('Content-Type: text/plain; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
-header('X-Accel-Buffering: no');
 
-// Ask for no compression. gzip buffers by its own block size, so it defeats
-// flushing independently of the proxy.
+// The nginx/openresty opt-out, and the reason there is any hope here at all.
+header('X-Accel-Buffering: no');
 header('Content-Encoding: none');
 
 if (function_exists('apache_setenv')) {
@@ -90,23 +143,15 @@ if (function_exists('apache_setenv')) {
 @ini_set('output_buffering', '0');
 @ini_set('implicit_flush', '1');
 
-// Tear down every buffer PHP itself is holding, however many layers deep.
 while (ob_get_level() > 0) {
     @ob_end_flush();
 }
 
 ob_implicit_flush(true);
 
-/*
- * Padding, because a buffer downstream may simply not forward anything until
- * it has a few KB. Without this, a host that CAN flush looks exactly like one
- * that cannot — which is the trap that makes people give up on streaming for
- * the wrong reason. `raw=1` turns it off so the two cases can be told apart.
- */
 $padded = ! isset($_GET['raw']);
 
-echo 'flush probe — ', date('c'), "\n";
-echo 'php ', PHP_VERSION, ' / sapi ', PHP_SAPI, "\n";
+echo 'flush probe — pid ', getmypid(), ' — ', date('c'), "\n";
 echo $padded ? "padding: on (2KB per chunk)\n" : "padding: off\n";
 echo str_repeat('-', 60), "\n";
 flush();
@@ -115,7 +160,6 @@ for ($i = 1; $i <= 10; $i++) {
     printf("chunk %2d  at %5.2fs\n", $i, microtime(true) - $started);
 
     if ($padded) {
-        // Comment-shaped so it is obvious in the output what it is for.
         echo '# ', str_repeat('.', 2048), "\n";
     }
 
@@ -123,5 +167,5 @@ for ($i = 1; $i <= 10; $i++) {
     sleep(1);
 }
 
-printf("done after %.2fs — if these arrived one per second, flushing works\n",
+printf("done after %.2fs — one line per second means flushing works\n",
     microtime(true) - $started);
