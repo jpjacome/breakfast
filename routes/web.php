@@ -22,6 +22,7 @@ use App\Http\Controllers\Portal\AssistantController as PortalAssistantController
 use App\Http\Controllers\Portal\BrandAssetController as PortalBrandAssetController;
 use App\Http\Controllers\Portal\BrandController as PortalBrandController;
 use App\Http\Controllers\Portal\BrandSwitchController;
+use App\Http\Controllers\Portal\BrandEggController as PortalBrandEggController;
 use App\Http\Controllers\Portal\ChecklistController as PortalChecklistController;
 use App\Http\Controllers\Portal\MeetingController as PortalMeetingController;
 use App\Http\Controllers\Portal\NotificationController;
@@ -316,6 +317,21 @@ Route::middleware(['auth'])->prefix('portal')->name('portal.')->group(function (
     Route::post('/estrategia/checklist', PortalChecklistController::class)
         ->middleware('section:estrategia')
         ->name('estrategia.checklist');
+
+    /*
+     * The brand's own Brand Egg. Read-only, gated on READ of Estrategia —
+     * it is that section's content, seen whole rather than entregable by
+     * entregable — and it 404s while the Egg is unapproved.
+     *
+     * ⚠️ THAT 404 IS THE ONE PLACE APPROVAL GATES ANYTHING in this app.
+     * Everywhere else the state changes what something says. Here it decides
+     * whether the page exists, because a member should not learn there is a
+     * draft of their brand's essence they are not being shown. See
+     * Portal\BrandEggController.
+     */
+    Route::get('/estrategia/brand-egg', [PortalBrandEggController::class, 'show'])
+        ->middleware('section:estrategia')
+        ->name('estrategia.egg');
 
     Route::get('/reuniones', [PortalMeetingController::class, 'index'])
         ->middleware('section:reuniones')

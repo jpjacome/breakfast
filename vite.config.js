@@ -26,6 +26,9 @@ export default defineConfig({
                 // Chat attachments: the three transcripts live in both shells.
                 'resources/css/attachments.css',
                 'resources/css/brand-egg.css',
+                // The client's read-only egg. A PAGE stylesheet beside the
+                // component one above, the way admin-brand-egg.css is.
+                'resources/css/portal-brand-egg.css',
                 'resources/css/assistant.css',
                 'resources/css/meetings.css',
                 'resources/css/staff.css',

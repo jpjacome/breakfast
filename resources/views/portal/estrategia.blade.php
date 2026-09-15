@@ -28,6 +28,26 @@
         </p>
     @endif
 
+    {{-- The Brand Egg, when there is an approved one.
+
+         ⚠️ A LINK RATHER THAN THE DRAWING INLINE. The egg is the brand told
+         whole, in five paragraphs; dropped at the top of this page it would
+         push the entregables — which is what people come here for — below the
+         fold, and say the same things twice on one screen. It also keeps the
+         404 honest: an unapproved egg leaves nothing here at all, rather than
+         a heading with an empty space under it.
+
+         brandEggState() is derived, so this cannot disagree with the page it
+         points at. --}}
+    @if ($client->brandEggState()->isVisibleToClient())
+        <a class="brand-egg-entry" href="{{ route('portal.estrategia.egg') }}">
+            <span class="brand-egg-entry-title">Brand Egg</span>
+            <span class="brand-egg-entry-note">
+                Tu marca en cinco capas, de dentro hacia fuera.
+            </span>
+        </a>
+    @endif
+
     {{-- SEG-05. Above the entregables: it is the one thing on this page the
          client can act on, and burying it under forty of their own brand
          attributes is where it would never be seen. --}}

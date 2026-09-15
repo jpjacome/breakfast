@@ -1,0 +1,85 @@
+/* ==========================================================================
+   The client's Brand Egg — /portal/estrategia/brand-egg
+
+   A PAGE stylesheet, not a component one: the drawing itself is
+   brand-egg.css, which this page also names because the same component
+   renders on the admin side. What is here is only this page's own layout —
+   the two columns and the five paragraphs beside them.
+
+   ⚠️ DELIBERATELY QUIETER THAN THE ADMIN'S. That screen is a workbench: five
+   cards, a compose button on each, an edit disclosure, a state badge. This one
+   is the brand reading about itself, so the paragraphs are the page and there
+   is nothing to press. Same drawing, different room.
+   ========================================================================== */
+
+.portal-egg {
+  display: grid;
+  gap: 2rem;
+  align-items: start;
+}
+
+/* One column on a phone, two once there is room for the egg to be worth
+   drawing large. The drawing goes first in both: it is the thing that says
+   what the five paragraphs are. */
+@media (min-width: 60rem) {
+  .portal-egg {
+    grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+    gap: 3rem;
+  }
+}
+
+.portal-egg > * { min-width: 0; }
+
+/* Sticky only where there are two columns — stuck to the top of a single
+   column it would sit on the paragraphs it is meant to accompany. */
+@media (min-width: 60rem) {
+  .portal-egg-stage {
+    position: sticky;
+    top: 2rem;
+  }
+}
+
+.portal-egg-layers {
+  display: grid;
+  gap: 2rem;
+}
+
+/* No card, no border. The admin's five are cards because they are things to
+   act on; these are five paragraphs of the brand's own story, and boxing each
+   one would turn a reading into a form. */
+.portal-egg-layer {
+  transition: opacity var(--dur) var(--ease);
+}
+
+/* The ring in the drawing lights this one — brand-egg.js matches data-layer on
+   both sides, so the link between a paragraph and its band is never something
+   the reader has to hold in their head. */
+.portal-egg-layer.is-linked .portal-egg-layer-title {
+  color: var(--bkf-yellow);
+}
+
+.portal-egg-layer-title {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  transition: color var(--dur) var(--ease);
+}
+
+.portal-egg-layer-ring {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: var(--border-width) solid var(--rule);
+  border-radius: 50%;
+  font-size: .75rem;
+  font-weight: 700;
+  color: var(--ink-quiet);
+}
+
+.portal-egg-layer-text {
+  margin-top: .75rem;
+  line-height: 1.8;
+  max-width: 60ch;
+}

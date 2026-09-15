@@ -902,6 +902,34 @@
   border-radius: var(--border-radius);
 }
 
+/* The way into the brand's own Brand Egg, when there is an approved one.
+
+   A LINK, NOT THE DRAWING. The egg is the brand told whole; inlined at the top
+   of Estrategia it would push the entregables — what people come here for —
+   below the fold and say the same things twice on one screen. Set apart from
+   .brand-entry for the same reason .brand-fact is: it is not one of the 48. */
+.brand-egg-entry {
+  display: grid;
+  gap: .25rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.25rem;
+  border: var(--border-width) solid var(--rule);
+  border-radius: var(--border-radius);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+
+.brand-egg-entry:hover,
+.brand-egg-entry:focus-visible {
+  border-color: var(--bkf-yellow);
+  background: var(--sunken);
+}
+
+.brand-egg-entry-title { font-weight: 700; }
+
+.brand-egg-entry-note { font-size: .85rem; color: var(--ink-quiet); }
+
 .brand-entry { display: grid; gap: .5rem; }
 
 /* An image or a video inside an entregable — section 5 of the beta review.
