@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BrandEggState;
 use App\Enums\ClientStatus;
 use App\Enums\PortalSection;
 use App\Enums\ProcessStep;
@@ -197,6 +198,64 @@ class Client extends Model
     public function deliverablesOrNew(): BrandDeliverables
     {
         return $this->deliverables ?? $this->deliverables()->make();
+    }
+
+    /* ---------------------------------------------------------------------
+       The Brand Egg — see docs/brand-egg.md
+       --------------------------------------------------------------------- */
+
+    /** The five synthesised layers. One row, composed rather than created. */
+    public function brandEgg(): HasOne
+    {
+        return $this->hasOne(BrandEgg::class);
+    }
+
+    /**
+     * The Egg row, real or blank.
+     *
+     * ⚠️ UNLIKE deliverablesOrNew(), THE BLANK CASE IS THE NORMAL ONE. booted()
+     * creates the entregables row with the brand, so that method is covering
+     * for history. Nothing creates an Egg: a brand has one once somebody
+     * composes it, which for most brands is never yet. Every reader gets an
+     * object so no screen has to null-check five layers.
+     */
+    public function brandEggOrNew(): BrandEgg
+    {
+        return $this->brandEgg ?? $this->brandEgg()->make();
+    }
+
+    /**
+     * Where the Egg stands — derived, never stored.
+     *
+     * The whole of BrandEggState out of two timestamps and one comparison. In
+     * particular Desactualizado is approved_at against the entregables'
+     * updated_at: the Egg is composed FROM them, so an entregable moving after
+     * approval is exactly what makes a signed-off Egg out of date. Storing that
+     * would mean every screen that writes an entregable has to remember to flip
+     * a flag (docs/brand-egg.md §5).
+     *
+     * ⚠️ GENERATED BUT ALL-EMPTY IS STILL SIN GENERAR. generated_at is the
+     * first question, and a run that wrote nothing is not a composed Egg —
+     * isEmpty() is asked too so a failed run cannot leave a brand claiming an
+     * Egg it has not got.
+     */
+    public function brandEggState(): BrandEggState
+    {
+        $egg = $this->brandEggOrNew();
+
+        if ($egg->generated_at === null || $egg->isEmpty()) {
+            return BrandEggState::SinGenerar;
+        }
+
+        if ($egg->approved_at === null) {
+            return BrandEggState::SinAprobar;
+        }
+
+        $editedAt = $this->deliverablesOrNew()->updated_at;
+
+        return $editedAt !== null && $editedAt->greaterThan($egg->approved_at)
+            ? BrandEggState::Desactualizado
+            : BrandEggState::Aprobado;
     }
 
     /** The brand's folder, newest first — how a files screen reads. */
