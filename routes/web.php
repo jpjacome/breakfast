@@ -167,11 +167,29 @@ Route::middleware(['auth', 'breakfast', 'covers-client'])
             ->name('clients.process.assistant');
 
         // The Brand Egg — five synthesised layers above the 48 entregables.
-        // A bench for now: the drawing renders against a hand-written Egg, so
-        // there is a URL to look at while the back end is built behind it.
-        // See docs/brand-egg.md §11 step 4.
+        // See docs/brand-egg.md.
         Route::get('clientes/{client}/brand-egg', [ClientBrandEggController::class, 'edit'])
             ->name('clients.egg.edit');
+
+        // ⚠️ {layer} BINDS STRAIGHT TO THE ENUM, so a segment that is not one
+        // of the five 404s before the controller runs. Same fail-closed shape
+        // as the rest of the app, and it means no match with a default branch
+        // anywhere downstream.
+        Route::put('clientes/{client}/brand-egg/{layer}', [ClientBrandEggController::class, 'update'])
+            ->name('clients.egg.update');
+
+        // ⚠️ BOTH GATES, AND THEY DO DIFFERENT JOBS (CLAUDE.md trap 5).
+        // throttle counts requests per minute, because every layer is a paid
+        // API call. 'ai-turn' bounds how many run AT ONCE, which is the thing
+        // that takes the public site down: one click here can chain five calls
+        // and hold a PHP worker for a hundred seconds, on a pool shared with
+        // the marketing site. A rate limit cannot express that.
+        Route::post('clientes/{client}/brand-egg/componer', [ClientBrandEggController::class, 'compose'])
+            ->middleware(['throttle:10,1', 'ai-turn'])
+            ->name('clients.egg.compose');
+
+        Route::post('clientes/{client}/brand-egg/aprobar', [ClientBrandEggController::class, 'approve'])
+            ->name('clients.egg.approve');
 
         // The meeting roster: every brand at once, plus the calendar. Its own
         // top-level screen because "what does the week look like" is a

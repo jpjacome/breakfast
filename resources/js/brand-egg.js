@@ -1,3 +1,5 @@
+import { explain, explainNetwork } from './assistant-error.js';
+
 /**
  * The Brand Egg: hover, focus and select one of the five rings.
  *
@@ -136,4 +138,192 @@ for (const egg of document.querySelectorAll('[data-brand-egg]')) {
             clearSelection();
         }
     });
+}
+
+/* ==========================================================================
+   Composing
+
+   ⚠️ SEPARATE FROM EVERYTHING ABOVE, AND IT MAY FIND NOTHING. The hover and
+   select code runs on both shells — the admin's screen and the client's
+   read-only egg — because a ring is a control in both. Composing is Breakfast's
+   alone, so this half simply finds no buttons on the portal and does nothing.
+   That is why it is a second pass over the document rather than a branch inside
+   the first.
+
+   ⚠️ fetch(), NOT A FORM POST, and the reason is the host. A run is one call of
+   ~20s or five of them chained, and a form post would be a frozen page for a
+   hundred seconds with no way to say which ring it is on — and no way to tell
+   a 429 from the concurrency gate (two AI turns account-wide) apart from a
+   provider outage. Both need different words.
+   ========================================================================== */
+
+const composeButtons = [...document.querySelectorAll('[data-brand-egg-compose]')];
+
+if (composeButtons.length > 0) {
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+    const endpoint = document.querySelector('[data-brand-egg-endpoint]')?.dataset.brandEggEndpoint;
+    const report = document.querySelector('[data-brand-egg-report]');
+
+    /** Say something in the report line under the drawing. */
+    function say(message) {
+        if (!report) {
+            return;
+        }
+
+        report.textContent = message;
+        report.hidden = message === '';
+    }
+
+    /**
+     * Put a layer's text on its card, and light its ring.
+     *
+     * The card's paragraph carries data-brand-egg-text whether it holds a
+     * synthesis or the sentence explaining why there is none, so replacing it
+     * is one write either way — no branch on which of the two is showing.
+     */
+    function paint(layer, text) {
+        const card = document.querySelector(
+            `[data-brand-egg-card][data-layer="${CSS.escape(layer)}"]`,
+        );
+
+        if (!card) {
+            return;
+        }
+
+        const paragraph = card.querySelector('[data-brand-egg-text]');
+
+        if (paragraph && text) {
+            paragraph.textContent = text;
+            paragraph.className = 'brand-egg-layer-text';
+        }
+
+        card.classList.toggle('is-composed', Boolean(text));
+
+        /*
+         * The ring in the drawing, so the egg fills in as the run goes rather
+         * than all at once at the end.
+         *
+         * ⚠️ has-text / is-empty ARE THE COMPONENT'S OWN CLASSES, not a pair
+         * invented here. One vocabulary for "this layer has text", so a ring
+         * painted by this file and a ring rendered by the server cannot end up
+         * looking different.
+         */
+        const ring = document.querySelector(
+            `[data-brand-egg] [data-layer="${CSS.escape(layer)}"]`,
+        );
+
+        if (ring) {
+            ring.classList.toggle('has-text', Boolean(text));
+            ring.classList.toggle('is-empty', !text);
+
+            // The ring says "not composed yet" by being hollow, which a screen
+            // reader cannot see — the component puts it in the name instead, so
+            // filling a ring has to take it back out.
+            if (text && ring.hasAttribute('aria-label')) {
+                ring.setAttribute(
+                    'aria-label',
+                    ring.getAttribute('aria-label').replace(' — sin componer', ''),
+                );
+            }
+        }
+
+        const button = document.querySelector(
+            `[data-brand-egg-compose="${CSS.escape(layer)}"]`,
+        );
+
+        if (button && text) {
+            button.textContent = 'Recomponer';
+        }
+    }
+
+    /** What a finished run did, in one sentence. */
+    function summarise({ composed = [], skipped = [], stopped = false }) {
+        const parts = [];
+
+        if (composed.length > 0) {
+            parts.push(`${composed.length} capa${composed.length === 1 ? '' : 's'} compuesta${composed.length === 1 ? '' : 's'}.`);
+        }
+
+        // ⚠️ "Skipped" is never phrased as a failure. It means not one of the
+        // entregables that layer reads has been written, which is a fact about
+        // where the brand is — not something that went wrong, and not a debt
+        // (ERR-07 of the beta review).
+        if (skipped.length > 0) {
+            parts.push(`${skipped.length} sin fuentes todavía.`);
+        }
+
+        if (stopped) {
+            parts.push('La tanda se detuvo antes de terminar para no agotar el tiempo del servidor; vuelve a componer las que falten.');
+        }
+
+        return parts.join(' ') || 'No había nada que componer.';
+    }
+
+    async function compose(button) {
+        // The per-card buttons carry their layer; "Componer todo" carries an
+        // empty string, which the server reads as all five in dependency order.
+        const layer = button.dataset.brandEggCompose;
+
+        for (const other of composeButtons) {
+            other.disabled = true;
+        }
+
+        const wasSaying = button.textContent;
+        button.textContent = 'Componiendo…';
+        say(layer ? 'Componiendo una capa…' : 'Componiendo las cinco capas. Puede tardar un minuto o dos…');
+
+        const body = new FormData();
+
+        if (layer) {
+            body.append('layer', layer);
+        }
+
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrf, Accept: 'application/json' },
+                body,
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            // ⚠️ THE LAYERS THAT LANDED ARE PAINTED EVEN ON A FAILURE. A run
+            // that dies on layer 4 has already saved 1, 2 and 3 — the server
+            // sends the egg back with the error for exactly that reason, and
+            // throwing the response away would show a screen that disagrees
+            // with the database until somebody reloaded.
+            for (const [name, text] of Object.entries(data.egg ?? {})) {
+                paint(name, text);
+            }
+
+            if (!response.ok) {
+                say(explain(response, data));
+
+                return;
+            }
+
+            say(summarise(data));
+        } catch {
+            say(explainNetwork());
+        } finally {
+            button.textContent = wasSaying;
+
+            for (const other of composeButtons) {
+                // Re-read the disabled state from the card rather than
+                // restoring it blindly: a layer with no sources stays disabled,
+                // and a layer that has just been composed from them does not.
+                other.disabled = other.hasAttribute('data-brand-egg-no-sources');
+            }
+        }
+    }
+
+    for (const button of composeButtons) {
+        // A button that starts disabled has no sources to read. Remembered on
+        // the element so the run above can restore it correctly.
+        if (button.disabled) {
+            button.setAttribute('data-brand-egg-no-sources', '');
+        }
+
+        button.addEventListener('click', () => compose(button));
+    }
 }

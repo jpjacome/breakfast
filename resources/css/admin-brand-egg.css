@@ -424,3 +424,88 @@
   font-weight: 500;
   color: var(--ink);
 }
+
+/* --------------------------------------------------------------------------
+   The egg's own state, under the drawing
+
+   ⚠️ ONE CARD, BECAUSE IT IS ONE QUESTION. Whether Breakfast has signed this
+   brand off is asked once per egg, never per layer — so it is said once, here,
+   rather than repeated as a badge on each of the five cards where it would
+   read as five separate approvals.
+   -------------------------------------------------------------------------- */
+
+.admin .brand-egg-status {
+  margin-top: 1.5rem;
+  display: grid;
+  gap: .625rem;
+}
+
+.admin .brand-egg-status-line { display: flex; align-items: center; gap: .5rem; }
+
+.admin .brand-egg-status-note {
+  font-size: .8rem;
+  line-height: 1.6;
+  color: var(--ink-quiet);
+}
+
+.admin .brand-egg-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .625rem;
+  margin-top: .25rem;
+}
+
+/* --------------------------------------------------------------------------
+   Editing a layer by hand
+   -------------------------------------------------------------------------- */
+
+/* Closed by default. The screen is for READING the five paragraphs, and a
+   textarea standing open under each one would bury them — the drawing loses
+   its height first and the prose second. */
+.admin .brand-egg-layer-edit {
+  margin-top: 1rem;
+}
+
+.admin .brand-egg-layer-edit > summary {
+  font-size: .75rem;
+  color: var(--ink-quiet);
+  cursor: pointer;
+  /* The marker is kept: it is the one affordance that says this opens, and a
+     custom triangle would be a shape nobody asked for. */
+  transition: color var(--dur) var(--ease);
+}
+
+.admin .brand-egg-layer-edit > summary:hover { color: var(--ink); }
+
+.admin .brand-egg-layer-edit form { margin-top: .75rem; }
+
+.admin .brand-egg-layer-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .75rem;
+}
+
+.admin .brand-egg-layer-edit-note {
+  font-size: .75rem;
+  color: var(--ink-quiet);
+}
+
+/* A compose button sits on the head row beside the title, so the head has to
+   let it sit at the top rather than stretch down the card. */
+.admin .brand-egg-layer-head > .admin-button { flex: none; }
+
+/* Unavailable, rather than absent. A layer whose entregables are all still
+   empty cannot be composed and an empty egg cannot be approved — and in both
+   cases the button stays put and greys, because a button that DISAPPEARS reads
+   as "this one works differently", which is not true. It is the same control,
+   waiting for something.
+
+   Scoped to this screen rather than added to admin.css: no other screen here
+   disables a button yet, and a global rule for one screen's need is the
+   speculative kind of CSS this project does not write. */
+.admin .brand-egg-screen .admin-button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
