@@ -25,7 +25,12 @@
  * ── HOW TO RUN ────────────────────────────────────────────────────────────
  *
  *  1. Edit TOKEN below to something only you know.
- *  2. FTP this file to  public_html/flush-probe.php
+ *  2. FTP this file to  public_html/drpixel/breakfast/public/flush-probe.php
+ *
+ *     ⚠️ NOT public_html/. That is the account root, which is somebody else's
+ *     WordPress site — this project lives in a SUBDIRECTORY of a shared
+ *     account. See CLAUDE.md §3.
+ *
  *  3. From your machine — the -N is what matters, it tells curl not to buffer:
  *
  *       curl -N "https://vamosdebreakfast.com/flush-probe.php?t=YOURTOKEN"
@@ -35,7 +40,7 @@
  *
  *       curl -N "https://vamosdebreakfast.com/flush-probe.php?t=YOURTOKEN&raw=1"
  *
- *  4. DELETE public_html/flush-probe.php.
+ *  4. DELETE public_html/drpixel/breakfast/public/flush-probe.php.
  *
  * ── HOW TO READ IT ────────────────────────────────────────────────────────
  *
@@ -52,7 +57,7 @@
  *  something downstream has a minimum buffer size. If neither trickles, the
  *  proxy is buffering regardless and no application-level fix will change it.
  */
-const TOKEN = 'change-me-before-uploading';
+const TOKEN = 'Psycho2psychote';
 
 if (($_GET['t'] ?? '') !== TOKEN) {
     http_response_code(404);
