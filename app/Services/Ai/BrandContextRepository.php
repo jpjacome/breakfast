@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Ai;
 
+use App\Enums\BrandEggState;
 use App\Enums\DeliverableItem;
 use App\Enums\ProcessStep;
+use App\Models\BrandEgg;
 use App\Models\Client;
 use App\Services\Ai\Data\BrandContext;
 
@@ -15,10 +17,19 @@ use App\Services\Ai\Data\BrandContext;
  * This is the ONLY class in the AI layer that touches Eloquent. Everything
  * downstream takes the DTO, so schema changes land here and nowhere else.
  *
- * ⚠️ THE CONTEXT IS THE DATABASE FIRST. Three blocks written by a person —
- * the 48 entregables, the brand's own details, and where the process stands —
- * and, below them, one that was not: what was read out of the brand's uploaded
- * documents (clients.document_digest).
+ * ⚠️ THE CONTEXT IS THE DATABASE FIRST, IN FIVE NUMBERED TIERS:
+ *
+ *   1. Brand Egg      the brand's primary memory, synthesised and signed off
+ *   2. Entregables    the reviewed detail beneath it
+ *   3. La marca       the ficha
+ *   4. Proceso        where the project stands
+ *   5. Toolkit        background only, and nobody reviewed it
+ *
+ * ⚠️ THE NUMBERS ARE WHAT HOLD THE ORDER, NOT THE INSERTION. BrandContext::make()
+ * ksorts the titles so prompt bytes never depend on map ordering — which means
+ * an untitled "Brand Egg…" would have sorted ABOVE "Entregables…" by luck of
+ * its initial and below a block called "Archivos…" added later, silently. The
+ * Egg taking 1 and shifting the rest down is one cache miss per brand, once.
  *
  * That fourth tier was added on 2026-09-15 and it is a SECOND tier, not a
  * rival. Until then the digest was written by the onboarding assistant and read
@@ -44,13 +55,31 @@ final class BrandContextRepository
     {
         $documents = [];
 
-        // The entregables are the brand. The only source a person reviewed one
-        // by one, and the only one that states what is NOT defined — silence
-        // is what the model completes with whatever is likeliest.
+        // ⚠️ THE BRAND EGG IS TIER ONE — the brand's primary memory, five
+        // synthesised layers sitting above the reviewed detail beneath them.
+        // See docs/brand-egg.md §7.
+        //
+        // ⚠️ AN UNAPPROVED EGG IS STILL HERE. The brief says the Egg becomes
+        // primary "una vez aprobado", which reads as a gate. It is not
+        // implemented as one: every brand is unapproved on the day this ships,
+        // and gating would leave all of them with an assistant that knows less
+        // than it did the week before. Approval changes what the block SAYS
+        // ABOUT the content — see eggBlock() — not whether it is there.
+        $egg = $client->brandEggOrNew();
+
+        if (! $egg->isEmpty()) {
+            $documents['1. Brand Egg de la marca (memoria principal)'] =
+                $this->eggBlock($client, $egg);
+        }
+
+        // The entregables are the reviewed detail beneath the Egg. The only
+        // source a person reviewed one by one, and the only one that states
+        // what is NOT defined — silence is what the model completes with
+        // whatever is likeliest.
         $deliverables = $client->deliverablesOrNew();
 
         if ($deliverables->filledCount() > 0) {
-            $documents['1. Entregables de la marca (entregables)'] = $deliverables->toMarkdown();
+            $documents['2. Entregables de la marca (entregables)'] = $deliverables->toMarkdown();
         }
 
         // Both of these ride along with real brand content rather than
@@ -59,8 +88,8 @@ final class BrandContextRepository
         // written a word about — and that method exists precisely to stop the
         // assistant being offered with nothing behind it.
         if ($documents !== []) {
-            $documents['2. La marca (ficha)'] = $this->brandBlock($client);
-            $documents['3. Proceso del proyecto (proceso)'] = $this->processBlock($client);
+            $documents['3. La marca (ficha)'] = $this->brandBlock($client);
+            $documents['4. Proceso del proyecto (proceso)'] = $this->processBlock($client);
 
             // ⚠️ THE TOOLKIT, AND IT IS NEW HERE. clients.document_digest was
             // written by the onboarding assistant and read by NOTHING: Brandy
@@ -76,7 +105,7 @@ final class BrandContextRepository
             $toolkit = trim((string) $client->document_digest);
 
             if ($toolkit !== '') {
-                $documents['4. Toolkit de la marca (respaldo, NO es la fuente principal)'] =
+                $documents['5. Toolkit de la marca (respaldo, NO es la fuente principal)'] =
                     $this->toolkitBlock($toolkit);
             }
         }
@@ -97,6 +126,70 @@ final class BrandContextRepository
     public function hasUsableContext(Client $client): bool
     {
         return ! $this->for($client)->isEmpty();
+    }
+
+    /**
+     * The five layers, framed by how far the model may lean on them.
+     *
+     * ⚠️ THE APPROVAL LINE IS INSIDE THE BLOCK, not in the ficha. "Above" is an
+     * ordering a model can lose track of in a long prompt, and the ficha is two
+     * tiers away from the thing it would be describing — so the tier says what
+     * it is in its own first lines, where it cannot be separated from the text
+     * it governs. Same argument as toolkitBlock(), and the same shape.
+     *
+     * ⚠️ THE DATE IS ABSOLUTE AND THE LINE IS STABLE PER BRAND. It lands in
+     * block 2, whose exact bytes are the caching mechanism: "aprobado hace dos
+     * semanas" would change every fortnight and drop the hit rate to zero
+     * silently, at roughly 150x the cost (CLAUDE.md §7).
+     */
+    private function eggBlock(Client $client, BrandEgg $egg): string
+    {
+        $state = $client->brandEggState();
+
+        $standing = match ($state) {
+            // Written or composed, nobody has signed it off. Still the brand's
+            // memory — see for() — but the model is told how far to lean.
+            BrandEggState::SinAprobar => 'Todavía SIN APROBAR por Breakfast: es un borrador de '
+                .'trabajo. Puedes apoyarte en él, pero no lo presentes como definitivo.',
+            BrandEggState::Aprobado => 'APROBADO por Breakfast el '
+                .$egg->approved_at->translatedFormat('j \d\e F \d\e Y')
+                .'. Es la definición vigente de la marca.',
+            // ⚠️ NOT PHRASED AS A FAULT. The entregables moving is the app
+            // working; the Egg being behind is the consequence, not somebody's
+            // oversight. Same register as ERR-07 of the beta review.
+            BrandEggState::Desactualizado => 'Aprobado por Breakfast el '
+                .$egg->approved_at->translatedFormat('j \d\e F \d\e Y')
+                .', y después se editaron entregables. Donde el Brand Egg y un '
+                .'entregable no coincidan, manda el entregable, y lo señalas.',
+            // Unreachable: for() only builds this block for a non-empty Egg,
+            // and a non-empty Egg is never SinGenerar. Stated rather than left
+            // to a default branch, so the day a sixth state appears this is a
+            // match error and not a silently empty line.
+            BrandEggState::SinGenerar => 'Sin generar.',
+        };
+
+        return 'Ésta es la memoria principal de la marca: cinco capas '
+            .'sintetizadas a partir de los entregables que Breakfast ya revisó.
+
+'
+            .'- Es lo primero que se lee de esta marca. Léelo antes que nada '
+            .'más.
+'
+            .'- No lo cites como si fuera un documento: es cómo se cuenta la '
+            .'marca a sí misma.
+'
+            .'- Los entregables de abajo son el detalle que lo sostiene. Si el '
+            .'Brand Egg y un entregable se contradicen, lo señalas y no decides '
+            .'por tu cuenta.
+
+'
+            .$standing
+            .'
+
+---
+
+'
+            .$egg->toMarkdown();
     }
 
     /**
@@ -211,14 +304,16 @@ final class BrandContextRepository
      */
     private function versionFor(Client $client): ?string
     {
-        // ⚠️ THE LATER OF THE TWO. This string is printed into block 2 as
+        // ⚠️ THE LATEST OF THE THREE. This string is printed into block 2 as
         // "Versión del contexto", so it has to move whenever the block does —
-        // and since the toolkit and the ficha joined it, the entregables' own
-        // timestamp is no longer the whole story. Reading a brandbook changes
-        // the prompt; a version that still named the old date would be a line
-        // claiming the context had not moved while it plainly had.
+        // and since the toolkit, the ficha and now the Brand Egg joined it, the
+        // entregables' own timestamp is no longer the whole story. Reading a
+        // brandbook changes the prompt, and so does composing a layer; a
+        // version that still named the old date would be a line claiming the
+        // context had not moved while it plainly had.
         $stamps = array_filter([
             $client->deliverables?->updated_at,
+            $client->brandEgg?->updated_at,
             $client->updated_at,
         ]);
 
