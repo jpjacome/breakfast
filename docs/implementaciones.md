@@ -25,7 +25,7 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 
 | # | item | state |
 |---|---|---|
-| 1 | Brand Egg | 🟡 front end + public mapping page built; **back end open** (`brand-egg.md` §11 steps 3, 5–10). Step 2 done — see §3.4 |
+| 1 | Brand Egg | 🟡 **steps 1–9 built 2026-09-15.** Only §11 step 10 is open — layer 4's images, gated on brief point 2. See §1 below |
 | 2 | Multi-marca y permisos | ✅ 2026-09-14 |
 | 3 | Leer las imágenes del toolkit sin segunda carga | ✅ 2026-09-14/15 |
 | 4 | Mostrar imágenes en el chat, ampliar y reproducir video | ✅ 2026-09-15 |
@@ -41,7 +41,7 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 | 14 | Campos propios por marca | ⬜ |
 | 15 | Notas | ⬜ |
 
-**Suite:** 497 → **544 passing** across this cycle. `pint` clean throughout.
+**Suite:** 497 → **588 passing** across this cycle. `pint` clean throughout.
 
 ---
 
@@ -101,6 +101,124 @@ thing that breaks if a piece did not travel:
   image, and it enlarges *(#4 — `attachment_ids`, `attachments.css`,
   `lightbox.js`)*;
 - that same turn shows **who wrote it** *(the byline; `process.css`)*.
+
+
+---
+
+## 1 · Brand Egg — the back end · 2026-09-15
+
+*Plan and detail: `docs/brand-egg.md`. Steps 1 and 3–9 of its §11; step 2 landed
+earlier the same day with the toolkit tier.*
+
+### What was there, and what was missing
+
+The front end was real and the back end was not. `BrandEggLayer`, the inlined
+`x-brand-egg` drawing and `/admin/clientes/{marca}/brand-egg` all existed, but
+that screen was a **bench**: hand-written layer texts in the blade, no table, no
+composer, no AI, and — worth noting, because it is why nobody had tripped over
+it — **no link to it from anywhere in the app.** The route was reachable only by
+typing it.
+
+### What was built
+
+| | |
+|---|---|
+| `BrandEggState` | four cases, **none of them stored** |
+| `brand_eggs` | five TEXT columns from the enum, `generated_at`, `approved_at`, `approved_by` |
+| `BrandEgg` model | `text()`, `has()`, `isEmpty()`, `composed()`, `layerTexts()`, `toMarkdown()` |
+| `Client` | `brandEgg()`, `brandEggOrNew()`, `brandEggState()` |
+| `EggComposer` | one layer per call, dependency order, saved as they land |
+| `ClientBrandEggController` | edit · update · compose · approve |
+| `Portal\BrandEggController` | the brand's own egg, read-only |
+| context | the Egg as tier 1, everything else shifted down |
+
+### The decisions worth keeping
+
+**The two timestamps are not the status column §8 rule 2 forbids.** That rule
+governs a single entregable, where a status beside the text is a second truth
+that can contradict it. These record two ACTS asked once per egg, and nothing
+per-field can disagree with them. **Desactualizado is never written anywhere**:
+it is `approved_at` compared against `brand_deliverables.updated_at`, derived at
+read time. Stored, it would be a flag every screen that edits an entregable has
+to remember to flip — so it would be wrong the first time somebody added a
+route.
+
+**One system block for all five layers.** Putting "you are writing the
+Personalidad layer" in the system block reads far more naturally and would give
+each of the five calls its own prefix: five paid readings of the same
+instructions per brand, every time somebody clicks Componer todo. The layer's
+name and its sources go in the user turn, and a test pins the prefix
+byte-identical across all five. Same mistake the two-phase brandbook read
+exists to avoid.
+
+**Five calls, not one, and the run stops itself.** A single generation writing
+all five layers is the 60–150s request this host kills at ~182s while starving
+the worker pool the public site shares. Each layer is ~20s, each is saved as it
+lands, and `EggComposer::BUDGET_SECONDS` ends the run at 150s rather than
+starting a call it cannot finish — a partial Egg somebody finishes ring by ring
+instead of a 502 with no trace.
+
+**A layer with no written sources is not composed at all, and costs nothing.**
+No call is made. An empty layer is honest; a layer of hedging is noise, and
+paying a provider to write the hedging is worse.
+
+**⚠️ The Egg took tier 1 and everything shifted down.** `BrandContext::make()`
+ksorts the document titles, so the numbers are what hold the hierarchy —
+an untitled "Brand Egg…" key would have sorted above "Entregables…" by luck of
+its initial today and below an "Archivos…" block the day somebody added one.
+One cache miss per brand, once, which is the whole cost.
+
+**An unapproved Egg is still in the assistant's context.** The brief says the
+Egg becomes primary *"una vez aprobado"*, which reads as a gate; implemented as
+one it would have left every brand alive that day with an assistant that knew
+less than it did the week before. Approval changes what the block SAYS about the
+content. The one place it genuinely gates is the client's page, which 404s —
+never explains — while the Egg is a draft.
+
+### Found on the way
+
+- **The bench screen had no entry point.** Added to the brand page inside the
+  *proceso y entregables* card rather than in one of its own: it is the same
+  work seen from the top, and a separate card would suggest a second project.
+- **A property initialiser cannot call `BrandEggLayer::columns()`** — it is a
+  constant expression. `getFillable()` as a method, exactly as
+  `BrandDeliverables` already does it, for exactly this reason.
+- **`LlmResponse` has no `text()`** — it is `->content`. `Message` has `text()`;
+  the two are easy to confuse when writing a new caller.
+- **A new Vite entry breaks every test that renders the page** until
+  `npm run build` runs, with `Unable to locate file in Vite manifest`. Exactly
+  the silent-in-production failure the deploy checklist warns about, caught
+  loudly in tests instead.
+
+### How it was proved
+
+`tests/Feature/Ai/EggComposerTest.php` (13), `tests/Feature/BrandEggTest.php`
+(16), `tests/Feature/Ai/BrandEggContextTest.php` (6) and
+`tests/Feature/PortalBrandEggTest.php` (6). 544 → **588 passing.**
+
+Pinned in particular: the prefix byte-identical across all five layers; the
+brand name in the user turn and never in the system block; a layer sent exactly
+the entregables its enum names and no others; `brand_deliverables` untouched by
+a composition run; Aprobado → Desactualizado with no column written; the tier
+order Egg → entregables → toolkit; a bad `{layer}` 404ing before the controller;
+a bad compose payload answering JSON rather than a redirect.
+
+### Deploy — ⚠️ read with §3 of CLAUDE.md
+
+1. **Upload PHP + `public/build` first, then migrate.** One migration:
+   `2026_09_15_110000_create_brand_eggs_table`. Code shipped ahead of its schema
+   takes `/portal` down with a 500 — which is exactly what happened on the
+   2026-09-15 deploy, and the lesson was that the two steps are one step.
+2. `npm run build` and upload `public/build` **whole, with its manifest**.
+   New entry: **`portal-brand-egg.css`**. Changed: `admin-brand-egg.css`,
+   `dashboard.css`, `brand-egg.js` (it now imports `assistant-error.js`).
+3. **No new env keys**, so the two-env trap does not apply this time.
+4. **Nothing new depends on cron.** Composing is a click, approval is a click,
+   and every state is derived at read time.
+5. **After deploying, check:** `/admin/clientes/{marca}` shows the Brand Egg row
+   in the proceso card; that screen opens; Componer on one ring returns a
+   paragraph; Aprobar then makes `/portal/estrategia` show the link, and the
+   link opens.
 
 ---
 
@@ -784,14 +902,16 @@ Brandy sending.
 
 | | what | why it matters |
 |---|---|---|
-| ⚠️ | **`rm public/limite.php`** | the Aug-18 probe, still publicly reachable, allocates 512 MB on demand on the worker pool shared with the public site. **Security, not tidiness.** |
-| ⚠️ | **`AI_TIMEOUT=90` in BOTH env files** | production carries `300`, defeating the invariant in `config/ai.php` whose whole purpose is to lose the race on purpose and fail *inside* Laravel where it can be logged. Today cost a day partly because a failure left no trace. |
+| ⚠️ | **`rm public/limite.php`** | the Aug-18 probe, still publicly reachable, allocates 512 MB on demand on the worker pool shared with the public site. **Security, not tidiness.** ⚠️ **It exists ONLY on production** — there is no local copy to delete and commit, so this is a cPanel File Manager or FTP action by hand, and nothing in the repo will ever remind you of it again once this line goes. |
+| ✅ | ~~**`AI_TIMEOUT=90` in BOTH env files**~~ | **Done locally 2026-09-15.** `portal/.env` and `portal/tests/.env` both carry 90 now. ⚠️ **It does not take effect until `tests/.env` is FTP'd up** — that file IS production's env, and editing it locally changes nothing live. |
 | | **Truncate `/home/orustrav/public_html/error_log`** | 264 MB of one WordPress plugin's warnings, growing on every request to that site. Disk is unlimited, so it is I/O and noise rather than danger. |
 | | **Run the four post-deploy checks** | sidebar brand name, `/admin/archivos` sort by peso, attachment turn shows and enlarges, turn byline |
 | | **Sweep stale `public/build/assets/assistant-*.js`** | the old hashed bundles; FTP never removes anything |
 
-**Where the work resumes:** the implementation plan, unchanged by any of this.
-The Brand Egg back end is still the open front — `docs/brand-egg.md` §11 steps
-2, 3 and 5–10 — and `docs/multimarca.md` §10 (dropping `users.client_id` and
-`users.permissions`) is now safe to do, since the pivot is live and backfilled
-in production.
+**Where the work resumes:** ~~the Brand Egg back end~~ — **built on 2026-09-15,
+steps 1 and 3–9; see §1 above.** What is left of that plan is step 10 alone,
+layer 4's images, which is gated on brief point 2 and not on anything here.
+
+`docs/multimarca.md` §10 (dropping `users.client_id` and `users.permissions`) is
+still open and still safe to do, since the pivot is live and backfilled in
+production.

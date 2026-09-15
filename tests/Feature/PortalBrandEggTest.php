@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\AccessLevel;
 use App\Enums\BrandEggLayer;
+use App\Enums\DeliverableItem;
 use App\Enums\PortalSection;
 use App\Enums\UserRole;
 use App\Models\Client;
@@ -96,7 +97,7 @@ it('keeps showing the egg after entregables move, rather than pulling it back', 
 
     $this->travel(1)->minutes();
     $client->deliverables->update([
-        App\Enums\DeliverableItem::Relato->value => 'Reescrito después de aprobar.',
+        DeliverableItem::Relato->value => 'Reescrito después de aprobar.',
     ]);
 
     actingAs($owner)->get(route('portal.estrategia.egg'))->assertOk();

@@ -125,7 +125,10 @@ trap as `permissions.css` and `--box-edge`, one shell further out.
 | `GET·PUT /admin/clientes/{client}/proceso` | `ClientProcessController` | **the 48 entregables + 3 steps** |
 | `POST …/proceso/paso` | `ClientProcessController@step` | |
 | `POST …/proceso/asistente` | `BrandOnboardingController@store` | `throttle:10,1` + `ai-turn` |
-| `GET /admin/clientes/{client}/brand-egg` | `ClientBrandEggController@edit` | **a bench** — the real drawing over hand-written layer texts, until `brand_eggs` exists |
+| `GET /admin/clientes/{client}/brand-egg` | `ClientBrandEggController@edit` | the five layers, the drawing and the egg's state |
+| `PUT …/brand-egg/{layer}` | `ClientBrandEggController@update` | ⚠️ `{layer}` binds to `BrandEggLayer` — a bad value 404s before the controller |
+| `POST …/brand-egg/componer` | `ClientBrandEggController@compose` | `throttle:10,1` + `ai-turn`. **Answers JSON**, not `back()` |
+| `POST …/brand-egg/aprobar` | `ClientBrandEggController@approve` | no unapprove; approving again re-stamps |
 | `GET /admin/reuniones[/nueva]` | `MeetingController` | roster + month calendar |
 | `…/{client}/reuniones[/{meeting}]` | `MeetingController` | store, update, cancel, destroy |
 | `GET /admin/archivos[/{client}]` | `FileManagerController` | one folder per brand; sortable by fecha/nombre/peso/tipo |
@@ -171,6 +174,7 @@ controller. Nothing is stubbed.
 | `brand_user` | ⭐ **which people are in which brands**, with their `BrandRole` and permissions map **per brand**. Unique on `client_id` + `user_id` |
 | `client_staff` | which Breakfast people cover which brands |
 | `brand_deliverables` | **one row per brand, 48 TEXT columns.** The heart of it |
+| `brand_eggs` | one row per brand, **5 TEXT columns** from `BrandEggLayer`, plus `generated_at`, `approved_at`, `approved_by`. ⚠️ No state column — `BrandEggState` is derived, Desactualizado from `brand_deliverables.updated_at` |
 | `client_process_steps` | when each of the three steps started / closed |
 | `meetings` | title, agenda, `scheduled_at`, link, notes, `created_by`, `cancelled_at` |
 | `meeting_reminders` | unique on `meeting_id` + `window` — why a reminder never goes twice |
@@ -263,6 +267,12 @@ Anything two controllers both need.
 item *is*. An item's key is a hash of its **normalised text**, not its position:
 reordering keeps every tick, **editing a line drops its tick**, and that is
 intended — a rewritten item is a different item.
+
+`BrandEgg\EggComposer` — the only place a Brand Egg layer is built. One call
+per layer, in dependency order (2 before 5), each saved as it lands, and the run
+stops itself at 150s rather than starting a call this host would kill. ⚠️ Its
+system block is byte-identical for **every layer of every brand** — the layer's
+name and sources go in the user turn, or five layers would be five prefixes.
 
 ### Commands — `app/Console/Commands/`
 
@@ -479,10 +489,11 @@ Three files today:
 
 `permissions.css` (the grid renders on `/admin/clientes/{marca}` **and**
 `/portal/equipo`), `checklist.css` (both sides) and `brand-egg.css` (the
-drawing, which the client's read-only view will render inside the portal shell
-as well). ⚠️ `admin-brand-egg.css` is NOT one of them — it is the admin
-screen's own page stylesheet, and the two are kept apart deliberately; the
-header of each says which half it owns.
+drawing, which the client's read-only `/portal/estrategia/brand-egg` renders
+inside the portal shell too, as of 2026-09-15). ⚠️ **Neither
+`admin-brand-egg.css` nor `portal-brand-egg.css` is one of them** — they are the
+two screens' own page stylesheets, one per shell, and they are kept apart from
+the component file deliberately; the header of each says which half it owns.
 
 ⚠️ **A file rendered in both shells may only use tokens BOTH shells define.**
 That is not theoretical: `permissions.css` shipped broken on `--box-edge`, which
@@ -629,12 +640,11 @@ the column name.
 
 ## 12. What is not built, and what is dead
 
-**Not built:** subscriptions / Stripe (`docs/suscripciones.md`) · the Brand
-Egg's BACK END — no `brand_eggs` table, no `BrandEgg`, no `EggComposer`, and
-nothing of the Egg reaches either assistant's context yet; its front end does
-exist (`BrandEggLayer`, `x-brand-egg`, and `/admin/clientes/{marca}/brand-egg`
-as a bench with hand-written texts), so `docs/brand-egg.md` §11 steps 2, 3 and
-5–10 are what is left · PDF/DOCX extraction in `BrandContextRepository` (only
+**Not built:** subscriptions / Stripe (`docs/suscripciones.md`) · **layer 4 of
+the Brand Egg** — the rest of that plan landed on 2026-09-15, and step 10 is the
+only part gated on work outside it (brief point 2, Brandy understanding the
+toolkit's images). Layer 4 composes from `Look and feel` + `Relato` meanwhile
+and draws as a hollow ring when it has neither · PDF/DOCX extraction in `BrandContextRepository` (only
 `.md`/`.txt` are read; PDFs are skipped with a warning, and
 `unreadableDocuments()` surfaces them so nobody assumes a brandbook is feeding
 the assistant when it is not) · passkeys (Fortify feature commented out until
@@ -667,7 +677,7 @@ root folder is **not** a repo.
 | `docs/implementaciones.md` | you need the history: what changed this cycle, why, and what is still owed. **Append to it when you ship something** |
 | `docs/entregables.md` | touching the 48, the 3 steps, meetings or assets |
 | `docs/asistente-admin.md` | touching anything on `/admin` that talks |
-| `docs/brand-egg.md` | the five synthesised layers over the entregables — front end built, back end not |
+| `docs/brand-egg.md` | the five synthesised layers over the entregables — **built 2026-09-15 except layer 4's images** |
 | `docs/suscripciones.md` | billing, when it starts |
 
 ### The five ideas, if you remember nothing else

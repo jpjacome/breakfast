@@ -101,6 +101,28 @@
                         Falta: {{ implode(', ', array_map(fn ($i) => $i->label(), $shown)) }}{{ $extra > 0 ? " y {$extra} más" : '' }}.
                     </p>
                 @endif
+
+                {{--
+                    The Brand Egg sits INSIDE the proceso card rather than in
+                    one of its own, because it is the same work seen from the
+                    top: five layers synthesised from the entregables listed
+                    just above. A separate card would suggest a second project.
+
+                    Its state is derived, so this line cannot drift from the
+                    screen it points at.
+                --}}
+                @php $eggState = $client->brandEggState(); @endphp
+
+                <div class="admin-row admin-row-between"
+                     style="flex-wrap:wrap;gap:1rem;padding-top:.875rem;border-top:1px solid var(--rule)">
+                    <p class="admin-hint" style="max-width:52ch">
+                        <b>Brand Egg:</b> {{ $eggState->description() }}
+                    </p>
+                    <a href="{{ route('admin.clients.egg.edit', $client) }}"
+                       class="admin-button admin-button-outline admin-button-sm">
+                        Abrir Brand Egg
+                    </a>
+                </div>
             </div>
         </section>
 

@@ -574,16 +574,39 @@ second copy would drift the moment a ring changes shape.
 
 | | | depends on |
 |---|---|---|
-| 1 | `BrandEggLayer` enum, `BrandEggState` enum, the migration, `BrandEgg` model, `Client::brandEggOrNew()` | — |
-| 2 | ~~The toolkit tier in `BrandContextRepository`~~ **✅ built 2026-09-15** | — |
-| 3 | `EggComposer` + the four text layers (1, 2, 3, 5) | 1 |
-| 4 | `x-brand-egg` + `brand-egg.css` + `brand-egg.js`, ids renamed, colours decided (§3) | — |
-| 5 | `ClientBrandEggController` + the four routes + the compose FormRequest | 1, 3, 4 |
-| 6 | Approval, and `versionFor()` taking the later of the two timestamps | 1, 5 |
-| 7 | Egg into the context, above the entregables | 1, 2, 6 |
-| 8 | Prompt rules: hierarchy, contradictions, approval line | 7 |
-| 9 | `PortalBrandEggController` — the client's read-only egg | 4, 6 |
-| 10 | **Layer 4** — Brand Assets / Icons | brief point 2 (images) |
+| 1 | ~~`BrandEggLayer` enum, `BrandEggState` enum, the migration, `BrandEgg` model, `Client::brandEggOrNew()`~~ **✅ 2026-09-15** | — |
+| 2 | ~~The toolkit tier in `BrandContextRepository`~~ **✅ 2026-09-15** | — |
+| 3 | ~~`EggComposer` + the four text layers (1, 2, 3, 5)~~ **✅ 2026-09-15** | 1 |
+| 4 | ~~`x-brand-egg` + `brand-egg.css` + `brand-egg.js`, ids renamed, colours decided (§3)~~ **✅ 2026-09-11/15** | — |
+| 5 | ~~`ClientBrandEggController` + the four routes + the compose FormRequest~~ **✅ 2026-09-15** | 1, 3, 4 |
+| 6 | ~~Approval, and `versionFor()` taking the later of the timestamps~~ **✅ 2026-09-15** | 1, 5 |
+| 7 | ~~Egg into the context, above the entregables~~ **✅ 2026-09-15** | 1, 2, 6 |
+| 8 | ~~Prompt rules: hierarchy, contradictions, approval line~~ **✅ 2026-09-15** | 7 |
+| 9 | ~~`PortalBrandEggController` — the client's read-only egg~~ **✅ 2026-09-15** | 4, 6 |
+| 10 | **Layer 4** — Brand Assets / Icons. ⬜ **THE ONLY ONE LEFT** | brief point 2 (images) |
+
+### ⚠️ What was decided differently from this plan, and why
+
+Three places where the build diverged. Each is a contradiction inside the plan
+itself rather than a change of mind, so they are recorded here rather than
+quietly resolved in the code:
+
+1. **"Output is a proposal, never a write" (§6) versus "each layer is saved as
+   it lands" (§6) and "sin aprobar" being a state (§5).** Resolved as: the rule
+   is about the ENTREGABLES. A composition never touches `brand_deliverables`,
+   and a test pins the row byte-identical across a run. The composed layer
+   itself IS written to `brand_eggs` — it has to be, or "sin aprobar" could not
+   exist — and the human review it waits for is APPROVAL, which is what decides
+   whether the brand ever sees it.
+2. **`compose` answering JSON while `update` and `approve` answer `back()`
+   (§9 asked for both).** Composing is an AI call of 20–100s driven by `fetch()`
+   so the screen can say which ring it is on, and so a 429 from `ai-turn` reads
+   differently from a provider outage. Accepting a layer and approving are
+   ordinary admin writes and return you to the screen you clicked from.
+3. **The approval line is inside the Egg's own block, not in the ficha (§8).**
+   Same argument `toolkitBlock()` already makes: "above" is an ordering a model
+   loses track of in a long prompt, and the ficha is two tiers away from the
+   thing it would be describing.
 
 One thing can still start immediately and answers to nothing else:
 
@@ -593,10 +616,11 @@ One thing can still start immediately and answers to nothing else:
   more; the component can be built against a hand-written `BrandEgg` long before
   `EggComposer` exists.
 
-**Step 10 is the only part gated on work outside this plan.** Ship the other
-nine as a four-layer Egg with the fourth ring drawn as outline — which is
-exactly what the state colours already say, so nothing special is needed to
-express "not yet".
+**Step 10 is the only part gated on work outside this plan, and it is now the
+only one open.** The other nine shipped on 2026-09-15 as a four-layer Egg whose
+fourth ring composes from `Look and feel` + `Relato` alone and draws as an
+outline when it has nothing — which is exactly what the state colours already
+said, so nothing special was needed to express "not yet".
 
 ### Files this touches
 
