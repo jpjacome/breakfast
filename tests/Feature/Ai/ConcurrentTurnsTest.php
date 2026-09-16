@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\LimitConcurrentAiTurns;
 use App\Models\Client;
 use App\Models\User;
 use Illuminate\Support\Facades\Cache;
@@ -29,10 +30,16 @@ beforeEach(function () {
     $this->client = Client::factory()->create(['name' => 'Cafetería Norte']);
 });
 
-/** Hold every slot the middleware has, as two turns already running would. */
+/**
+ * Hold every slot the middleware has, as a full house of turns would.
+ *
+ * ⚠️ COUNTED FROM THE MIDDLEWARE, never written out here. This helper held
+ * `[1, 2]` while CONCURRENT was 2, so raising the limit would have left slot 3
+ * free and quietly turned "refused when full" into a test that never filled it.
+ */
 function holdEveryAiSlot(): array
 {
-    return collect([1, 2])
+    return collect(range(1, LimitConcurrentAiTurns::CONCURRENT))
         ->map(function (int $slot) {
             $lock = Cache::lock("ai-turn-slot-{$slot}", 150);
             expect($lock->get())->toBeTrue();
@@ -83,8 +90,9 @@ test('the slot is given back when the turn fails, not just when it succeeds', fu
     // The release lives in a finally. Without it the first provider outage
     // would wedge the assistant shut for everybody until the TTL expired —
     // a failure mode strictly worse than the one being prevented.
-    Cache::lock('ai-turn-slot-1', 150)->forceRelease();
-    Cache::lock('ai-turn-slot-2', 150)->forceRelease();
+    foreach (range(1, LimitConcurrentAiTurns::CONCURRENT) as $slot) {
+        Cache::lock("ai-turn-slot-{$slot}", 150)->forceRelease();
+    }
 
     // No Http::fake() here, and Pest.php calls preventStrayRequests(), so the
     // turn throws inside the controller — the failure path this is about.
@@ -101,9 +109,9 @@ test('the slot is given back when the turn fails, not just when it succeeds', fu
 });
 
 test('a second turn is let through — this bounds concurrency, it is not a queue of one', function () {
-    // Two people at Breakfast working at the same time is the normal case, and
-    // three concurrent short requests were measured fine on the live host. A
-    // guard that allowed only one would be its own outage.
+    // Several people working at the same time is the normal case, and the host
+    // takes 30 concurrent requests (measured 2026-09-16). A guard that allowed
+    // only one would be its own outage.
     $first = Cache::lock('ai-turn-slot-1', 150);
 
     expect($first->get())->toBeTrue();
