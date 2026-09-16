@@ -33,7 +33,7 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 | 6 | Rediseño del Dashboard | ⬜ **next.** Waiting on Breakfast's reference images |
 | 7 | Editar una pregunta enviada | ✅ 2026-09-15 — **solved as RECALL, not as editing in place.** The cancel half is blocked; see §7 |
 | 8 | Waffle giratorio | ⬜ |
-| 9 | Prueba de uso simultáneo e informe de hosting | ⬜ — groundwork exists: the host's shape is in CLAUDE.md §3 and `tools/flush-probe.php` is written and unrun |
+| 9 | Prueba de uso simultáneo e informe de hosting | 🟡 **hosting half MEASURED 2026-09-16 — EP limit is 30.** See §9. The session half (3+ on one account, 3+ accounts) is still open |
 | 10 | Regla de seguridad: contraseñas, tokens, instrucciones | ⬜ |
 | 11 | La notificación abre la reunión correcta | ⬜ |
 | 12 | Checklist agrupado por categorías | ⬜ |
@@ -907,6 +907,116 @@ from `APP_URL` + `getPathInfo()`. It lands on the most-rendered layout in the
 app: seven public pages plus the six entrance screens.
 `tests/Feature/CanonicalUrlTest.php`, verified to fail against the old code
 before being kept.
+
+---
+
+## 9 · Uso simultáneo e informe de hosting — 🟡 2026-09-16
+
+*Brief §4: test 3+ people on the same user and 3+ distinct accounts; report
+sessions, response times and the hosting's capacity.* **The capacity half is
+measured. The session half is not.**
+
+### The number
+
+⭐ **30 concurrent requests, account-wide.** Not per site — for everything on
+the account at once.
+
+| test | result |
+|---|---|
+| 29 holds + 1 homepage = **30** | all **200** |
+| 30 holds + 3 homepage = **33** | 30 × 200, **3 × 508** in ~0.62s |
+
+That is CloudLinux LVE's **EP (entry processes)** ceiling, confirmed by
+`/proc/self/cgroup` reporting `/lve65549`. `lveinfo` and `lveps` are root-only
+on a shared account, so it could not be read — it had to be found by ramping
+3 → 6 → 12 → 20 → 30 and watching for the first refusal.
+
+### What the ramp showed on the way up
+
+| concurrent | distinct PIDs | spawn spread | result |
+|---|---|---|---|
+| 3 | 3 | 12ms | all 200, each held exactly 5.000s |
+| 6 | 6 | 63ms | all 200 |
+| 12 | 12 | 192ms | all 200 |
+| 20 | 20 | 492ms | all 200 |
+| 30 | 30 | 451ms | all 200 — **but everything else got 508** |
+
+**Nothing ever queued.** Every request got its own `lsphp` process and held for
+exactly the time asked. LiteSpeed spawns workers on demand — one at idle, thirty
+inside half a second — and the account's own idle baseline is a single `lsphp`
+at ~45MB RSS.
+
+⚠️ **So concurrency was never the problem, and the old note saying "3 concurrent
+short requests all fine" understated it by an order of magnitude.** Response
+times barely moved: 1.05s baseline, 1.13–1.24s at five, 1.35–1.69s at ten. What
+breaks this host is **duration**, not count: thirty *short* requests are
+invisible, while a handful of *long* ones consume the same slots for as long as
+they run.
+
+### ⚠️ 508 is the status nobody was looking for
+
+Over-limit is **HTTP 508 in ~0.6 seconds** — immediate refusal, not a timeout,
+and not the 502/503 the August note recorded. CloudLinux rejects the request
+before PHP runs at all, so there is **no Laravel handler, no `laravel.log` line,
+no `ai_usage_logs` row**: the same four silences as trap 5 wearing a different
+number.
+
+**508 = account at 30 concurrent · 503 = the proxy gave up · 500 = PHP died.**
+Three faults that look identical to a person.
+
+### ⛔ Streaming is impossible, and that is now settled
+
+A probe flushing one line per second for ten seconds — PHP's own timestamps
+prove it flushed on time — arrived at the client **entirely within 0.41s, at the
+end**. 2KB of padding per chunk, 20KB total, never broke the proxy buffer.
+
+So `LlmClient::stream()` and `BrandAssistant::streamAnswer()`, both already
+written, **can never be wired here**, and **an honest stop button cannot be
+built** (CLAUDE.md §7 has the chain). Item 7's Up-arrow recall is the answer
+instead. Do not re-open without re-running the probe.
+
+### ⚠️ What this says about our own gates
+
+`LimitConcurrentAiTurns` allows **2** AI turns at once against a ceiling of 30.
+That looks conservative by a factor of fifteen, and it is not: an AI turn holds
+its slot for up to 90 seconds, so 30 of them would lock **every site on the
+account** for a minute and a half. The gate is sized for duration, not count,
+which the measurement now justifies rather than merely asserting.
+
+### ⚠️ One thing measured that contradicts a live setting
+
+**`max_execution_time` is 60s for the web SAPI**, not the ~180s in the old note
+— that figure was the *proxy's* patience, not PHP's. `AI_TIMEOUT=90` is
+therefore longer than PHP's own execution limit.
+
+It may still be fine: PHP does not count time spent in system calls and socket
+waits toward `max_execution_time`, and a Guzzle call is exactly that. But it is
+**not established**, and production currently carries `AI_TIMEOUT=300` anyway.
+**The cheap test:** a probe that holds ~70s and reports whether it completed. If
+it does, socket waits are not counted and 90 is safe; if it dies at 60, the
+timeout must drop below 60 and the "lose the race on purpose" invariant in
+`config/ai.php` needs rewriting around the real number.
+
+### How it was run, and what it cost
+
+From the cPanel terminal (`cat > public/probe.php`, no FTP) plus bursts driven
+from a laptop. ⚠️ **Finding a ceiling means touching it**: for about 8 seconds
+at 30 held workers, the WordPress root and the three sibling projects were
+refused with 508 as well. Nothing crashed — LVE refuses rather than kills, and
+everything recovered the moment the holds expired, verified immediately after.
+The bursts at 3, 6, 12 and 20 had headroom and cost nothing.
+
+**The probe was deleted the same session**, which is the whole difference from
+`public/limite.php` sitting reachable from August to September.
+
+### Still open — the session half
+
+The brief also asks for **3+ people on the same user account** and **3+ distinct
+accounts**. Not done, and one finding is already predictable from the code:
+`assistant_messages` is keyed on `user_id` + `surface`, so three people sharing
+one login share **one thread** and will watch each other's questions appear.
+That is correct by design — a thread belongs to a person — but on a shared login
+it reads as a leak, and the report should say so rather than discover it live.
 ---
 
 ## Bugs found while building — the reusable ones
