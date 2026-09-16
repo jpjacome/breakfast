@@ -30,8 +30,8 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 | 3 | Leer las imágenes del toolkit sin segunda carga | ✅ 2026-09-14/15 |
 | 4 | Mostrar imágenes en el chat, ampliar y reproducir video | ✅ 2026-09-15 |
 | 5 | Historial de chats y conversación completa | ⬜ **merged with #6** — assessed, see below |
-| 6 | Rediseño del Dashboard | ⬜ **next.** Waiting on Breakfast's reference images |
-| 7 | Editar una pregunta enviada | ✅ 2026-09-15 — **solved as RECALL, not as editing in place.** The cancel half is blocked; see §7 |
+| 6 | Rediseño del Dashboard | ⬜ **next, and NOT blocked** — the two reference screenshots are pages 4–5 of `docs/Brief for Brandy correcciones.pdf`, already in the repo |
+| 7 | Editar una pregunta enviada | ✅ 2026-09-15 — **solved as RECALL, not as editing in place.** The cancel half is not blocked but CLOSED: streaming is impossible on this host, measured 2026-09-16. See §7 and §9 |
 | 8 | Waffle giratorio | ⬜ |
 | 9 | Prueba de uso simultáneo e informe de hosting | 🟡 **hosting half MEASURED 2026-09-16 — EP limit is 30.** See §9. The session half (3+ on one account, 3+ accounts) is still open |
 | 10 | Regla de seguridad: contraseñas, tokens, instrucciones | ⬜ |
