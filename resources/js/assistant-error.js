@@ -21,6 +21,12 @@
 
 /** Status → what a person can do about it. */
 const MEANING = {
+    // Not the provider rejecting a key — no controller here ever answers 401.
+    // It is Laravel's auth middleware on a request that expectsJson(), which
+    // means the session ended and the turn never reached a controller. So
+    // nothing was spent, nothing was recorded, and reloading alone is not the
+    // answer: the person has to sign in again.
+    401: 'Tu sesión terminó. Vuelve a iniciar sesión para seguir la conversación.',
     413: 'El archivo pesa demasiado para el servidor. Prueba con un PDF más ligero '
         + 'o con sólo las páginas que importan.',
     419: 'La sesión caducó. Recarga la página y vuelve a enviarlo.',
@@ -70,4 +76,34 @@ export function explain(response, data = {}) {
  */
 export function explainNetwork() {
     return 'Se cortó la conexión con el asistente. No se envió nada.';
+}
+
+/**
+ * Send a signed-out person back to the door.
+ *
+ * ⚠️ A 401 is the one failure in this file the panel cannot recover from, and
+ * the only one where retrying is guaranteed to fail. It means the session no
+ * longer holds a user, so the turn died at the auth middleware: nothing
+ * reached a controller, nothing was spent, nothing was recorded.
+ *
+ * On 2026-09-16 a client sent the same question ten times over twelve minutes
+ * against a dead panel, because a sentence in the transcript is easy to read as
+ * "the assistant is having trouble" rather than "you are logged out". The
+ * message alone was not enough; the page has to move.
+ *
+ * The delay is so the sentence can be read before it does. No `?redirect=`
+ * parameter: Fortify takes the intended URL from the session, and inventing a
+ * query string it does not honour would only look like it worked.
+ *
+ * @param {Response} response  the failed response
+ * @returns {boolean}          true when a redirect was scheduled
+ */
+export function handleSignedOut(response) {
+    if (response.status !== 401) return false;
+
+    setTimeout(() => {
+        window.location.href = '/login';
+    }, 2500);
+
+    return true;
 }

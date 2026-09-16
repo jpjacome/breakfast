@@ -1,7 +1,7 @@
 import { AssistantOrb } from './assistant-orb.js';
 import { drawTurnAttachments } from './turn-attachments.js';
 import { formatted, renderReply } from './assistant-text.js';
-import { explain, explainNetwork } from './assistant-error.js';
+import { explain, explainNetwork, handleSignedOut } from './assistant-error.js';
 import { attachComposer } from './assistant-composer.js';
 
 /**
@@ -939,6 +939,7 @@ ${proposal.value}`
                 // worth more than a clean slate, and the person can see which
                 // cards are there.
                 say('error', explain(response, data));
+                handleSignedOut(response);
 
                 return;
             }
@@ -998,6 +999,8 @@ ${proposal.value}`
                     errorLine: say('error', explain(response, data)),
                     userLine,
                 });
+
+                handleSignedOut(response);
 
                 return;
             }

@@ -1110,3 +1110,91 @@ layer 4's images, which is gated on brief point 2 and not on anything here.
 `users.permissions` are gone; see §2b. What is left of that plan is collapsing
 `UserRole`'s two client cases into one, which is vocabulary rather than storage
 and belongs in its own pass.
+
+---
+
+## Producción · «No se pudo contactar al asistente» (401) — 2026-09-16
+
+A client on `/portal` sent the same question to Brandy **ten times over twelve
+minutes** and got the same sentence every time. Staff on `/admin` were being
+answered normally in the same minute, which is what ruled out the provider, the
+API key, the worker pool and the network in one step.
+
+### How it was found, and why the app's own log was useless
+
+`laravel.log` had nothing since the previous day — correctly. The turn died at
+the **auth middleware**, so no controller ran: nothing in `laravel.log`, nothing
+in `ai_usage_logs`, nothing in `assistant_messages`. The same four silences as
+the 2026-09-15 incident above, one middleware earlier.
+
+What broke the case open was the **number on screen**. `assistant-error.js`
+prints the status after the sentence, and the client's screenshot said `(401)`.
+That is the entire reason that file exists, and it paid for itself here:
+
+| where | what it said |
+|---|---|
+| `~/access-logs/vamosdebreakfast.orustravel.org` | ten `POST /portal/asistente … 401`, one `POST /admin/asistente … 200` between them |
+| `sessions` table, by the client's IP | a single row, `user_id` **NULL**, `last_activity` matching the last failed POST to the minute |
+
+⚠️ **The access log is the account's, not the app's, and it is not named after
+the domain** — the file is `vamosdebreakfast.orustravel.org`. `tools/production-log.sh`
+only reads Laravel's own log, so for anything that dies below Laravel the path
+is `~/access-logs/*` in the cPanel terminal. Grep all of them; guessing the
+filename wastes a round trip.
+
+⚠️ **The clock caught us once here too.** The access log stamps `-0400`; the app
+runs `America/Guayaquil` (`-05:00`). `13:25 -0400` in the access log is the
+`12:25` in `sessions.last_activity`. They are the same event.
+
+### What it was
+
+**The client was signed out.** The session row existed and held no user, so
+`Authenticate` threw, and because `bootstrap/app.php` renders JSON for anything
+that `expectsJson()` (the 2026-09-15 fix) the panel got a clean `401` — which
+was **not in `MEANING`**, so it fell through to the generic sentence that says
+nothing. A person cannot act on "no se pudo contactar"; they retry.
+
+### Two things fixed
+
+**1. A 401 now says so, and moves the page.** `assistant-error.js` gained the
+`401` entry and `handleSignedOut()`, wired into all three `!response.ok`
+branches (`process-assistant.js` ×2, `assistant.js` ×1). It waits 2.5s so the
+sentence can be read, then goes to `/login`. No `?redirect=` parameter —
+Fortify takes the intended URL from the session, and a query string it does not
+honour would only look like it worked.
+
+**2. `www` is now redirected to the bare domain**, in `public/.htaccess`.
+`www.vamosdebreakfast.com` served the app in its own right — the client's
+referrer was `https://www.vamosdebreakfast.com/portal` while the working admin's
+was `https://vamosdebreakfast.com/admin`. With `SESSION_DOMAIN=null` the session
+cookie is **host-only**, so the two hosts kept two separate sessions and signing
+in on one left the other signed out.
+⚠️ **NOT fixed with `SESSION_DOMAIN=.vamosdebreakfast.com`**, which was the
+obvious move and is wrong: this document root also serves `breakfast.drpixel.app`,
+and that cookie domain does not match it — it would have signed out every user
+of the second domain to fix the first.
+⚠️ **The rule is host-conditional and belongs in `public/.htaccess`, not the
+root one** (trap 9): the 24KB root file is shared with the WordPress site and
+three sibling apps, and `breakfast.drpixel.app` must not be sent to the client's
+domain.
+
+### What is NOT established
+
+**Why CSRF let the request through.** `PreventRequestForgery` sits outside
+`Authenticate` — curl with no token gets 419, as it should — so the client's
+token matched a live session. A plain expiry cannot do that; it produces 419.
+There is no CSRF exemption in `bootstrap/app.php` and no `AuthenticateSession`
+in the stack. **The mechanism is still open.** It does not change either fix,
+and both are right regardless, but it means the *frequency* of this is unknown.
+If it recurs, that is the thread to pull.
+
+### Deploy
+
+Both changes are dead until uploaded:
+
+1. `npm run build` — **done**; upload `public/build/`.
+2. Upload `public/.htaccess`. ⚠️ Verify with
+   `curl -sI https://www.vamosdebreakfast.com/portal` → must be `301` to the
+   bare domain. Before this it was a `302` to `https://www.vamosdebreakfast.com/login`,
+   staying on `www`.
+3. No migration, no env change.

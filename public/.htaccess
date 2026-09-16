@@ -5,6 +5,21 @@
 
     RewriteEngine On
 
+    # ONE HOST PER DOMAIN, or one person has two sessions.
+    #
+    # www.vamosdebreakfast.com served the app in its own right until
+    # 2026-09-16, and SESSION_DOMAIN is null, so the session cookie is
+    # host-only: signing in on the bare domain left the www copy signed out.
+    # A client sat on www/portal sending the same question to Brandy ten times
+    # and got a 401 every time, because the panel had been rendered while that
+    # host still had a session and nothing on screen said it no longer did.
+    #
+    # Host-conditional on purpose, like the staging header below:
+    # breakfast.drpixel.app shares this document root and must NOT be sent to
+    # the client's domain.
+    RewriteCond %{HTTP_HOST} ^www\.vamosdebreakfast\.com$ [NC]
+    RewriteRule ^(.*)$ https://vamosdebreakfast.com/$1 [R=301,L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

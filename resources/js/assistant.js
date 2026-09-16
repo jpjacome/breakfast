@@ -2,7 +2,7 @@ import { AssistantOrb } from './assistant-orb.js';
 import { drawTurnAttachments } from './turn-attachments.js';
 import { recordingSupported, startRecording } from './assistant-recorder.js';
 import { renderReply } from './assistant-text.js';
-import { explain, explainNetwork } from './assistant-error.js';
+import { explain, explainNetwork, handleSignedOut } from './assistant-error.js';
 import { attachComposer } from './assistant-composer.js';
 
 /**
@@ -328,6 +328,8 @@ if (root) {
                     errorLine: say('assistant', explain(response, data)),
                     userLine,
                 });
+
+                handleSignedOut(response);
                 return;
             }
 
