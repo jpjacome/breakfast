@@ -20,22 +20,126 @@
 
 /* One column on a phone, two once there is room for the egg to be worth
    drawing large. The drawing goes first in both: it is the thing that says
-   what the five paragraphs are. */
+   what the five paragraphs are.
+
+   The layers take the wider track: the drawing is PORTRAIT, so once the panes
+   are fixed its HEIGHT is what limits it — extra width on the left is dead
+   space beside the egg, while extra width on the right is shorter lines. */
 @media (min-width: 60rem) {
   .portal-egg {
-    grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+    grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
     gap: 3rem;
   }
 }
 
 .portal-egg > * { min-width: 0; }
 
-/* Sticky only where there are two columns — stuck to the top of a single
-   column it would sit on the paragraphs it is meant to accompany. */
-@media (min-width: 60rem) {
+
+/* --------------------------------------------------------------------------
+   TWO PANES, ON A SCREEN WITH ROOM FOR THEM
+
+   ⚠️ COPIED FROM THE ADMIN'S EGG SCREEN, which has always worked this way. The
+   client's page was sticky, and sticky is NOT the same thing: the page still
+   scrolls, so the egg still travels and the reader still watches it move. Here
+   the egg is held whole and still on the left while the layers scroll on the
+   right — which is the whole argument for the screen. You read one layer while
+   looking at where it sits in the egg, and a drawing that leaves the top of
+   the page is not doing that job.
+
+   ⚠️ THE DRAWING SHRINKS TO FIT, IT DOES NOT GET CUT OFF. Its box is whatever
+   height is left, so a shorter laptop gets a smaller egg rather than an egg
+   running off the bottom.
+
+   The floor is 300px of drawing and the height gate is derived from it: below
+   540px of viewport that floor can no longer be honoured, so the panes give up
+   and the page scrolls normally. Five rings in less than 300px are five
+   hairlines.
+
+   ⚠️ SCOPED WITH :has(), NOT BY EDITING dashboard.css. Locking the frame to the
+   viewport is right for this one screen and wrong for every other portal page,
+   all of which must be free to grow.
+   -------------------------------------------------------------------------- */
+
+@media (min-width: 60rem) and (min-height: 540px) {
+
+  /* The frame stops being "at least the viewport" and becomes exactly it. */
+  .dashboard-frame:has(.portal-egg) {
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  /* A flex child will not shrink below its content unless told it may, so
+     every link in the chain down to the scroller needs min-height: 0. Miss one
+     and the right column grows instead of scrolling, and the page gets its
+     scrollbar back. */
+  .dashboard-frame:has(.portal-egg) .dashboard-column { min-height: 0; }
+
+  /* ⚠️ A FLEX COLUMN, NOT height: 100% ON THE GRID. The title sits inside this
+     box too, so "100% of the main area" is always taller than what is left
+     once the title has had its share. Letting the grid be the flex child that
+     grows asks for the REMAINDER instead of for the whole. */
+  .dashboard-frame:has(.portal-egg) .dashboard-main {
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    /* The foot other screens carry is for a page that ends; this one does not
+       end, it is a pane. */
+    padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
+  }
+
+  .dashboard-frame:has(.portal-egg) .dashboard-head { flex: none; }
+
+  .portal-egg {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+
+  /* --- left pane: the egg, whole and still ------------------------------- */
+
   .portal-egg-stage {
-    position: sticky;
-    top: 2rem;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    /* Gives up gracefully rather than losing its bottom edge in the sliver of
+       window between the 300px floor and the 540px gate. */
+    overflow-y: auto;
+  }
+
+  .portal-egg-plate {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ⚠️ THE DRAWING IS SIZED BY HEIGHT HERE, NOT BY WIDTH. Given a box and its
+     viewBox the SVG scales the egg to fit and centres it, so the one thing
+     that must be true — the whole egg, always visible — holds at any pane size
+     without a media query per height. */
+  .portal-egg-plate .brand-egg {
+    /* ⚠️ flex-basis 0, NOT auto. With auto the drawing's base size is its own
+       aspect-ratio height, taller than the pane, and shrinking from there
+       leaves the plate longer than the space it has. */
+    flex: 1 1 0;
+    min-height: 300px;
+    width: 100%;
+    max-width: none;
+    height: auto;
+  }
+
+  /* --- right pane: the five layers, scrolling --------------------------- */
+
+  .portal-egg-layers {
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    /* Room for the last card's shadow and a breath at the bottom of the
+       scroller, so the final layer does not end flush against the edge. */
+    padding-right: .5rem;
+    padding-bottom: 2rem;
   }
 }
 
