@@ -7,6 +7,16 @@ permissions granted per brand.
 > Hoy cada usuario pertenece a **una** marca, y esa relación atraviesa todo el
 > portal.
 
+⚠️ **THE DRIVER IS A REAL CLIENT WHO OWNS TWO BRANDS**, not a hypothetical. The
+review states it as a general requirement, which makes it easy to read this
+plan as tidying — it is not. One person already working with Breakfast could
+not hold both of their brands in one account, and `users.email` being unique
+meant the workaround was a second address.
+
+Everything else here — roles that differ per brand, a permissions map per
+membership — falls out of the shape that fixes it. Those are consequences, not
+motivations.
+
 ---
 
 ## 1. What is actually coupled

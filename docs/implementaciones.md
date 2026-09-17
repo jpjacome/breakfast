@@ -391,9 +391,20 @@ per image on a worker pool four other sites share.
 
 ### What was wrong
 
-`users.client_id` was a single column the whole portal read. A person working
-with two brands needed two accounts **and two email addresses**, because
-`users.email` is unique.
+⚠️ **A REAL CLIENT OF BREAKFAST OWNS TWO BRANDS.** That is the whole reason this
+was built, and it is worth stating plainly because the requirement reads as
+abstract otherwise: ACC-01/02/03 of the beta review describe "one account, many
+brands" as a feature, but what forced it was one person, already a client,
+who could not hold both of their brands in one account.
+
+`users.client_id` was a single column the whole portal read. So that person
+needed **two accounts and two email addresses**, because `users.email` is
+unique — two logins, two inboxes, two of everything, for one human running two
+brands with the same agency.
+
+Everything else the pivot makes possible — different roles in different brands,
+a per-brand permissions map — is a **consequence of the shape**, not the reason
+it was built. Don't let a later reading of this file invert that.
 
 ### The finding that made it safe
 
