@@ -25,12 +25,12 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 
 | # | item | state |
 |---|---|---|
-| 1 | Brand Egg | ✅ **2026-09-17 — layer 4 settled for good.** It reads NO entregable: the Egg is tier 1, so the layer IS the brand's list of assets rather than a reading of one. The assistant that co-creates the Egg is planned in full (`docs/brand-egg.md` §14) and its checklist is built. See §1, §1b, §1c |
+| 1 | Brand Egg | 🟡 **the Egg itself is done; the assistant that co-creates it is not.** Layer 4 settled for good 2026-09-17 — it reads NO entregable, because the Egg is tier 1 and the layer IS the brand's list of assets. §1 of the brief also asks for **preguntas**, which is planned in full (`docs/brand-egg.md` §14) with its checklist built and its prompt and routes still open. See §1, §1b, §1c, §1d |
 | 2 | Multi-marca y permisos | ✅ 2026-09-14 · **step 10 closed 2026-09-15** |
 | 3 | Leer las imágenes del toolkit sin segunda carga | ✅ 2026-09-14/15 |
 | 4 | Mostrar imágenes en el chat, ampliar y reproducir video | ✅ 2026-09-15 |
-| 5 | Historial de chats y conversación completa | ⬜ **merged with #6** — assessed, see below |
-| 6 | Rediseño del Dashboard | ⬜ **next, and NOT blocked** — the two reference screenshots are pages 4–5 of `docs/Brief for Brandy correcciones.pdf`, already in the repo |
+| 5 | Historial de chats y conversación completa | 🟡 **back end built 2026-09-17** — conversations, the 40k-character budget and the summariser. The three controllers, the side panel and the meter are open. See §5 |
+| 6 | Rediseño del Dashboard | ⬜ **last, by decision 2026-09-17** — build the screens in the current style first so they can be used, then restyle. References are pages 4–5 of `docs/Brief for Brandy correcciones.pdf` |
 | 7 | Editar una pregunta enviada | ✅ 2026-09-15 — **solved as RECALL, not as editing in place.** The cancel half is not blocked but CLOSED: streaming is impossible on this host, measured 2026-09-16. See §7 and §9 |
 | 8 | Waffle giratorio | ⬜ |
 | 9 | Prueba de uso simultáneo e informe de hosting | 🟡 **hosting half MEASURED 2026-09-16 — EP limit is 30.** See §9. The session half (3+ on one account, 3+ accounts) is still open |
@@ -41,7 +41,7 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 | 14 | Campos propios por marca | ⬜ |
 | 15 | Notas | ⬜ |
 
-**Suite:** 497 → **661 passing** across this cycle. `pint` clean throughout.
+**Suite:** 497 → **674 passing** across this cycle. `pint` clean throughout.
 
 ---
 
@@ -82,88 +82,88 @@ registrada* (the Sí / No / Sin definir selector — SEG-04).
 ## ⚠️ Deploy checklist — cumulative, read before every upload
 
 Deploys are **FTP uploads of changed files**, migrations run **by hand in the
-cPanel terminal**, and there is no staging (CLAUDE.md §3). This is the whole
-list for everything below, in the order it must happen.
+cPanel terminal**, and there is no staging (CLAUDE.md §3).
 
-⚠️ **Everything above the 2026-09-15 line already shipped.** The three
-migrations in step 3 are LIVE in production. What is still pending, as of the
-close of 2026-09-15, is only this:
+⚠️ **NOTHING SINCE 2026-09-15 HAS SHIPPED.** Production runs the code as of the
+deploy of that date. Everything in §1, §1b, §1c, §1d, §5, §11 and queued items
+A and B is local only, and **twelve migrations are pending**. This is the
+largest gap since the app went live — it is not a "push when convenient".
 
-| pending | what it needs |
-|---|---|
-| **The Brand Egg back end** (§1) | one migration, `npm run build`, one new CSS entry |
-| **Multimarca step 10** (§2b) | one migration, **on its own pass** |
-| `AI_TIMEOUT=90` | upload `portal/tests/.env`, which IS production's env |
-| `rm public/limite.php` | **by hand in cPanel** — there is no local copy |
+### 1 · Upload PHP + `public/build` FIRST, then migrate
 
-⚠️ **The two migrations should not travel together.** The Egg's is additive and
-a feature waits on it; step 10's is a destructive column drop that nothing is
-waiting on. Stacking them makes one bad evening out of two easy ones.
+Not the other way round. The new code reads tables the old code does not write;
+migrating first opens a window where a signed-in person hits a screen that
+queries a column their session predates.
 
-**1. Upload PHP + `public/build` FIRST. Then migrate.**
-Not the other way round. The new code reads `brand_user`; the old code does not
-write it. Migrating first opens a window where a signed-in client user belongs
-to no brand and the portal closes on them.
+⚠️ **Except for the destructive pair — see step 3.**
 
-**2. Run `npm run build` locally and upload `public/build`.**
+### 2 · `npm run build` and upload `public/build`
+
+Changed since the last deploy:
 
 | changed | why |
 |---|---|
-| `dashboard.css` | the brand picker |
-| `files.css` | sort bar, video preview |
-| `admin.css` | a badge variant |
-| `process.css` | the turn byline; dead `.brand-turn-files` removed |
-| **`attachments.css`** | **new entry** — chat attachments, both shells |
-| **`lightbox.js`** | **new entry** — enlarge an image |
-| `assistant.js`, `process-assistant.js` | both import the new `turn-attachments.js` |
+| `dashboard.css` | the `:target` highlight (§11), the invitation card (queued B) |
+| `assistant.js`, `process-assistant.js`, `assistant-composer.js`, `assistant-error.js` | ↑/↓ recall (item 7) and its plumbing |
 
-⚠️ `turn-attachments.js` is **imported, not an entry** — it does not go in
-`vite.config.js`, and adding it there would ship it twice. A stale
-`public/build` is a portal with an unstyled picker and chat attachments with no
-styling at all.
+⚠️ **The Brand Egg's four stylesheets and `brand-egg.js` are already entries in
+`vite.config.js` and have never been built into a deployed bundle.** A stale
+`public/build` renders the Egg screens unstyled.
 
-**3. Run the migrations, in this order:**
+### 3 · Run the migrations, in this order
 
 ```
-2026_09_14_100000_create_brand_user_table              # ✅ LIVE — creates AND backfills
-2026_09_14_120000_add_source_to_brand_assets_table     # ✅ LIVE — + client_id nullable
-2026_09_15_100000_add_attachment_ids_to_message_tables # ✅ LIVE — both message tables
-2026_09_15_110000_create_brand_eggs_table              # ⬜ pending — the Brand Egg (§1)
-2026_09_15_120000_drop_..._from_users_table            # ⬜ pending — step 10 (§2b), ALONE
+✅ LIVE
+2026_09_14_100000_create_brand_user_table                  creates AND backfills
+2026_09_14_120000_add_source_to_brand_assets_table         + client_id nullable
+2026_09_15_100000_add_attachment_ids_to_message_tables     both message tables
+
+⬜ PENDING — twelve, in this order
+ 1  2026_09_15_110000_create_brand_eggs_table               §1
+ 2  2026_09_15_120000_drop_single_brand_columns_from_users  §2b  ⚠️ DESTRUCTIVE
+ 3  2026_09_16_100000_add_visual_reading_to_brand_assets    §1b
+ 4  2026_09_17_100000_add_type_to_brand_assets_table        §1c
+ 5  2026_09_17_110000_create_brand_egg_assets_table         §1c  ⚠️ conditional drop
+ 6  2026_09_17_120000_create_brand_egg_messages_table       §1d
+ 7  2026_09_17_130000_create_user_files_table               queued A
+ 8  2026_09_17_140000_move_pasted_attachments_to_user_files queued A  ⚠️ IRREVERSIBLE
+ 9  2026_09_17_150000_create_brand_invitations_table        queued B
+10  2026_09_17_155000_create_conversation_folders_table     §5
+11  2026_09_17_160000_create_conversations_table            §5  needs 10 first
+12  2026_09_17_170000_add_conversation_id_to_message_tables §5  needs 11 first
 ```
 
-The first backfills inside the same command, so there is no gap between "table
-exists" and "memberships exist". Verified locally: 3 client users → 3
-memberships, roles and permission maps intact.
+⚠️ **Three of these are not ordinary additive migrations:**
 
-⚠️ **The last one is destructive and irreversible in practice** — its `down()`
-restores the columns but cannot restore the data. Nothing is waiting on it, so
-it goes on a quiet pass of its own, never bundled with a feature.
+- **#2 drops `users.client_id` and `users.permissions`.** Its `down()` restores
+  the columns and **cannot restore the data** — a person with three brands has
+  no single `client_id` to go back to. Nothing is waiting on it, so it belongs
+  on **its own pass**, on a quiet evening, after the rest is proved live.
+- **#8 moves rows AND files, and says so in its own `down()`: it does not go
+  back.** Going back would mean deciding which brand each pasted file belonged
+  to, and the whole reason it moved is that the answer was none of them. It also
+  rewrites `attachment_ids` on two message tables in the same pass — run it once
+  and check a conversation with an image still shows the image.
+- **#5 drops `brand_eggs.assets` conditionally** (`Schema::hasColumn`). The
+  condition is load-bearing: `create_brand_eggs_table` reads
+  `BrandEggLayer::columns()`, so on a fresh database the column it drops was
+  never created. See §1c.
 
-**4. No new env keys** — but ⚠️ **`portal/tests/.env` DOES need uploading now**,
-for `AI_TIMEOUT=90`. It is not a new key; it is a wrong value live. That file IS
-production's env (CLAUDE.md §3), so editing it locally changes nothing until it
-travels.
+### 4 · Afterwards, by hand
 
-**5. Nothing new depends on cron.** Every state added is derived at read time.
+| | |
+|---|---|
+| upload `portal/tests/.env` | it IS production's env — carries `AI_TIMEOUT=90` and the new `AI_CONVERSATION_BUDGET_CHARS` |
+| `rm public/limite.php` | by hand in cPanel; there is no local copy |
+| `php artisan assets:describe` | backfills `visual_reading` for images already on disk (§1b) |
 
-**6. After deploying, check** — one per item, chosen because each is the first
-thing that breaks if a piece did not travel:
+### 5 · Worth checking once it is up
 
-- a client user can still sign in, and the brand name shows in the portal
-  sidebar *(#2 — the pivot and `ActiveBrand`)*;
-- `/admin/archivos` opens and a folder sorts by peso *(#3 — the source column
-  and the nullable `client_id`)*;
-- a turn with an attachment on `/admin/clientes/{marca}/proceso` shows the
-  image, and it enlarges *(#4 — `attachment_ids`, `attachments.css`,
-  `lightbox.js`)*;
-- that same turn shows **who wrote it** *(the byline; `process.css`)*;
-- **the Brand Egg row appears on `/admin/clientes/{marca}`**, that screen opens,
-  Componer on one ring returns a paragraph, and after Aprobar the link shows on
-  `/portal/estrategia` and opens *(§1)*;
-- **a client user can still sign in** after step 10's migration *(§2b — the
-  columns it drops are inert, so the check is that nothing quietly read one)*.
-
+- A conversation with a pasted image still shows the image *(migration #8)*.
+- `/admin/clientes/{marca}/brand-egg` renders styled *(the never-built bundle)*.
+- A meeting notification opens that meeting *(§11)*.
+- `curl -si -X POST .../portal/asistente -H "Accept: application/json"` → 419 as
+  JSON *(trap 13, unchanged but free to check)*.
 
 ---
 
@@ -480,6 +480,230 @@ Two more migrations, both additive: `add_type_to_brand_assets_table` and
 `create_brand_egg_assets_table`. ⚠️ The second also drops `brand_eggs.assets`,
 which is safe because `brand_eggs` has never been deployed — both run for the
 first time on production in the same pass.
+---
+
+## 1d · The Egg assistant — planned in full, checklist built · 2026-09-17
+
+### The objective
+
+§1 of the brief asks for three things and only two existed. *"La IA
+administrativa guía a Breakfast para construir el Brand Egg mediante
+**preguntas**, síntesis y edición conjunta."* `EggComposer` does the síntesis
+and the admin screen does the edición. **Nobody had built the preguntas.**
+
+⚠️ **And it is not a bigger composer.** `EggComposer` reads entregables and
+writes a paragraph; it cannot help a brand that has none — which is now the
+normal case, because Breakfast inverted the flow. **The Egg is built FIRST and
+the toolkit comes after.**
+
+### How it was handled: settle the conversation before writing the prompt
+
+The prompt is block 1 of a cached prefix — byte-identical for every brand and
+every layer, forever. Writing it first would have meant inventing the
+assistant's behaviour while typing it, and then discovering the contradictions
+in production. So the whole flow was argued out first, beat by beat, and lives
+in **`docs/brand-egg.md` §14**. The prompt becomes a transcription.
+
+Seven beats, each with its rules and the failure each rule prevents:
+
+| | |
+|---|---|
+| §14.3a | **ask → play back as a card → tick.** The tick cannot share a message with the play-back: `LayerProgress` reads `brand_deliverables`, and that column only moves when somebody clicks |
+| §14.3aa | where a card saves — the entregable when the layer reads it, **the layer itself otherwise** |
+| §14.3b | the pushback. Six rules, because this is where "confident and opinionated" meets "never state what the entregables do not carry" |
+| §14.3c | drafting — **editable, confirmed, cited**. Breakfast's three conditions |
+| §14.3d | the menu, and the finding that there are only **three card types in the whole flow** |
+| §14.3e–f | offering an optional, taking no for an answer, and the claim |
+| §14.3g | closing a layer |
+
+### The two rules that came out of it
+
+**"She may recombine what they said. She may not assert what they have not."**
+That single line governs beats 3, 4 and 5 — and it now has an interface on each
+side of it, because a draft is recombination and a menu is where assertion would
+otherwise happen. **The card shape enforces it structurally** rather than the
+prompt having to remember.
+
+**Everything she produces carries where it came from.** The citation on a draft,
+the evidence on each menu option, the sources-and-omissions line when a layer
+closes. That is what makes the model policing its own rules acceptable: **a
+violation is visible rather than silent.**
+
+### What was built
+
+| | |
+|---|---|
+| `brand_egg_messages` | ⚠️ keyed on the BRAND, the opposite of `assistant_messages`. Two people build one Egg over a fortnight |
+| `LayerItemState` | ✅ ⬜ ➖ — three states, and the third is the point |
+| `LayerProgress` | **the one class that decides a tick** |
+| `LayerItem` | one line of the checklist, including which earlier layer already filled it |
+
+⚠️ **THE CHECKLIST IS SERVER-RENDERED AND THE MODEL NEVER WRITES IT.** A model
+keeping a tally is right most of the time, and a wrongly ticked entregable is a
+small lie about whether the brand's promise exists — the one kind of error this
+app is built to make impossible.
+
+⚠️ **THE THIRD STATE EARNS ITS PLACE.** With only ✅ and ⬜, a brand that
+legitimately has no Manifesto reads *5 de 6* forever, and a layer that can never
+finish is ERR-07 wearing a checkbox. It stays **derived** — `brand_deliverables`
+grows no status column — by reading an empty optional that has already been
+asked about as declined. Which is why a turn records what it asked.
+
+### Two questions that had been answered wrong
+
+**Layer 4 read eleven entregables. It now reads none.** Two came from the brief
+and nine were added on 2026-09-16; both moves were the same mistake, and
+Breakfast said so: **the Egg is tier 1**, so deriving a brand's asset list from
+the entregables puts tier 2 above tier 1 on the one layer where the Egg is meant
+to BE the source. And it cannot work anyway — nobody knows in advance what
+assets a brand will have. See §1c.
+
+**A layer whose material no entregable holds is fine.** Three of the five ask
+composition questions no column answers, and the first reading of that — "the
+answer has nowhere to land" — was wrong twice over: the Egg has its own table,
+and no conversation is ever lost. ⚠️ The real problem was one button:
+`EggComposer` reads `sources()` and nothing else, so *Volver a componer* could
+silently overwrite a conversation-built layer. **The fix is the composer reading
+the layer's own turns**, which is cheap because `brand_egg_messages.layer`
+already exists.
+
+### How it was proved
+
+`tests/Feature/EggChecklistTest.php`, 11 tests. The one that matters pins that
+**a question can never settle an obligatorio** — if asking could settle
+anything, the assistant could talk a layer into looking finished without a
+column moving.
+
+### Still open
+
+`ai.egg_assistant_prompt`, `EggAssistant`, the POST route, the narrow
+`PATCH …/entregables/{item}` write, and the composer reading the thread. Then
+the panel. See `docs/brand-egg.md` §14.10–14.11.
+
+### Deploy
+
+Migration #6. No front-end change yet.
+
+---
+
+## 5 · Historial de chats y conversación completa — 🟡 back end built · 2026-09-17
+
+### The objective
+
+§3 of the brief, and it is four requirements in one line: hold the thread across
+references like *"une la 1 y la 3"*, **survive refresh and logout**, be **not
+limited to the last 10 exchanges**, and let **a new session open a new chat with
+the previous ones in accessible history**.
+
+### ⚠️ What was actually wrong: there was no such thing as "a conversation"
+
+`assistant_messages` is an endless run of turns per person per surface, and what
+reached the model was **"the last 20 of them"**. Three consequences, none of them
+visible to anybody using it:
+
+- A brand-new subject inherited whatever was being discussed before lunch.
+- Past twenty turns the model **silently stopped knowing the beginning** —
+  nothing said, nothing kept, no way to tell.
+- Nothing could be summarised, because nothing had a beginning.
+
+### How it was handled
+
+**A conversation is a row.** `conversations` gives a thread a start, a title, a
+folder, and somewhere to put a summary. Every existing turn was backfilled into
+one conversation per person per surface — ⚠️ **a lie of convenience, and the
+migration says so**: those turns have no boundaries, which is exactly what this
+adds, so any split would be invented. Its title says *"Conversaciones
+anteriores"*.
+
+### ⚠️ The budget is in CHARACTERS, not tokens
+
+The obvious unit is tokens — it is what the provider bills, and
+`ai_usage_logs.prompt_tokens` already records it per request. It is the wrong
+unit here:
+
+- it only arrives **after** a request, so a new conversation has no meter at all;
+- it is always **one turn stale**;
+- and it **cannot move while somebody is typing**, which is the moment a warning
+  is worth anything.
+
+Characters are countable instantly, on the server or in the browser. ⚠️ **And the
+thread really is text**, which is what makes the proxy honest: an earlier turn
+replays its files **by name**, never re-inlined (CLAUDE.md §7), so bytes never
+accumulate — only words do. The ledger stays the reality check.
+
+**40,000 characters**, which is about an hour of real conversation: an exchange
+runs roughly a thousand characters all in, and twenty to thirty fit in half an
+hour. ⚠️ **Explicitly not sized against the host.** That is ~11,000 tokens on a
+model whose window is far larger, most of it billing at the cached rate. The
+number is a judgement about when a PERSON would say *"remind me what we
+decided"*.
+
+### ⚠️ A summary never eats the last four exchanges
+
+Not a round number. The brief asks Brandy to hold *"une la 1 y la 3"*, *"hazla
+más corta"*, *"convierte esa idea en un reel"* — **every one of those points at
+the turns immediately before it**, so a summary that swallowed them would break
+the exact behaviour this item exists to deliver.
+
+### ⚠️ The one place model output becomes fact on a later turn
+
+Everywhere else in this app a person accepts every word before it counts (§8
+rule 4). A summary just starts being her memory. Two things make that acceptable:
+
+1. **It summarises her conversation, not the brand.** Nothing there can reach
+   `brand_deliverables` or `brand_eggs`, so a bad summary makes her forgetful —
+   not wrong about the brand.
+2. **It is visible and correctable** from the meter: the same accept-or-edit
+   shape as everything else, arriving after the fact instead of before it.
+
+**The list of what a summary may not lose IS the prompt**, because nothing
+re-reads the original turns once `summarised_through_id` moves. ⚠️ **Rejected
+ideas are on that list** and they are the one people forget — without them she
+re-proposes what was already turned down, which reads as not having listened.
+
+### What was built
+
+| | |
+|---|---|
+| `conversations` | + `folder_id`, `archived_at`, soft deletes |
+| `conversation_folders` | ⚠️ scoped per person, per surface, **and per brand on the portal** |
+| `ConversationBudget` | characters, 40k, warns at 80%, keeps 4 exchanges |
+| `SummarisesConversations` | folds the old part. ⚠️ Never throws — it runs after a paid answer |
+| `ai.conversation.budget_chars` | one env line, with the reasoning beside it |
+
+⚠️ **Deleting a folder is `nullOnDelete` and never cascades.** Losing a month of
+work by tidying up is the most expensive mistake the panel could allow, and it
+sits one click from an ordinary one. The conversations fall back to the unfiled
+list.
+
+### Found on the way
+
+⚠️ **`conversation_id` was a real column that `create()` silently dropped** — it
+was in the migration and not in `$fillable` on any of the three message models.
+Six tests failed identically, which is what pointed at it. Same shape as trap
+17: the code looked right and the data quietly was not.
+
+### How it was proved
+
+`tests/Feature/ConversationMemoryTest.php`, 13 tests — the meter, the warning,
+the four kept exchanges, a second fold carrying the first summary forward, the
+provider failing without throwing, one person's history staying out of
+another's, and the portal list being brand-scoped while the dashboard's is not.
+
+### Still open — the half that changes live behaviour
+
+**The three controllers still append to an endless thread.** Nothing creates or
+continues a `Conversation` yet, so none of this is reachable from a screen. Then
+the **side panel** — history, folders, drag and drop, right-click *nueva
+conversación aquí*, archive and delete — and the **meter** under the composer,
+which opens the summaries and offers *resumir ahora*.
+
+### Deploy
+
+Migrations #10, #11, #12 **in that order** — folders before conversations
+before the column that points at them. Upload `portal/tests/.env` for
+`AI_CONVERSATION_BUDGET_CHARS`. No front-end change yet.
+
 ---
 
 ## 11 · La notificación abre la reunión correcta · 2026-09-17
@@ -1021,10 +1245,11 @@ in a comment that it becomes an `<img>` when the artwork lands — two swaps
 
 ---
 
-## 5 + 6 · Chat history and the redesign — assessed 2026-09-15, not built
+## 5 + 6 · Chat history and the redesign — assessed 2026-09-15
 
-Assessed together **because they are one piece of work**, and recorded here
-because the decisions were made before any code was.
+> ⚠️ **THE ASSESSMENT. What was built against it is §5 above** (2026-09-17).
+> Kept because it is where the reasoning was done, and because it asked the one
+> question the build had to answer — see *the invariant* below.
 
 ### Why they merged
 
@@ -1044,11 +1269,33 @@ confused answer. **Full history breaks that invariant**, so it needs a
 replacement: a visible line where her memory ends, or a new conversation
 resetting it. That is a design decision the redesign has to carry.
 
+> ### ⚠️ How that invariant was answered — 2026-09-17
+>
+> **Neither of the two replacements it proposed.** A visible line where her
+> memory ends would have been honest and useless; a new conversation resetting
+> it does not help somebody scrolling back through the one they are in.
+>
+> The answer is that **her memory no longer ends.** The early part is folded
+> into a summary and she keeps reading it, so scrolling back to an old question
+> and asking a follow-up gets an answer informed by it — not a confused one. The
+> transcript on screen and what she reads stop being the same bytes, and that is
+> now correct rather than a bug, because nothing has been dropped.
+>
+> **The meter is what replaces the line.** It does not say "her memory ends
+> here"; it says how full this conversation is and warns before it folds.
+
 ### The wider system asked for
 
 Summaries of long conversations, a warning before the limit, a menu of
 conversations, a shareable reference, and a meter showing how full the context
 window is.
+
+⚠️ **All but one of those is now built or designed** (§5): the summaries, the
+warning at 80%, the folder-and-history panel, and the meter — which measures
+**characters of the conversation**, not the model's context window, because that
+window is a thousand times larger than anything a person will type and a meter
+against it would never move. **A shareable reference is the one nobody has asked
+for since**, and it is not built.
 
 **What already exists:** `ai_usage_logs.prompt_tokens` records the real prompt
 size of every request, reported by the provider. The meter needs no estimator.
