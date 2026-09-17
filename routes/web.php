@@ -28,6 +28,7 @@ use App\Http\Controllers\Portal\MeetingController as PortalMeetingController;
 use App\Http\Controllers\Portal\NotificationController;
 use App\Http\Controllers\Portal\ProfileController as PortalProfileController;
 use App\Http\Controllers\Portal\TeamController;
+use App\Http\Controllers\UserFileController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -78,6 +79,20 @@ Route::view('/legal/terminos', 'legal.placeholder')->name('legal.terms');
 Route::middleware('auth')
     ->get('archivos/{asset}', [BrandAssetController::class, 'download'])
     ->name('assets.download');
+
+/*
+ * A file somebody pasted at an assistant — their own, not a brand's.
+ *
+ * Separate from archivos/{asset} because it answers a different question about
+ * a different table: that one asks canReachBrandAsset(), which is about a
+ * brand's visibility rules; this one asks UserFile::isReachableBy(), which is
+ * ownership plus Breakfast. Folding them into one route would mean one method
+ * holding two access models, which is how a gate ends up answering the wrong
+ * question (see the note on portal.reunion above).
+ */
+Route::middleware('auth')
+    ->get('mis-archivos/{file}', [UserFileController::class, 'download'])
+    ->name('user-files.download');
 
 /*
 |--------------------------------------------------------------------------

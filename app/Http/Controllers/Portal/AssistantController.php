@@ -100,10 +100,15 @@ class AssistantController extends Controller
         // pastes a screenshot to ask about it gets an answer discussing a
         // picture that is no longer on the screen. Keeping it is what makes the
         // conversation readable on reload.
+        //
+        // ⚠️ IT LANDS IN THE CLIENT'S OWN FOLDER (2026-09-17), not their brand's.
+        // It used to be a brand_assets row marked interno — visible to Breakfast
+        // in the file manager, invisible to the brand, and sitting in the same
+        // list as the brand's logo. Breakfast still sees it; it is simply filed
+        // under the person who pasted it.
         $kept = $this->keep->handle(
-            $client,
+            $user,
             array_values((array) $request->file('files', [])),
-            $user->id,
         );
 
         $this->remember(

@@ -6,6 +6,7 @@ use App\Enums\PortalSection;
 use App\Models\BrandAsset;
 use App\Models\Client;
 use App\Models\User;
+use App\Models\UserFile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -17,8 +18,14 @@ use function Pest\Laravel\actingAs;
 | Keeping what is attached to Brandy — brief point 3
 |--------------------------------------------------------------------------
 | A brandbook uploaded to the assistant used to go to the provider and be
-| dropped, so getting it into the brand's folder meant uploading it AGAIN.
-| These pin that it is kept, where it lands, and who may see it.
+| dropped, so getting it anywhere meant uploading it AGAIN. These pin that it
+| is kept, where it lands, and who may see it.
+|
+| ⚠️ WHERE IT LANDS CHANGED ON 2026-09-17. It used to be a brand_assets row on
+| whatever brand the conversation was about, so a pasted screenshot sat in the
+| brand's folder beside the logo. It is now a user_files row in the folder of
+| whoever pasted it: what a BRAND's assets are is answered by the Egg's
+| inventory alone, and a pasted image has never been through that decision.
 */
 
 beforeEach(function () {
@@ -53,21 +60,23 @@ it('keeps a file attached to the brand assistant, without a second upload', func
         'files' => [UploadedFile::fake()->create('toolkit.pdf', 120, 'application/pdf')],
     ])->assertOk();
 
-    $asset = BrandAsset::query()->sole();
+    $file = UserFile::query()->sole();
 
-    expect($asset->client_id)->toBe($this->client->id)
-        ->and($asset->source)->toBe(AssetSource::Referencia)
-        ->and($asset->original_name)->toBe('toolkit.pdf')
-        // ⚠️ Interno. Whatever arrives in a conversation is working material
-        // until a person says otherwise; a wrong "compartido" cannot be undone.
-        ->and($asset->visibility)->toBe(AssetVisibility::Interno);
+    expect($file->user_id)->toBe($this->admin->id)
+        ->and($file->original_name)->toBe('toolkit.pdf');
 
-    // In its own folder, beside the deliberate uploads rather than among them.
-    expect($asset->path)->toStartWith('marcas/alea/referencias/');
-    Storage::disk('local')->assertExists($asset->path);
+    // ⚠️ THE PERSON'S FOLDER, NOT THE BRAND'S, even though this turn is about
+    // one brand and nothing else. The conversation's brand was never the
+    // file's owner, and filing it there is what made a pasted screenshot look
+    // like a brand asset.
+    expect($file->path)->toStartWith('usuarios/'.$this->admin->id.'/');
+    Storage::disk('local')->assertExists($file->path);
+
+    // And the brand's own folder is untouched.
+    expect(BrandAsset::query()->count())->toBe(0);
 });
 
-it('files an attachment with no brand chosen under its own folder', function () {
+it('files an attachment with no brand chosen in the same place', function () {
     Http::fake(['*' => Http::response([
         'choices' => [['message' => ['content' => 'Lo veo.'], 'finish_reason' => 'stop']],
         'usage' => ['prompt_tokens' => 10, 'completion_tokens' => 5],
@@ -79,14 +88,40 @@ it('files an attachment with no brand chosen under its own folder', function () 
         'files' => [UploadedFile::fake()->image('captura.png')],
     ])->assertOk();
 
-    $asset = BrandAsset::query()->sole();
+    /*
+     * ⚠️ THE QUESTION THIS TEST USED TO ASK NO LONGER EXISTS. With files owned
+     * by brands, "no brand chosen" needed an answer — a `_sin-marca` folder
+     * beside the real ones, underscored so no slug could collide with it. Now
+     * that a pasted file belongs to the person, the dropdown has nothing to do
+     * with where it goes, and the empty case is not a case at all.
+     */
+    expect(UserFile::query()->sole()->path)
+        ->toStartWith('usuarios/'.$this->admin->id.'/');
+});
 
-    expect($asset->client_id)->toBeNull()
-        ->and($asset->source)->toBe(AssetSource::Referencia);
+it("keeps one person's paste out of another person's folder", function () {
+    fakeReading();
 
-    // ⚠️ Beside the brands, never inside one. An underscore, so no slug can
-    // ever collide with it — Client::uniqueSlug() cannot produce that name.
-    expect($asset->path)->toStartWith('marcas/_sin-marca/referencias/');
+    $colleague = User::factory()->admin()->create();
+
+    actingAs($colleague)->post(route('admin.clients.process.assistant', $this->client), [
+        'message' => 'Mira esto.',
+        'files' => [UploadedFile::fake()->image('captura.png')],
+    ])->assertOk();
+
+    $file = UserFile::query()->sole();
+
+    expect($file->user_id)->toBe($colleague->id)
+        ->and($file->isReachableBy($colleague))->toBeTrue()
+        // Breakfast sees what was pasted at them — that is the point of keeping
+        // it — and this colleague IS Breakfast.
+        ->and($file->isReachableBy($this->admin))->toBeTrue();
+
+    // A client of the brand does not, even the owner.
+    $owner = User::factory()->clientOwner($this->client->id, [])->create();
+    expect($file->isReachableBy($owner))->toBeFalse();
+
+    actingAs($owner)->get(route('user-files.download', $file))->assertNotFound();
 });
 
 it('never shows an unfiled file to a client', function () {
@@ -127,7 +162,10 @@ it('keeps the file even when the provider fails', function () {
         'files' => [UploadedFile::fake()->create('toolkit.pdf', 120, 'application/pdf')],
     ])->assertStatus(502);
 
-    expect(BrandAsset::query()->count())->toBe(1);
+    // In the PERSON'S folder since 2026-09-17, not the brand's: what
+    // somebody pastes is theirs, and what a brand's assets are is answered
+    // by the Egg's inventory alone.
+    expect(UserFile::query()->count())->toBe(1);
 });
 
 /* -------------------------------------------------------------------------

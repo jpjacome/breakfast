@@ -60,12 +60,14 @@ class AdminAssistantController extends Controller
         // losing the file because the provider was down would mean uploading it
         // again — which is the whole thing this removes.
         //
-        // No brand chosen means no brand to file it under, so it lands in the
-        // unfiled folder beside the brands rather than in an arbitrary one.
+        // ⚠️ IT GOES TO THE PERSON'S FOLDER, NOT A BRAND'S (2026-09-17). It used
+        // to need a brand to file under — and with no brand chosen here, an
+        // "unfiled" folder beside the real ones. Neither question arises now:
+        // what somebody pastes is theirs, and the brand dropdown has nothing to
+        // do with it.
         $kept = $this->keep->handle(
-            $client,
+            $user,
             array_values((array) $request->file('files', [])),
-            $user->id,
         );
 
         try {

@@ -1,10 +1,8 @@
 <?php
 
-use App\Enums\AssetVisibility;
-use App\Enums\PortalSection;
-use App\Models\BrandAsset;
 use App\Models\Client;
 use App\Models\User;
+use App\Models\UserFile;
 use App\Services\TurnAttachments;
 
 /*
@@ -15,6 +13,12 @@ use App\Services\TurnAttachments;
 | vanished: the transcript rendered the body and nothing else. These pin what
 | each attachment becomes, and — the part that matters — what it does NOT
 | become when the file is gone or not theirs to see.
+|
+| ⚠️ THE FILES ARE `user_files` SINCE 2026-09-17, not brand_assets. What
+| somebody pastes at an assistant is theirs; what a BRAND's assets are is
+| answered by the Egg's inventory alone. So the access question changed with
+| the table: it used to be the brand's interno/compartido rules, and it is now
+| ownership plus Breakfast.
 */
 
 beforeEach(function () {
@@ -22,18 +26,23 @@ beforeEach(function () {
     $this->admin = User::factory()->admin()->create();
 });
 
-it('shows an image as an image and a video as a video', function () {
-    $image = BrandAsset::factory()->create([
-        'client_id' => $this->client->id,
-        'original_name' => 'captura.png',
-        'mime' => 'image/png',
+/** A file in somebody's own folder, the way a pasted one lands. */
+function pastedBy(User $owner, string $name, ?string $mime = null): UserFile
+{
+    return UserFile::create([
+        'user_id' => $owner->getKey(),
+        'title' => pathinfo($name, PATHINFO_FILENAME),
+        'disk' => 'local',
+        'path' => 'usuarios/'.$owner->getKey().'/'.$name,
+        'original_name' => $name,
+        'mime' => $mime,
+        'size_bytes' => 1024,
     ]);
+}
 
-    $video = BrandAsset::factory()->create([
-        'client_id' => $this->client->id,
-        'original_name' => 'spot.mp4',
-        'mime' => 'video/mp4',
-    ]);
+it('shows an image as an image and a video as a video', function () {
+    $image = pastedBy($this->admin, 'captura.png', 'image/png');
+    $video = pastedBy($this->admin, 'spot.mp4', 'video/mp4');
 
     $items = app(TurnAttachments::class)->for(
         ['captura.png', 'spot.mp4'],
@@ -47,11 +56,7 @@ it('shows an image as an image and a video as a video', function () {
 it('calls a video a plain file when no browser can play it', function () {
     // ⚠️ .mov uploads with a video mime and plays in nothing. A preview box
     // showing a black rectangle is worse than the filename it replaced.
-    $mov = BrandAsset::factory()->create([
-        'client_id' => $this->client->id,
-        'original_name' => 'camara.mov',
-        'mime' => 'video/quicktime',
-    ]);
+    $mov = pastedBy($this->admin, 'camara.mov', 'video/quicktime');
 
     $items = app(TurnAttachments::class)->for(['camara.mov'], [$mov->id], $this->admin);
 
@@ -70,37 +75,41 @@ it('falls back to the name for a turn from before the files were kept', function
         ->and($items->first()['name'])->toBe('vieja.png');
 });
 
-it('never shows a file the viewer could not open', function () {
-    // Fails closed, and it matters: an attachment row is a listing, so printing
-    // one the viewer cannot download would tell them the file exists. Same
-    // split as scopeSharedWithClient() versus the gate.
-    $internal = BrandAsset::factory()->create([
-        'client_id' => $this->client->id,
-        'visibility' => AssetVisibility::Interno,
-        'mime' => 'image/png',
-        'original_name' => 'contrato.png',
-    ]);
+it("never shows a file from somebody else's folder", function () {
+    /*
+     * Fails closed, and it matters: an attachment row is a listing, so printing
+     * one the viewer cannot download would tell them the file exists.
+     *
+     * ⚠️ A CLIENT NEVER SEES ANOTHER PERSON'S FOLDER, not even a brand owner
+     * looking at their own team. Being able to invite somebody is not being
+     * able to read their working material.
+     */
+    $mine = pastedBy($this->admin, 'contrato.png', 'image/png');
 
-    $member = User::factory()
-        ->clientMember($this->client, [PortalSection::BrandAssets->value => 'read'])
-        ->create();
+    $somebodyElse = User::factory()->create(['role' => 'cliente_miembro']);
 
-    $items = app(TurnAttachments::class)->for(['contrato.png'], [$internal->id], $member);
+    $items = app(TurnAttachments::class)->for(['contrato.png'], [$mine->id], $somebodyElse);
 
     expect($items->first()['kind'])->toBe('name')
         ->and($items->first()['asset'])->toBeNull();
 
-    // The same call for somebody who may open it does show it.
-    expect(app(TurnAttachments::class)->for(['contrato.png'], [$internal->id], $this->admin)
+    // Its owner sees it, and so does Breakfast.
+    expect(app(TurnAttachments::class)->for(['contrato.png'], [$mine->id], $this->admin)
+        ->first()['kind'])->toBe('image');
+});
+
+it('lets Breakfast see what a client pasted at them', function () {
+    // The reason the files are kept at all: a client shows you something and
+    // you still have it tomorrow.
+    $client = User::factory()->create(['role' => 'cliente_owner']);
+    $theirs = pastedBy($client, 'pantalla-rota.png', 'image/png');
+
+    expect(app(TurnAttachments::class)->for(['pantalla-rota.png'], [$theirs->id], $this->admin)
         ->first()['kind'])->toBe('image');
 });
 
 it('keeps names lined up when a file has been deleted', function () {
-    $second = BrandAsset::factory()->create([
-        'client_id' => $this->client->id,
-        'mime' => 'image/png',
-        'original_name' => 'dos.png',
-    ]);
+    $second = pastedBy($this->admin, 'dos.png', 'image/png');
 
     // The first asset is gone from the folder. Dropping it would shift 'dos.png'
     // onto the first name and label the wrong picture.
@@ -120,11 +129,7 @@ it('shows nothing at all when the turn carried nothing', function () {
 });
 
 it('renders the attachment in the process board transcript', function () {
-    $asset = BrandAsset::factory()->create([
-        'client_id' => $this->client->id,
-        'mime' => 'image/png',
-        'original_name' => 'brandbook-p4.png',
-    ]);
+    $asset = pastedBy($this->admin, 'brandbook-p4.png', 'image/png');
 
     $this->client->onboardingMessages()->create([
         'role' => 'user',
@@ -137,7 +142,7 @@ it('renders the attachment in the process board transcript', function () {
         ->get(route('admin.clients.process.edit', $this->client))
         ->assertOk()
         // The <img> points at the gated route, never at a storage path.
-        ->assertSee(route('assets.download', $asset), escape: false)
+        ->assertSee(route('user-files.download', $asset), escape: false)
         ->assertSee('data-lightbox', escape: false);
 });
 

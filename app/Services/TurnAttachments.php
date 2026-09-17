@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\BrandAsset;
 use App\Models\User;
+use App\Models\UserFile;
 use Illuminate\Support\Collection;
 
 /**
@@ -23,19 +23,25 @@ use Illuminate\Support\Collection;
  * as broken images: a name is all that is known about them, so a name is all
  * they show.
  *
- * ⚠️ IT NEVER DECIDES ACCESS. canReachBrandAsset() does, on every request for
- * the file itself — a thumbnail goes through the same gated route as the link
- * beside it, so showing one is no wider a door. What this does is avoid
+ * ⚠️ IT NEVER DECIDES ACCESS. UserFile::isReachableBy() does, on every request
+ * for the file itself — a thumbnail goes through the same gated route as the
+ * link beside it, so showing one is no wider a door. What this does is avoid
  * PRINTING a row the viewer could not open, which is the same split as
  * scopeSharedWithClient() versus the gate: one stops the telling, the other
  * stops the download.
+ *
+ * ⚠️ THE IDS POINT AT `user_files`, NOT `brand_assets` — changed 2026-09-17.
+ * What somebody pastes at an assistant belongs to them, not to whatever brand
+ * the conversation was about; what a BRAND's assets are is answered by the
+ * Egg's inventory alone. Turns written before that date point at brand_assets
+ * ids and were remapped by migration, so nothing in a transcript moved.
  */
 class TurnAttachments
 {
     /**
      * @param  array<int, string>|null  $names  what the turn recorded
-     * @param  array<int, int>|null  $ids  which assets they became, if any
-     * @return Collection<int, array{name: string, asset: ?BrandAsset, kind: string}>
+     * @param  array<int, int>|null  $ids  which files they became, if any
+     * @return Collection<int, array{name: string, asset: ?UserFile, kind: string}>
      */
     public function for(?array $names, ?array $ids, ?User $viewer = null): Collection
     {
@@ -62,14 +68,14 @@ class TurnAttachments
     }
 
     /**
-     * The assets this turn's ids point at, in the turn's own order.
+     * The files this turn's ids point at, in the turn's own order.
      *
      * Missing ones are left as null rather than dropped: a file deleted from
-     * the brand's folder should leave its name in the conversation, not shift
+     * somebody's folder should leave its name in the conversation, not shift
      * every attachment after it onto the wrong name.
      *
      * @param  array<int, int>|null  $ids
-     * @return array<int, ?BrandAsset>
+     * @return array<int, ?UserFile>
      */
     private function assets(?array $ids, ?User $viewer): array
     {
@@ -79,19 +85,19 @@ class TurnAttachments
             return [];
         }
 
-        $found = BrandAsset::query()->whereKey($ids)->get()->keyBy('id');
+        $found = UserFile::query()->whereKey($ids)->get()->keyBy('id');
 
-        return array_map(function ($id) use ($found, $viewer): ?BrandAsset {
-            $asset = $found->get((int) $id);
+        return array_map(function ($id) use ($found, $viewer): ?UserFile {
+            $file = $found->get((int) $id);
 
-            if ($asset === null) {
+            if ($file === null) {
                 return null;
             }
 
             // Fails closed. A viewer who could not open the file is not told it
             // exists — they get the bare name, exactly like a turn from before
             // the files were kept.
-            return $viewer === null || $viewer->canReachBrandAsset($asset) ? $asset : null;
+            return $file->isReachableBy($viewer) ? $file : null;
         }, $ids);
     }
 
@@ -103,12 +109,12 @@ class TurnAttachments
      * video/* and plays in nothing, and a preview box showing a black
      * rectangle is worse than the filename it replaced.
      */
-    private function kind(?BrandAsset $asset): string
+    private function kind(?UserFile $file): string
     {
         return match (true) {
-            $asset === null => 'name',
-            $asset->isImage() => 'image',
-            $asset->isPlayableVideo() => 'video',
+            $file === null => 'name',
+            $file->isImage() => 'image',
+            $file->isPlayableVideo() => 'video',
             default => 'file',
         };
     }

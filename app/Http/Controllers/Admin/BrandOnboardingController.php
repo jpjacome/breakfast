@@ -650,13 +650,14 @@ class BrandOnboardingController extends Controller
     ): void {
         // ⚠️ KEPT BEFORE THE ROW IS WRITTEN, because the row wants to point at
         // the files. Before this, a brandbook read here had to be uploaded a
-        // second time to end up in the brand's folder. Here rather than in
+        // second time to end up anywhere at all. ⚠️ It lands in the PERSON'S
+        // folder, not the brand's (2026-09-17) — filing it under the brand is
+        // what made a pasted screenshot look like a brand asset. Here rather than in
         // read(), because every path that records a turn — including the one
         // that runs after the provider failed — should keep what it was handed.
         $kept = $this->keep->handle(
-            $client,
+            $request->user(),
             array_values((array) $request->file('files', [])),
-            $userId,
         );
 
         BrandOnboardingMessage::create([
