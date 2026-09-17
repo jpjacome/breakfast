@@ -201,8 +201,6 @@
     padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
   }
 
-  .admin-frame:has(.brand-egg-screen) .brand-egg-nav { flex: none; }
-
   /* ⚠️ TWO EQUAL ROWS. The conversation is half the page because it is the
      WORK; the five paragraphs below it are the outcome, read a layer at a time
      while looking at the drawing beside them. 1fr each rather than a judged
@@ -262,17 +260,18 @@
      visible — is true at any pane size without a media query per height. The
      max-width above is what governs when the page scrolls normally instead. */
   .admin .brand-egg-stage .brand-egg {
-    /* ⚠️ HEIGHT DECIDES THE SIZE, AND IT IS 80% OF THE PANE — not "whatever
-       room remains". Taking the remainder made the egg as tall as its column
-       and there was no pan left around it: the drawing ran to the edges and
-       the skillet read as a dark border. 80% leaves the cooking surface
-       visible on every side, which is the whole picture.
+    /* ⚠️ HEIGHT DECIDES THE SIZE, AND IT IS THE WHOLE PANE — not "whatever room
+       remains". A flex basis let the drawing be sized by what was left over,
+       which changed every time anything else in the column did; a percentage
+       of the pane is the same egg whatever sits beside it.
 
        The SVG letterboxes itself inside that box (preserveAspectRatio is the
        default), so the one thing that must be true — the whole egg, always
-       visible — holds at any pane size without a media query per height. */
+       visible — holds at any pane size without a media query per height, and
+       the pan still shows around it because the drawing is portrait in a box
+       that is not. */
     flex: none;
-    height: 80%;
+    height: 100%;
     /* ⚠️ NO min-height, AND ITS REMOVAL IS THE POINT. There was a 300px floor
        here — "five rings in less than 300px are five hairlines" — and it made
        sense while the drawing took the remainder of the pane. Against a
@@ -301,72 +300,6 @@
     padding-right: .75rem;
     scrollbar-gutter: stable;
   }
-}
-
-
-/* --------------------------------------------------------------------------
-   The row of five, where the page title used to be
-
-   The screen's name went up into the topbar beside the brand's, and this took
-   the line it left. It is the third face of the same five layers, so it says
-   the least of the three: a number and a name, no state, no description. Those
-   belong to the card.
-
-   One row, and it stays one row — a nav that wraps to two lines on a narrow
-   window changes the height of everything below it, and everything below it is
-   a pane measured against the viewport. It scrolls sideways instead.
-   -------------------------------------------------------------------------- */
-
-.admin .brand-egg-nav {
-  display: flex;
-  gap: .5rem;
-  margin-bottom: 1rem;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.admin .brand-egg-nav::-webkit-scrollbar { display: none; }
-
-.admin .brand-egg-nav-item {
-  display: inline-flex;
-  align-items: center;
-  gap: .5rem;
-  flex: none;
-  padding: .4rem .875rem;
-  border: 1px solid var(--rule);
-  border-radius: var(--border-radius);
-  background: var(--surface);
-  color: var(--ink-quiet);
-  font-size: .8rem;
-  line-height: 1.2;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: border-color var(--dur) var(--ease),
-              background-color var(--dur) var(--ease),
-              color var(--dur) var(--ease);
-}
-
-/* Hover, keyboard focus, and the pointer being on this layer's ring or card
-   somewhere else on the screen all look the same — the row is one of three
-   faces of one thing, and lighting them differently would hide that. */
-.admin .brand-egg-nav-item:hover,
-.admin .brand-egg-nav-item:focus-visible,
-.admin .brand-egg-nav-item.is-linked {
-  border-color: var(--accent);
-  color: var(--ink);
-}
-
-.admin .brand-egg-nav-item.is-open {
-  border-color: var(--accent);
-  background: var(--sunken);
-  color: var(--ink);
-}
-
-.admin .brand-egg-nav-ring {
-  font-weight: 700;
-  /* The number is the one part that is the same mark in all three places: the
-     ring's position, the card's circle, and this. */
-  font-variant-numeric: tabular-nums;
 }
 
 

@@ -65,12 +65,10 @@
                 <section class="portal-egg-cooking">
                     <p>
                         Aquí va tu marca contada en cinco capas, de la yema hacia
-                        fuera: lo que es, cómo se comporta, qué aporta, con qué se
-                        ve y a dónde lleva.
+                        fuera.
                     </p>
                     <p>
                         <b>Todavía se está cocinando</b> con tu equipo de Breakfast.
-                        Cada capa aparece aquí en cuanto queda lista.
                     </p>
                 </section>
             @endunless

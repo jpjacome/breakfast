@@ -119,9 +119,16 @@ for (const egg of document.querySelectorAll('[data-brand-egg]')) {
         el.addEventListener('mouseenter', () => light(el.dataset.layer));
         el.addEventListener('mouseleave', () => light(null));
 
-        // A card is not a control — it lights, and that is all. A button in
-        // the row is, and it selects exactly as a ring does. Asking the
-        // element what it is keeps both behaviours in this one loop.
+        /*
+         * A card is not a control — it lights, and that is all.
+         *
+         * ⚠️ THE ROW OF BUTTONS THIS ALSO SERVED IS GONE (2026-09-17). It named
+         * the five layers above the drawing and every word of it was already on
+         * the cards; on a screen that is now two fixed rows it was height taken
+         * out of the egg. The hook is kept rather than the loop simplified,
+         * because anything carrying data-brand-egg-nav still selects — which is
+         * how a second face of a layer arrives without touching this file.
+         */
         if (el.matches('[data-brand-egg-nav]')) {
             el.addEventListener('click', () => select(el.dataset.layer));
         }

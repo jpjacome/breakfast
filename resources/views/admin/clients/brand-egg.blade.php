@@ -40,31 +40,6 @@
     :heading="$heading"
 >
 
-    {{-- ----------------------------------------------------------------
-         The five layers, as a row
-
-         It is the THIRD face of the same five layers — the rings, the cards
-         and this — so it carries no state and no description. Those are said
-         on the card, once. What it adds is the one thing neither of the others
-         gives you: every layer's name visible at once, in order, without
-         scrolling to find out what the fourth one is called.
-
-         No JavaScript of its own: brand-egg.js lights and selects anything
-         carrying data-layer outside the drawing, so a button here behaves
-         exactly as its ring does.
-         ---------------------------------------------------------------- --}}
-    <nav class="brand-egg-nav" aria-label="Las cinco capas">
-        @foreach ($layers as $layer)
-            <button type="button"
-                    class="brand-egg-nav-item"
-                    data-brand-egg-nav
-                    data-layer="{{ $layer->value }}">
-                <span class="brand-egg-nav-ring" aria-hidden="true">{{ $layer->ring() }}</span>
-                {{ $layer->label() }}
-            </button>
-        @endforeach
-    </nav>
-
     {{--
         TWO ROWS, AND THE BOTTOM ONE IS TWO COLUMNS.
 
