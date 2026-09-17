@@ -986,6 +986,58 @@ taxonomy Breakfast has not given us. What makes it acceptable is the citation:
 saqué del relato"* and can see it for themselves. Not enforced — but not silent
 either, and silent is the half that actually does damage.
 
+### 14.3d When she offers a menu instead — and the three card types
+
+The Valores are the case where she must NOT draft, and the case that shows what
+she does instead:
+
+> Los **Valores de marca** no te los escribo yo: son con lo que van a decir que
+> no a un cliente algún día, y eso tiene que salir de ustedes.
+>
+> Lo que sí puedo hacer es decirte cuáles ya están actuando en lo que me
+> contaste:
+>
+> — **Oficio** · lo dijiste sin decirlo: masa madre, de noche, a mano
+> — **Barrio** · empezó repartiendo a los vecinos y sigue ahí
+> — **Paciencia** · es lo que separa la masa madre del pan industrial
+>
+> ¿Cuáles son de verdad los suyos?
+>
+> `[+ Oficio]` `[+ Barrio]` `[+ Paciencia]` `[Escribir los nuestros]`
+
+**A menu, not a draft**, and that is the whole answer to how she is useful about
+valores without inventing them: **picking from a list is the team deciding.** A
+drafted paragraph of values would be her deciding and them approving, which is
+the wrong way round for a new claim about the brand. It also means nobody has to
+retype three words they already agree with, which is friction for its own sake.
+
+1. ⚠️ **EVERY CANDIDATE CARRIES ITS EVIDENCE.** *"Oficio · lo dijiste sin
+   decirlo: masa madre, de noche, a mano."* Without the evidence line a menu is
+   a list of branding nouns and the team picks whichever sounds best — a cliché
+   machine with extra steps. The evidence is what makes the pick informed rather
+   than a shrug, and it is the same job the citation does in 14.3c.
+2. **She never offers a candidate she cannot attach to something in the thread.**
+   If she can support two, she offers two. Padding a menu to three means one of
+   them is invented.
+
+### ⚠️ THREE CARD TYPES IN THE WHOLE FLOW, AND THAT IS ALL THERE IS
+
+| card | where | what the person does |
+|---|---|---|
+| **play-back** | relato, brand promise, brand statement — 14.3a/b/c | accept · edit · keep mine |
+| **menu** | valores, arquetipos (layer 2), claim | pick one, pick several, or none |
+| **toggle** | layer 4 only | put this file in the Egg, or do not |
+
+**Which one she offers is decided by one rule: a DRAFT when she is
+recombining, a MENU when she would otherwise be asserting.** That is 14.3c's
+principle with an interface attached to each side of it, which is better than a
+rule the prompt has to remember — **the card shape makes it structural.**
+
+It also settles two later beats in advance. `arquetipos` is a menu because the
+vocabulary is closed and a person must pick (14.5); the three proposed claims
+are a menu for the same reason as the valores. So layer 2's single question and
+layer 1's last two entregables are all one card type.
+
 ### 14.4 Layer 1 · Esencia, tagline y valores — the yolk
 
 **Reads** — six entregables, four obligatorios: `relato` · `brand_promise` ·
