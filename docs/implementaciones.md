@@ -25,7 +25,7 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 
 | # | item | state |
 |---|---|---|
-| 1 | Brand Egg | ✅ **2026-09-16 — step 10 closed.** Layer 4 reads the nine visual entregables plus each image's stored description. See §1 and §1b |
+| 1 | Brand Egg | ✅ **2026-09-17 — layer 4 settled for good.** It reads NO entregable: the Egg is tier 1, so the layer IS the brand's list of assets rather than a reading of one. The assistant that co-creates the Egg is planned in full (`docs/brand-egg.md` §14) and its checklist is built. See §1, §1b, §1c |
 | 2 | Multi-marca y permisos | ✅ 2026-09-14 · **step 10 closed 2026-09-15** |
 | 3 | Leer las imágenes del toolkit sin segunda carga | ✅ 2026-09-14/15 |
 | 4 | Mostrar imágenes en el chat, ampliar y reproducir video | ✅ 2026-09-15 |
@@ -35,13 +35,13 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 | 8 | Waffle giratorio | ⬜ |
 | 9 | Prueba de uso simultáneo e informe de hosting | 🟡 **hosting half MEASURED 2026-09-16 — EP limit is 30.** See §9. The session half (3+ on one account, 3+ accounts) is still open |
 | 10 | Regla de seguridad: contraseñas, tokens, instrucciones | ✅ 2026-09-16 — **the exposure was the instructions, not credentials.** See §10 |
-| 11 | La notificación abre la reunión correcta | ⬜ |
+| 11 | La notificación abre la reunión correcta | ✅ 2026-09-17 — see §11 |
 | 12 | Checklist agrupado por categorías | ⬜ |
 | 13 | Textos aprobados y estado «proyecto cerrado» | ⬜ |
 | 14 | Campos propios por marca | ⬜ |
 | 15 | Notas | ⬜ |
 
-**Suite:** 497 → **618 passing** across this cycle. `pint` clean throughout.
+**Suite:** 497 → **639 passing** across this cycle. `pint` clean throughout.
 
 ---
 
@@ -480,6 +480,77 @@ Two more migrations, both additive: `add_type_to_brand_assets_table` and
 `create_brand_egg_assets_table`. ⚠️ The second also drops `brand_eggs.assets`,
 which is safe because `brand_eggs` has never been deployed — both run for the
 first time on production in the same pass.
+---
+
+## 11 · La notificación abre la reunión correcta · 2026-09-17
+
+### What was wrong
+
+Notifications already carried `meeting_id`. Two lines below it, `url` was
+`route('portal.reuniones')` — **the list**. So a reminder about a meeting three
+weeks out opened a page whose top half is a different meeting, and one about a
+past meeting opened above a history list the person then had to search. The fix
+had everything it needed sitting in its own payload.
+
+### What was built
+
+| | |
+|---|---|
+| `GET /portal/reuniones/{meeting}` → `portal.reunion` | checks access, switches the active brand, redirects |
+| `Portal\MeetingController::show()` | the three steps above, each failing closed |
+| both notifications | `url` now names the meeting |
+| `.meeting-row:target` | the highlight, in `dashboard.css` |
+| ids on every row and on the next-meeting card | what the fragment points at |
+
+### ⚠️ The active brand is the half that makes it an item rather than a link
+
+A person in two brands has one active (`ActiveBrand`). A notification about the
+other brand's meeting would otherwise open Reuniones **scoped to whichever brand
+they happened to be in** — right URL, wrong brand, no error anywhere, and a
+fragment pointing at an id that is not on the page. Same failure CLAUDE.md §5
+point 2 describes for assets.
+
+### ⚠️ Why this route does NOT carry `section:reuniones`
+
+That middleware asks about the **active** brand, and this route's whole job is
+to CHANGE the active brand — so it would grant or refuse based on whichever
+brand a dropdown was left on. **The gate is not missing; it moved into the
+method**, where it can be asked about the meeting's own brand:
+
+```php
+abort_unless($brand !== null && $user->canRead(PortalSection::Reuniones, $brand), 404);
+abort_unless($this->active->set($user, $brand), 404);
+```
+
+Exactly the trap `canReachBrandAsset()` exists to document. **Two refusals, on
+purpose:** even if the first were ever loosened, `ActiveBrand::set()` refuses a
+brand that is not theirs, so a guessed meeting id cannot park somebody inside
+somebody else's brand for the rest of the session. A test pins that.
+
+### ⚠️ It redirects rather than rendering
+
+The fragment does both jobs: the browser scrolls to the row and `:target`
+lights it up, **before first paint**, so the page never appears at the top and
+then jumps. No script, no "which one was it" prop threaded through the view, and
+one canonical URL for the list — so a reload or a bookmark does not repeat the
+brand switch.
+
+### How it was proved
+
+`tests/Feature/MeetingNotificationLinkTest.php`, 10 tests. The ones worth
+naming: the brand switch, the stranger who cannot move themselves into a brand
+by guessing an id, the 404 for a member without Reuniones, and the past meeting
+— which the brief asks for explicitly and which cost nothing, since the list
+always rendered past meetings and only the URL could not name one.
+
+⚠️ **One existing test had to change**: `MeetingTest`'s inbox assertion pinned
+the old list URL. It now asserts the meeting URL, built from the payload's own
+`meeting_id` so the two cannot drift.
+
+### Deploy
+
+Code only — **no migration**. ⚠️ `dashboard.css` changed, so `npm run build`.
+
 ---
 
 ## 2 · Multi-marca y permisos — ✅ 2026-09-14

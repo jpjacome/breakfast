@@ -14,7 +14,10 @@
     @if ($upcoming->isNotEmpty())
         @php $next = $upcoming->first(); @endphp
 
-        <article class="meeting-next">
+        {{-- The id is what a notification's fragment points at. The scroll
+             and the highlight are the browser's (:target in dashboard.css),
+             which is why no script and no "which one" prop reach this page. --}}
+        <article class="meeting-next" id="reunion-{{ $next->id }}">
             <p class="meeting-eyebrow">Próxima reunión</p>
             <h2>{{ $next->title }}</h2>
             <p class="meeting-when">{{ ucfirst($next->whenInWords()) }}</p>
@@ -35,7 +38,7 @@
                 <h3>Después de esa</h3>
                 <ul class="meeting-list">
                     @foreach ($upcoming->skip(1) as $meeting)
-                        <li class="meeting-row">
+                        <li class="meeting-row" id="reunion-{{ $meeting->id }}">
                             <b>{{ $meeting->title }}</b>
                             <span>{{ ucfirst($meeting->whenInWords()) }}</span>
                             @if ($meeting->link)
@@ -60,7 +63,8 @@
             <h3>Ya pasaron</h3>
             <ul class="meeting-list">
                 @foreach ($past as $meeting)
-                    <li class="meeting-row @if($meeting->isCancelled()) meeting-row-off @endif">
+                    <li class="meeting-row @if($meeting->isCancelled()) meeting-row-off @endif"
+                        id="reunion-{{ $meeting->id }}">
                         <b>{{ $meeting->title }}</b>
                         <span>
                             {{ ucfirst($meeting->whenInWords()) }}

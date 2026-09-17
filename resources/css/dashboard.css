@@ -756,6 +756,20 @@
 .meeting-row b { font-size: .9rem; }
 .meeting-row span { font-size: .8rem; color: var(--ink-quiet); }
 .meeting-row-off b { text-decoration: line-through; }
+
+/*
+ * The meeting a notification was about — item 11.
+ *
+ * :target rather than a server-rendered class, so the browser scrolls to it
+ * and lights it up before first paint: no jump, no script, and the page keeps
+ * one canonical URL. scroll-margin keeps the row clear of the sticky header
+ * when the browser lands on it.
+ */
+.meeting-row:target,
+.meeting-next:target {
+    border-color: var(--accent);
+    scroll-margin-block: 6rem;
+}
 .meeting-notes { margin: .375rem 0 0; font-size: .8rem; color: var(--ink-quiet); }
 
 

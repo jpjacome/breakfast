@@ -148,7 +148,9 @@ test('a portal notification lands in the inbox', function () {
 
     expect($note)->not->toBeNull()
         ->and($note->data['headline'])->toContain('Revisión de territorio')
-        ->and($note->data['url'])->toBe(route('portal.reuniones'));
+        // The MEETING, not the list - item 11, 2026-09-17. The id was always
+        // in the payload; the url pointed at the index beside it.
+        ->and($note->data['url'])->toBe(route('portal.reunion', $note->data['meeting_id']));
 });
 
 /*

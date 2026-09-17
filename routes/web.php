@@ -351,6 +351,21 @@ Route::middleware(['auth'])->prefix('portal')->name('portal.')->group(function (
         ->middleware('section:reuniones')
         ->name('reuniones');
 
+    /*
+     * Where a meeting notification lands — item 11. Checks access, switches
+     * the active brand, and redirects to the list with a fragment.
+     *
+     * ⚠️ NO section:reuniones HERE, AND THE ABSENCE IS DELIBERATE. That
+     * middleware asks about the ACTIVE brand, and this route's job is to CHANGE
+     * the active brand — so it would answer about whichever brand somebody
+     * happened to be looking at rather than the one they are being sent to.
+     * The check moved into MeetingController::show(), where it is asked about
+     * the meeting's own brand. Same reasoning as canReachBrandAsset()
+     * (CLAUDE.md §5).
+     */
+    Route::get('/reuniones/{meeting}', [PortalMeetingController::class, 'show'])
+        ->name('reunion');
+
     Route::get('/brand-assets', [PortalBrandAssetController::class, 'index'])
         ->middleware('section:brand-assets')
         ->name('brand_assets');

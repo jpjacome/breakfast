@@ -72,7 +72,11 @@ class MeetingReminder extends Notification
             'when' => $this->meeting->whenInWords(),
             'scheduled_at' => $this->meeting->scheduled_at->toIso8601String(),
             'headline' => $this->headline(),
-            'url' => route('portal.reuniones'),
+            // ⚠️ THE MEETING, NOT THE LIST. This was route('portal.reuniones')
+            // until 2026-09-17 while meeting_id sat unused two lines above, so
+            // a reminder opened a page whose top half was a different meeting.
+            // That route also switches the active brand — item 11.
+            'url' => route('portal.reunion', $this->meeting),
         ];
     }
 
