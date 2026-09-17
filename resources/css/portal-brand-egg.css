@@ -170,7 +170,13 @@
   background: var(--surface);
 }
 
-.portal-egg-skillet {
+/* ⚠️ TWO CLASSES, AND THE SECOND ONE IS LOAD-BEARING. `.dashboard img` sets
+   max-width: 100% for the whole portal shell and outranks a single class, so
+   a lone .portal-egg-skillet loses its max-width: none — the pan keeps its
+   205% height, gets clamped to the plate's width, and renders squashed. The
+   admin's copy escapes this only because its selector is already two classes
+   deep. */
+.portal-egg-plate .portal-egg-skillet {
   position: absolute;
   top: 50%;
   left: 50%;
