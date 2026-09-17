@@ -415,6 +415,28 @@
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
 }
 
+/*
+   A page naming itself in the topbar, after the brand.
+
+   ⚠️ QUIETER THAN THE BRAND, ON PURPOSE. The brand is the subject of every
+   screen in this portal and the page is the qualifier — same weight would read
+   as two titles arguing. The separator is drawn rather than typed so it cannot
+   end up in a copy-paste or be read aloud.
+*/
+.dashboard-topbar-title {
+  margin: 0;
+  font-size: .85rem;
+  color: var(--ink-quiet);
+}
+
+.dashboard-topbar-title::before {
+  content: "·";
+  /* No margin: the topbar is a flex row with a 1rem gap, so the separator
+     already has air on both sides. Adding more made it read as three items
+     rather than one qualified name. */
+  margin-inline-end: .5rem;
+}
+
 .dashboard-card {
   position: relative;
   display: flex;

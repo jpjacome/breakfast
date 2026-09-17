@@ -5,7 +5,22 @@
           component that asked for it and ships only with it. Same contract as
           <x-layouts.app>.
 --}}
-@props(['title' => null, 'section' => null, 'css' => null, 'scripts' => []])
+@props([
+    'title' => null,
+    'section' => null,
+    'css' => null,
+    'scripts' => [],
+    /*
+     * A page name shown in the topbar, after the brand.
+     *
+     * ⚠️ FOR A PAGE THAT HAS NO ROOM FOR A HEADING, which today is the Brand
+     * Egg: its two panes are locked to the viewport, so a title above them is
+     * height taken straight out of the drawing. Everywhere else the heading
+     * belongs on the page, where it can carry a sentence under it — this is
+     * the exception, not a second place to put every title.
+     */
+    'topbarTitle' => null,
+])
 
 @php
     use App\Enums\PortalSection;
@@ -164,6 +179,13 @@
                 </details>
             @else
                 <p class="dashboard-client">{{ $user->activeBrand()?->name ?? 'Breakfast' }}</p>
+            @endif
+
+            {{-- Where the page names itself when it cannot afford a heading.
+                 Reads as "Marca · Brand Egg", so the brand stays the subject
+                 and the page is the qualifier. --}}
+            @if ($topbarTitle)
+                <p class="dashboard-topbar-title">{{ $topbarTitle }}</p>
             @endif
 
             {{--

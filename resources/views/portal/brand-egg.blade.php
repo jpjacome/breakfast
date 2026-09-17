@@ -12,17 +12,13 @@
     how permissions.css shipped broken once, on --box-edge, which only the
     portal had (CLAUDE.md §9).
 --}}
-<x-layouts.portal title="Brand Egg" :section="$section"
+{{-- ⚠️ NO PAGE HEADING, AND THAT IS THE POINT. The two panes are locked to
+     the viewport, so every pixel a title takes comes straight out of the
+     drawing. The page names itself in the topbar instead, after the brand —
+     see the layout's $topbarTitle. --}}
+<x-layouts.portal title="Brand Egg" topbar-title="Brand Egg" :section="$section"
                   :css="['brand-egg', 'portal-brand-egg']"
                   :scripts="['resources/js/brand-egg.js']">
-
-    <header class="dashboard-head">
-        <h1>Brand Egg</h1>
-        <p>
-            Tu marca contada en cinco capas, de dentro hacia fuera. Es el
-            resumen del que parte todo lo demás.
-        </p>
-    </header>
 
     <div class="portal-egg">
 
