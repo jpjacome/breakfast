@@ -866,6 +866,42 @@ person can jump anywhere; the order is a default, not a rail.
 
 ---
 
+### 14.3aa Where a play-back card saves — settled 2026-09-17
+
+14.3a says the middle beat must **name its destination**, because *"lo dejo
+así"* leaves what and where. There are exactly two destinations, and which one
+is decided by the layer, never by the assistant:
+
+| the question | saves to | example |
+|---|---|---|
+| an entregable the layer READS | that entregable | *"¿lo guardo así en **Relato de marca**?"* |
+| anything else | **the layer itself** | *"¿lo guardo así en la **capa Personalidad**?"* |
+
+Layer 1's questions are all of the first kind, because its questions ARE its
+sources — which is why the yolk read so cleanly. Layer 2 asks *"¿tú o usted? ¿qué
+frase no diría jamás?"* and no entregable in its sources holds that, so the
+answer goes to `brand_eggs.personalidad` and stops there.
+
+⚠️ **NOT EVERYTHING IN THE EGG HAS TO BECOME AN ENTREGABLE, and she must not act
+as if it does.** The Egg is tier 1. An answer living only in a layer is a
+complete, finished outcome — not a half-step waiting to be filed somewhere
+properer.
+
+⚠️ **SO SHE NEVER RAISES AN ENTREGABLE THAT IS NOT A SOURCE OF THE LAYER SHE IS
+ON.** No *"ya que estamos, Tono de comunicación está vacío"*. Breakfast's rule,
+2026-09-17: **if an entregable is not linked to a layer, leave it alone.** Two
+reasons it matters more than it looks:
+
+1. It would turn her into a completeness nag across all 48 — the same shape as
+   ERR-07, which is what the beta review already objected to: the app telling
+   the team it has homework outstanding.
+2. `sources()` is the one list of what feeds a layer (CLAUDE.md §10). An
+   assistant volunteering entregables outside it is a second, invisible opinion
+   about what a layer needs, drifting from the one the composer reads.
+
+**The direct-to-layer save is not a new route.** `ClientBrandEggController` already has
+`update` for editing a layer by hand; the card posts there.
+
 ### 14.3b When she pushes back — the most dangerous beat
 
 A weak answer is not saved in silence. The team asked for an assistant with an
@@ -1367,32 +1403,26 @@ composition its own prefix (CLAUDE.md §7).
 and it belongs to all three assistants at once, as its own item, not smuggled in
 here. A per-layer thread is small and this is a long way off.
 
-### 14.9b ⚠️ Six obligatorios feed no layer — a question for Breakfast, not a blocker
+### 14.9b Six obligatorios feed no layer — a note for Breakfast, nothing more
 
-Of the 19 obligatorios, **six reach no layer of the Egg**: `tono`,
-`temas_conversacion`, `territorio`, `contexto_simbologia`, `analisis_categoria`
-and `brand_x`. (A seventh, `checklist_implementacion`, legitimately is not Egg
-material — it is the client's tickable list, CLAUDE.md §11.)
+`tono`, `temas_conversacion`, `territorio`, `contexto_simbologia`,
+`analisis_categoria` and `brand_x` are read by no layer of the Egg. (A seventh,
+`checklist_implementacion`, legitimately is not Egg material — it is the client's
+tickable list.)
 
-14.9 settles that this is **not a correctness problem**. What remains is
-Breakfast's own, and it is worth putting to them plainly:
+⚠️ **THIS IS NOT A PROBLEM AND MUST STOP BEING RAISED AS ONE.** 14.9 settles the
+Egg side; 14.3aa settles the conversation side. **An entregable linked to no
+layer is simply not the Egg's business**, and the assistant leaves it alone.
 
-**Those are entregables they SELL.** They are in the 48 the client is handed in
-the toolkit. If the material for `tono` and `territorio` lives only in the Egg
-and in a conversation, the toolkit Breakfast delivers is missing obligatorios
-that were paid for. Wiring them to layers 2, 3 and 5 would mean the same
-conversation fills both — the Egg AND the deliverable — with no extra work for
-the team.
+What is left is one question, and it is Breakfast's own: those six are
+obligatorios they deliver in the toolkit, and layers 2, 3 and 5 produce that
+material in conversation. Linking them would fill both from one conversation.
+**Ask; do not wire.** Their two documents already enumerate the Egg differently
+(§2), so this is not a thing to assume.
 
-That is a business judgement about their process, so **ask; do not wire it
-unilaterally.** Two more they have to answer before anything is decided:
-
-- ⚠️ **`Brand X` is an obligatorio with NO DEFINITION ANYWHERE.**
-  `docs/entregables.md` line 82 is a numbered row and a label. It could be the
-  differentiator, which would put it at the centre of layer 3. Not a thing to
-  guess at.
-- **`Brand universe (gráfico)`** is layer 4's today, being an asset definition,
-  but it is *named* for layer 5. Both, or a collision of names?
+And one genuinely open item: ⚠️ **`Brand X` is an obligatorio with NO DEFINITION
+ANYWHERE** — `docs/entregables.md` line 82 is a number and a label. Not a thing
+to guess at.
 
 ### 14.10 What gets built
 
