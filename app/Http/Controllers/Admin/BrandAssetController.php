@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\DescribeBrandAsset;
+use App\Enums\AssetType;
 use App\Enums\AssetVisibility;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBrandAssetRequest;
 use App\Models\BrandAsset;
 use App\Models\Client;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\Rule;
 
 /**
  * Filling a brand's folder. Only Breakfast uploads; the client only reads.
@@ -129,6 +132,65 @@ class BrandAssetController extends Controller
         return back()->with('status', $moved->isInternal()
             ? "«{$asset->title}» ya no lo ve la marca."
             : "«{$asset->title}» ya lo ve la marca en sus archivos.");
+    }
+
+    /**
+     * Say what a file IS — logo, paleta, documento.
+     *
+     * ⚠️ THE THIRD INDEPENDENT LABEL. It sits beside visibility (who may see
+     * it) and source (how it arrived) and decides neither. Classifying a file
+     * never moves it, never changes who may open it and never re-files it:
+     * dividing a folder by what things ARE is the mistake that killed
+     * context_documents (CLAUDE.md §2).
+     *
+     * An empty value clears it back to null, which means "nobody has said" —
+     * deliberately not `otro`, which is a decision somebody made.
+     */
+    public function type(Request $request, Client $client, BrandAsset $asset): RedirectResponse
+    {
+        $validated = $request->validate([
+            'type' => ['nullable', Rule::enum(AssetType::class)],
+        ]);
+
+        $type = $validated['type'] ?? null;
+
+        $asset->update(['type' => $type === '' ? null : $type]);
+
+        return back()->with('status', $asset->type === null
+            ? "«{$asset->title}» ya no tiene tipo."
+            : "«{$asset->title}» es {$asset->type->label()}.");
+    }
+
+    /**
+     * Correct what the machine said an image looks like.
+     *
+     * ⚠️ THIS IS WHAT MAKES THE READING BRAND DATA. DescribeBrandAsset writes
+     * the description by looking at the picture, and the Brand Egg composes
+     * layer 4 from it — so it has to be something a person can see and fix,
+     * not an opaque machine output nobody can reach. A reading nobody can
+     * correct is exactly the unreviewed material the Egg may not be built from.
+     *
+     * ⚠️ read_at MOVES WITH IT. Otherwise a hand-corrected description looks
+     * STALE to DescribeBrandAsset::shouldRead() — updated_at would be newer
+     * than read_at — and the next backfill would overwrite the correction with
+     * a fresh machine reading.
+     */
+    public function reading(Request $request, Client $client, BrandAsset $asset): RedirectResponse
+    {
+        $validated = $request->validate([
+            'visual_reading' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $reading = trim((string) ($validated['visual_reading'] ?? ''));
+
+        $asset->forceFill([
+            'visual_reading' => $reading === '' ? null : $reading,
+            'read_at' => $reading === '' ? null : now(),
+        ])->save();
+
+        return back()->with('status', $reading === ''
+            ? "Se borró la descripción de «{$asset->title}»."
+            : "Descripción de «{$asset->title}» guardada.");
     }
 
     /**

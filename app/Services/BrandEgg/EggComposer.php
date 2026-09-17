@@ -340,7 +340,29 @@ final class EggComposer
             ->whereNotNull('visual_reading')
             ->reorder('created_at')
             ->get()
-            ->map(fn (BrandAsset $asset) => "**{$asset->title}**\n".trim((string) $asset->visual_reading))
+            /*
+             * ⚠️ A CONTRACT IS NOT THE BRAND'S LOOK. Every file lives in one
+             * folder — the pricing sheet beside the logo — so the type is what
+             * keeps a scanned invoice out of a paragraph about visual
+             * identity. An UNTYPED file still passes: null means "nobody has
+             * said" rather than "not identity", and excluding it would quietly
+             * drop every image described before types existed.
+             */
+            ->filter(fn (BrandAsset $asset) => $asset->type?->isIdentity() ?? true)
+            ->map(function (BrandAsset $asset): string {
+                // The type first, because it is the one thing the picture
+                // cannot say about itself: a description can tell you a mark is
+                // a heavy circular stamp, never that it is THE primary one.
+                $what = $asset->type?->label() ?? 'Sin tipo';
+
+                // ⚠️ THE LINK IS THE POINT, not decoration. Layer 4 is the only
+                // part of the Egg that is about things that exist as files, so
+                // the paragraph has to be able to name where one lives. It is a
+                // route, so it stays permission-checked on every request.
+                return "**{$what} · {$asset->title}**\n"
+                    .$asset->url()."\n"
+                    .trim((string) $asset->visual_reading);
+            })
             ->all();
 
         return $readings === [] ? null : implode("\n\n", $readings);

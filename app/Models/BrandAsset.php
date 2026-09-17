@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AssetSource;
+use App\Enums\AssetType;
 use App\Enums\AssetVisibility;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -36,6 +37,7 @@ class BrandAsset extends Model
         'original_name',
         'mime',
         'size_bytes',
+        'type',
     ];
 
     protected function casts(): array
@@ -44,6 +46,7 @@ class BrandAsset extends Model
             'size_bytes' => 'integer',
             'visibility' => AssetVisibility::class,
             'source' => AssetSource::class,
+            'type' => AssetType::class,
             // ⚠️ CAST, OR THE STALENESS CHECK SILENTLY NEVER FIRES.
             // DescribeBrandAsset compares read_at against updated_at to notice
             // a file replaced under the same row; uncast, read_at is a string

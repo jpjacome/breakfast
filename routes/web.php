@@ -235,6 +235,15 @@ Route::middleware(['auth', 'breakfast', 'covers-client'])
         Route::patch('clientes/{client}/archivos/{asset}', [AdminBrandAssetController::class, 'visibility'])
             ->name('clients.assets.visibility');
 
+        // What a file IS, and what the machine said it looks like. Ordinary
+        // admin writes answering with back(), so they work from the file
+        // manager and the process screen alike — and they are what the
+        // right-click menu will call once that screen exists.
+        Route::patch('clientes/{client}/archivos/{asset}/tipo', [AdminBrandAssetController::class, 'type'])
+            ->name('clients.assets.type');
+        Route::patch('clientes/{client}/archivos/{asset}/descripcion', [AdminBrandAssetController::class, 'reading'])
+            ->name('clients.assets.reading');
+
         // Your own account. Name and password post to Fortify's endpoints
         // straight from the form, so only the two-factor writes are ours.
         Route::get('cuenta', AccountController::class)->name('account');
