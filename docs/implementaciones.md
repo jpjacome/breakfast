@@ -41,7 +41,7 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 | 14 | Campos propios por marca | ⬜ |
 | 15 | Notas | ⬜ |
 
-**Suite:** 497 → **639 passing** across this cycle. `pint` clean throughout.
+**Suite:** 497 → **661 passing** across this cycle. `pint` clean throughout.
 
 ---
 
@@ -1439,34 +1439,121 @@ They are about what the Brand Egg MEANS, not about how it is built.
 
 ## Queued — raised during the cycle, not on the original list
 
-### A · Per-user file folders
+### A · Per-user file folders — ✅ BUILT 2026-09-17
 
-Raised 2026-09-15, in place of a simple yes/no on keeping the client's chat
-attachments.
+**The conflict it resolved:** a screenshot somebody pastes into a chat is not a
+brand asset. Filing it under the brand — which is what happened from brief point
+3 until now — is what made it a third client write path and what made the
+question uncomfortable. It belongs to the **person**.
 
-**The conflict it resolves:** a screenshot somebody pastes into a chat is not a
-brand asset. Filing it under the brand — which is what happens today — is what
-made it a third client write path and what made the question uncomfortable. It
-belongs to the **person**.
+Three tables, and each answers exactly one question:
 
-**What it becomes:** a folder per user in the file manager, holding what they
-pasted and — the reason this matters — **whatever the agent generates for them
-later.** She generates no images or video today; she will.
+```
+brand_assets       the brand's files. Breakfast files them.
+brand_egg_assets   which of those ARE the identity — Egg layer 4
+user_files         what a person pasted, in their own folder
+```
 
-Touches: `brand_assets` gains an owner dimension beyond `client_id`, the storage
-layout gains a per-user root, the file manager gains user folders beside brand
-folders, and someone has to decide who sees another person's folder.
+⚠️ **BEING A ROW IN `brand_assets` NOW MEANS SOMETHING.** It used to hold the
+brand's deliverables and every screenshot anybody dropped into a chat, told
+apart by a `source` badge that nothing filtered on. What a brand's assets ARE is
+answered by the Egg's inventory alone; a pasted image has never been through
+that decision, so it is not in that table at all.
 
-⚠️ **Until it is built, the current behaviour stands**: a client's attachment is
-kept under the brand as `interno`, so the chat can show the picture. That is the
-interim, not the answer.
+**Every user has a folder**, staff and client alike. A Breakfast admin pasting a
+reference and a brand owner pasting a screenshot are the same act, and giving
+one a private folder and the other a row in somebody's brand would be the same
+confusion with the roles swapped. ⚠️ **Breakfast can open anything pasted at
+them** — that is why the files are kept — and **a client never sees another
+person's folder, not even a brand owner looking at their own team.** Being able
+to invite somebody is not being able to read their working material.
 
-### B · Invite-with-consent
+**Two columns deliberately absent.** No `client_id`: a column for "the brand the
+conversation was about" is exactly how `brand_assets` came to mean two things,
+and the turn already knows its brand. No `visibility`: a brand asset needs one
+because two audiences read the same folder, and a person's folder has one
+audience plus Breakfast, which is a rule about who may ask rather than a
+property of the file.
 
-From the decision above. The owner invites; if the address already has an
-account, **that person** is notified and accepts before any membership row is
-written. Neither the message nor the timing may differ between "existed" and
-"did not", or the enumeration leak comes back through the side door.
+⚠️ **THE DATA MIGRATION IDENTIFIES ROWS FROM `attachment_ids`, NOT FROM
+`source`.** Both look right and only one is: `source = referencia` also covers
+files an admin deliberately filed through the file manager, and those are the
+brand's. It rewrites the turns in the same pass, because `attachment_ids` is
+positional and a row moved without its pointer would blank a picture in a
+conversation — or point at whatever `brand_assets` id was issued next. It is
+**irreversible and says so**: going back would mean deciding which brand each
+file belonged to, and the whole reason it moved is that the answer was none of
+them.
+
+`DescribesAFile` was extracted rather than copied. `TurnAttachments` already
+warned in its own docblock that the file-kind reading drifts, and a screenshot
+must not be an image in one transcript and a paperclip in another.
+
+**Still open, and deliberately not built:** the file manager has no screen for
+user folders yet, and the second half of the original idea — **whatever the
+agent generates for somebody later** — has no consumer, because she generates no
+images or video today.
+
+**Proved by** `tests/Feature/UserFileTest.php` (10) plus the rewritten
+`KeptAttachmentTest` and `TurnAttachmentsTest`.
+
+### B · Invite-with-consent — ✅ BUILT 2026-09-17
+
+The owner invites; if the address already has an account, **that person** is
+notified and accepts before any membership row is written.
+
+### ⚠️ The refusal WAS the leak
+
+This is the part worth keeping. `StoreTeamMemberRequest` carried
+`Rule::unique('users', 'email')` and a message reading *"Ya existe una cuenta con
+ese correo"* — directly beside a comment explaining that attaching would tell an
+owner an account existed on an address they only guessed at. **Both answers
+leak, in opposite directions**, and the app had shipped the one it was warning
+about. An owner could enumerate every account on the system by typing addresses
+into the invite form.
+
+The only non-answer is to do the same visible thing either way.
+
+### What was built
+
+| | |
+|---|---|
+| `brand_invitations` | a pending invitation. ⚠️ Keyed on the ADDRESS, not a `user_id` — a foreign key would store the answer to the question being kept quiet |
+| `InviteUserToClient::invitePending()` | the consent path, used when `withConsent: true` |
+| `BrandMembershipInvitation` | mail + portal inbox, with its own template |
+| `Portal\InvitationController` | show · accept · decline |
+| `portal/invitaciones/{token}` | ⚠️ no `section:` gate — the person is not in the brand yet, so the token plus their address IS the authorisation |
+
+**Breakfast staff still attach directly.** They administer every brand and every
+account, so there is nothing to keep from them, and somebody has to be able to
+put a person in a brand without a round trip.
+
+### ⚠️ The timing half, which is easy to skip
+
+The new-account branch runs `Hash::make()` — bcrypt, deliberately slow, roughly
+a tenth of a second. The consent branch has no password to hash, so without
+help *"this address has an account"* would be **measurable with a stopwatch**,
+and a leak you can time is still a leak. `equaliseTiming()` does the same work
+and throws it away. Both paths are otherwise one insert plus one synchronous
+mail.
+
+### Three smaller decisions
+
+- **The owner's message names the ADDRESS, never a person.** A name they never
+  typed appearing in the answer would say the account was already there — the
+  same leak wearing a different sentence.
+- **A refusal tells nobody.** A decline that reports back turns "no" into a
+  conversation the invited person has to have, which is most of the reason
+  somebody accepts an invitation they did not want.
+- **`isPending()` is derived**, never a status column — same rule as
+  `BrandEggState` and the 48 entregables.
+
+**Proved by** `tests/Feature/InviteWithConsentTest.php` (10). The one that
+matters sends two invites and asserts the two answers are identical once the
+address is substituted out: if it ever fails, the invite form has become an
+enumeration oracle again. ⚠️ `MultiBrandTest` had a test asserting the old
+validation error — it now asserts the silent path, and its comment records that
+the error it used to check for was the bug.
 
 ### C · The file manager mixes pasted screenshots with the brand's real files
 

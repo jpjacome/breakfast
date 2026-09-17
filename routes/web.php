@@ -24,6 +24,7 @@ use App\Http\Controllers\Portal\BrandController as PortalBrandController;
 use App\Http\Controllers\Portal\BrandEggController as PortalBrandEggController;
 use App\Http\Controllers\Portal\BrandSwitchController;
 use App\Http\Controllers\Portal\ChecklistController as PortalChecklistController;
+use App\Http\Controllers\Portal\InvitationController;
 use App\Http\Controllers\Portal\MeetingController as PortalMeetingController;
 use App\Http\Controllers\Portal\NotificationController;
 use App\Http\Controllers\Portal\ProfileController as PortalProfileController;
@@ -301,6 +302,22 @@ Route::middleware(['auth', 'breakfast', 'covers-client'])
 Route::middleware(['auth'])->prefix('portal')->name('portal.')->group(function () {
 
     Route::view('/', 'portal.home')->name('home');
+
+    /*
+     * Answering an invitation to a brand — queued item B.
+     *
+     * ⚠️ NO `section:` GATE, because the person is by definition not in the
+     * brand yet. Being signed in as the invited ADDRESS and holding the token
+     * is the authorisation, and InvitationController checks both on every one
+     * of these — an unknown token, somebody else's token and an already
+     * answered one all 404 without saying which.
+     */
+    Route::get('/invitaciones/{token}', [InvitationController::class, 'show'])
+        ->name('invitaciones.show');
+    Route::post('/invitaciones/{token}/aceptar', [InvitationController::class, 'accept'])
+        ->name('invitaciones.accept');
+    Route::post('/invitaciones/{token}/rechazar', [InvitationController::class, 'decline'])
+        ->name('invitaciones.decline');
 
     // The brand's own assistant, on the client dashboard — the same panel the
     // Breakfast side has. Throttled like every other AI surface: each turn is a

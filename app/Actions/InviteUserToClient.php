@@ -4,8 +4,10 @@ namespace App\Actions;
 
 use App\Enums\BrandRole;
 use App\Enums\UserRole;
+use App\Models\BrandInvitation;
 use App\Models\Client;
 use App\Models\User;
+use App\Notifications\BrandMembershipInvitation;
 use App\Notifications\ClientInvitation;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
@@ -25,7 +27,9 @@ class InviteUserToClient
 {
     /**
      * @param  array<string, string>  $permissions  PortalSection => AccessLevel.
-     * @return array{user: User, password: ?string, delivered: bool, existed: bool}
+     * @param  bool  $withConsent  see the branch below — true when the inviter
+     *                             is a brand owner rather than Breakfast staff.
+     * @return array{user: ?User, password: ?string, delivered: bool, existed: bool, pending: bool}
      */
     public function handle(
         Client $client,
@@ -33,6 +37,8 @@ class InviteUserToClient
         string $email,
         UserRole $role,
         array $permissions = [],
+        bool $withConsent = false,
+        ?User $invitedBy = null,
     ): array {
         // ⚠️ AN ACCOUNT THAT ALREADY EXISTS IS ADDED, NOT DUPLICATED — this is
         // the whole point of ACC-01. Before it, users.email being unique meant
@@ -49,6 +55,26 @@ class InviteUserToClient
         $existing = User::where('email', $email)->first();
 
         if ($existing !== null) {
+            /*
+             * ⚠️ A BRAND OWNER MAY NOT ATTACH SOMEBODY — queued item B.
+             *
+             * Attaching on the spot would tell the owner that an address they
+             * only guessed at has an account, which is somebody else's
+             * business. So does refusing with "ya existe una cuenta", which is
+             * what this app did until 2026-09-17 while its own comment claimed
+             * to prevent exactly that. Both answers leak, in opposite
+             * directions; the only non-answer is to do the same visible thing
+             * either way and ask the invited person.
+             *
+             * Breakfast staff still attach directly. They administer every
+             * brand and every account, so there is nothing to keep from them —
+             * and somebody has to be able to put a person in a brand without a
+             * round trip.
+             */
+            if ($withConsent) {
+                return $this->invitePending($client, $existing->email, $role, $permissions, $invitedBy);
+            }
+
             $this->attach($client, $existing, $role, $permissions);
 
             return [
@@ -56,6 +82,7 @@ class InviteUserToClient
                 'password' => null,
                 'delivered' => false,
                 'existed' => true,
+                'pending' => false,
             ];
         }
 
@@ -75,7 +102,109 @@ class InviteUserToClient
             'password' => $temporaryPassword,
             'delivered' => $this->sendSetupLink($user, $client),
             'existed' => false,
+            'pending' => false,
         ];
+    }
+
+    /**
+     * Ask the person before writing anything — queued item B.
+     *
+     * Nothing reaches `brand_user` here. The row holds what they WOULD get,
+     * and the pivot is written at acceptance and not one moment earlier.
+     *
+     * ⚠️ IT BURNS TIME ON PURPOSE. The other branch runs Hash::make(), which is
+     * bcrypt and deliberately slow — roughly a tenth of a second. Skipping it
+     * here would make "this address has an account" measurable with a
+     * stopwatch, and a leak you can time is still a leak. `equaliseTiming()`
+     * does the same work and throws it away.
+     *
+     * ⚠️ AN ALREADY-PENDING INVITATION IS REUSED, not duplicated. Two live
+     * tokens for one address on one brand means a second mail that looks like
+     * the first, and an accepted invitation with a twin still open.
+     *
+     * @param  array<string, string>  $permissions
+     * @return array{user: ?User, password: ?string, delivered: bool, existed: bool, pending: bool}
+     */
+    private function invitePending(
+        Client $client,
+        string $email,
+        UserRole $role,
+        array $permissions,
+        ?User $invitedBy,
+    ): array {
+        $this->equaliseTiming();
+
+        $invitation = BrandInvitation::where('client_id', $client->id)
+            ->where('email', $email)
+            ->get()
+            ->first(fn (BrandInvitation $i) => $i->isPending());
+
+        $invitation ??= BrandInvitation::create([
+            'client_id' => $client->id,
+            'invited_by' => $invitedBy?->getKey(),
+            'email' => $email,
+            'role' => $this->brandRole($role),
+            'permissions' => $permissions,
+            'token' => BrandInvitation::freshToken(),
+            'expires_at' => now()->addDays(BrandInvitation::LIFETIME_DAYS),
+        ]);
+
+        return [
+            'user' => null,
+            'password' => null,
+            // Never throws, for the same reason sendSetupLink() does not: a
+            // dead mail server must not lose the invitation that was just made.
+            'delivered' => $this->notifyInvited($invitation),
+            'existed' => true,
+            'pending' => true,
+        ];
+    }
+
+    /**
+     * Spend what the other branch spends on hashing, and discard it.
+     *
+     * ⚠️ NOT SUPERSTITION. Both paths are one insert plus one synchronous mail;
+     * the only asymmetry left is bcrypt, and bcrypt is slow by design. Without
+     * this, "existing account" and "new account" differ by a measurable
+     * constant on every invite.
+     */
+    private function equaliseTiming(): void
+    {
+        Hash::make(Str::password(14, symbols: false));
+    }
+
+    /** @return bool whether the mail went out */
+    private function notifyInvited(BrandInvitation $invitation): bool
+    {
+        try {
+            $recipient = User::where('email', $invitation->email)->first();
+
+            if ($recipient === null) {
+                return false;
+            }
+
+            $recipient->notify(new BrandMembershipInvitation($invitation));
+
+            return true;
+        } catch (\Throwable $e) {
+            report($e);
+
+            return false;
+        }
+    }
+
+    /**
+     * Accept an invitation: write the membership it was holding.
+     *
+     * ⚠️ THE ONLY PATH FROM AN INVITATION TO A PIVOT ROW. Marked accepted in
+     * the same breath as the attach, so a token cannot be replayed into a
+     * second brand or used after the person was removed again.
+     */
+    public function accept(BrandInvitation $invitation, User $user): void
+    {
+        $this->attach($invitation->client, $user, $invitation->role, $invitation->permissions ?? []);
+
+        $invitation->forceFill(['accepted_at' => now()])->save();
     }
 
     /**

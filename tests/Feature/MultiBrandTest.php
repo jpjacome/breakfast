@@ -6,6 +6,7 @@ use App\Enums\PortalSection;
 use App\Enums\UserRole;
 use App\Models\AssistantMessage;
 use App\Models\BrandAsset;
+use App\Models\BrandInvitation;
 use App\Models\Client;
 use App\Models\User;
 use Illuminate\Support\Facades\Schema;
@@ -328,18 +329,35 @@ it('adds an existing account to a brand instead of refusing it', function () {
 });
 
 it('does not let a brand owner attach an address that already has an account', function () {
-    // Refused on this side, unlike on Breakfast's: attaching would tell the
-    // owner that an account exists on an address they only guessed at.
+    /*
+     * ⚠️ THIS TEST USED TO ASSERT A VALIDATION ERROR, and that error was itself
+     * the leak — queued item B, 2026-09-17. The message read "ya existe una
+     * cuenta con ese correo", while the comment beside it claimed to be
+     * stopping an owner from learning exactly that.
+     *
+     * What is refused has not changed: an owner still cannot put an existing
+     * person into their brand. What changed is that the refusal is silent. An
+     * invitation is written, that person is asked, and the owner is told the
+     * same sentence they would get for an address with no account at all.
+     */
     $client = Client::factory()->create();
     $owner = User::factory()->clientOwner($client->id, ['estrategia' => 'read'])->create();
 
-    User::factory()->create(['email' => 'ajena@ejemplo.com']);
+    $stranger = User::factory()->create(['email' => 'ajena@ejemplo.com']);
 
     actingAs($owner)->post(route('portal.equipo.store'), [
         'name' => 'Quien Sea',
         'email' => 'ajena@ejemplo.com',
         'permissions' => ['estrategia' => ['read']],
-    ])->assertSessionHasErrors('email');
+    ])->assertSessionHasNoErrors();
+
+    // Nothing reached the pivot.
+    expect($stranger->fresh()->brands()->where('clients.id', $client->id)->exists())
+        ->toBeFalse();
+
+    // And it is waiting on them instead.
+    expect(BrandInvitation::where('email', 'ajena@ejemplo.com')->exists())
+        ->toBeTrue();
 });
 
 /* -------------------------------------------------------------------------

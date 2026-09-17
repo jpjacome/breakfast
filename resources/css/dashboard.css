@@ -975,3 +975,15 @@
 .brand-entry-body { display: grid; gap: .75rem; }
 .brand-entry-body p { margin: 0; line-height: 1.7; }
 .brand-entry-body a { word-break: break-word; }
+
+/*
+ * Answering an invitation to a brand — queued item B.
+ *
+ * ⚠️ The two buttons sit side by side at the same size on purpose. Saying no
+ * has to be as easy as saying yes, or the consent this flow exists to collect
+ * is not consent — so "No, gracias" is never the small one.
+ */
+.invitation-card { display: grid; gap: 1.25rem; }
+.invitation-role { margin: 0; }
+.invitation-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.invitation-note { margin: 0; font-size: .8rem; color: var(--ink-quiet); }

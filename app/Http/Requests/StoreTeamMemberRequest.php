@@ -26,7 +26,18 @@ class StoreTeamMemberRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email', 'max:190', Rule::unique('users', 'email')],
+            /*
+             * ⚠️ NO unique RULE, AND ITS ABSENCE IS THE FIX — queued item B.
+             *
+             * It used to refuse a known address with "ya existe una cuenta con
+             * ese correo", while the comment below claimed to be preventing an
+             * owner from learning exactly that. The refusal WAS the leak.
+             *
+             * An address with an account now produces an invitation that person
+             * answers, and the owner is told the same sentence either way. See
+             * InviteUserToClient::invitePending().
+             */
+            'email' => ['required', 'email', 'max:190'],
             ...$this->permissionRules(),
         ];
     }
@@ -42,11 +53,7 @@ class StoreTeamMemberRequest extends FormRequest
     public function messages(): array
     {
         return [
-            // ⚠️ Still refused here, unlike on the Breakfast side. Attaching
-            // would tell a brand owner that an account exists on an address
-            // they only guessed at, which is somebody else's business.
-            'email.unique' => 'Ya existe una cuenta con ese correo. '
-                .'Pedile al equipo de Breakfast que la agregue a tu marca.',
+
         ];
     }
 

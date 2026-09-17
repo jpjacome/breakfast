@@ -42,23 +42,37 @@ class TeamController extends Controller
 
     public function store(StoreTeamMemberRequest $request, InviteUserToClient $invite): RedirectResponse
     {
+        $email = $request->validated('email');
+
         $result = $invite->handle(
             client: $request->user()->activeBrand(),
             name: $request->validated('name'),
-            email: $request->validated('email'),
+            email: $email,
             role: UserRole::ClienteMiembro,
             permissions: $request->permissions(),
+            // ⚠️ THE OWNER ASKS, IT DOES NOT ADD - queued item B. An address
+            // that already has an account produces an invitation that person
+            // answers, and nothing reaches brand_user until they do.
+            withConsent: true,
+            invitedBy: $request->user(),
         );
 
-        $user = $result['user'];
-
+        /*
+         * ⚠️ ONE SENTENCE FOR BOTH OUTCOMES, AND IT NAMES THE ADDRESS RATHER
+         * THAN THE PERSON.
+         *
+         * An owner must not learn whether an address already has an account.
+         * Saying "invitamos a Ana" when the account existed and "creamos la
+         * cuenta de Ana" when it did not tells them exactly that, and so does a
+         * name appearing that they never typed. The address is the one thing
+         * they already know, because they just typed it.
+         */
         return back()->with([
-            'status' => $result['delivered']
-                ? "Invitamos a {$user->name}. Le enviamos un enlace para crear su contraseña."
-                : "Creamos la cuenta de {$user->name}, pero no se pudo enviar el correo — comparte la contraseña temporal.",
+            'status' => "Enviamos una invitación a {$email}.",
             // Flashed, so it survives exactly one redirect and then is gone.
+            // Null on the consent path, which has no account to read out.
             'temp_password' => $result['password'],
-            'temp_password_for' => $user->email,
+            'temp_password_for' => $email,
         ]);
     }
 
