@@ -27,12 +27,18 @@
      * this page adds is $hrefs: each ring becomes a real <a>, and the egg IS
      * the index — the one thing a picture of it could never be.
      *
-     * ⚠️ RING 4 IS DRAWN AS PENDING ON PURPOSE. Passing every layer but Assets a
-     * value makes the component hatch that one ring, and the hatch means here
-     * what it means everywhere else: this layer is not settled. No brand's data
-     * is involved on this screen at all.
+     * ⚠️ NO RING IS HATCHED ANY MORE. Ring 4 was drawn as pending while
+     * "Brand Assets" was an open question — it was the only layer whose
+     * sources nobody had settled. It was settled on 2026-09-16: the layer
+     * reads the nine VISUAL ENTREGABLES, and the brand's image files reach it
+     * as TEXT, through the reading DescribeBrandAsset stores on each row.
+     *
+     * $pending stays as a null so the branches below read as "is this layer
+     * the unsettled one" rather than being deleted outright — the next open
+     * question gets named here instead of re-derived. No brand's data is
+     * involved on this screen at all.
      */
-    $pending = BrandEggLayer::Assets;
+    $pending = null;
 
     $drawing = collect(BrandEggLayer::cases())
         ->mapWithKeys(fn (BrandEggLayer $layer) => [
@@ -149,22 +155,24 @@
                         </p>
                     @endforeach
 
-                    @if ($layer === $pending)
-                        <p class="egg-map-source unresolved">
-                            <span><b>«Brand Assets» — sin resolver</b></span>
-                            <span class="egg-map-col">—</span>
-                            <span class="egg-map-badge open">sin resolver</span>
+                    @if ($layer->readsAssetReadings())
+                        <p class="egg-map-source">
+                            <span><b>Cómo se ven los archivos de la marca</b></span>
+                            {{-- Not an entregable and not a column on
+                                 brand_deliverables — it is a field on each file's
+                                 own row, which is why it prints its table. --}}
+                            <span class="egg-map-col">brand_assets.visual_reading</span>
+                            <span class="egg-map-badge">texto</span>
                         </p>
                     @endif
                 </div>
 
-                @if ($layer === $pending)
+                @if ($layer->readsAssetReadings())
                     <p class="egg-map-note">
-                        Ésta es la única capa incompleta. «Brand Assets» no es uno de los
-                        {{ $totalCount }}: es el nombre de la sección de <b>archivos</b> de la
-                        marca. Si se refiere a los entregables gráficos, esta capa es texto como
-                        las otras cuatro y se construye ya. Si se refiere a los archivos subidos,
-                        queda atada al trabajo de imágenes y sale después.
+                        Esta capa lee además <b>cómo se ven los archivos de la marca</b>. No las
+                        imágenes: el texto. Cada imagen que se archiva se describe una vez y esa
+                        descripción se guarda junto al archivo, así que la capa recibe palabras
+                        como cualquier otra, y el Brand Egg nunca mira una foto.
                     </p>
                 @endif
             </article>
@@ -181,19 +189,13 @@
                 No es necesariamente un error: el Egg es una síntesis de lo esencial, no un
                 índice de los {{ $totalCount }}. Pero conviene mirarlo una vez, porque hay
                 trabajo obligatorio aquí que hoy no llega a la memoria principal de la marca.
-                El primer grupo es el que decide la capa {{ $pending->ring() }}.
             </p>
 
             <div class="egg-map-groups">
                 @foreach ($groups as $name => $items)
                     <div class="egg-map-group @if($name === $candidateGroup) is-candidate @endif">
                         <h3>{{ $name }}</h3>
-                        <p class="egg-map-count">
-                            {{ count($items) }}
-                            @if ($name === $candidateGroup)
-                                · candidatos a la capa {{ $pending->ring() }}
-                            @endif
-                        </p>
+                        <p class="egg-map-count">{{ count($items) }}</p>
                         <ul>
                             @foreach ($items as $item)
                                 <li>
@@ -204,9 +206,9 @@
                         </ul>
                         @if ($name === $candidateGroup)
                             <p class="egg-map-hint">
-                                Varios de éstos guardan el <b>enlace al archivo</b> como su texto.
-                                Si la capa {{ $pending->ring() }} los lee, recibe también las
-                                imágenes — y deja de depender del trabajo de toolkit.
+                                Este grupo era el que decidía la capa 4, y ya está decidido: casi
+                                todos pasaron a alimentarla el 2026-09-16. Lo que queda aquí no es
+                                identidad visual que falte leer, sino lo que no lo es.
                             </p>
                         @endif
                     </div>

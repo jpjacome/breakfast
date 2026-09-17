@@ -55,15 +55,21 @@ it('accounts for all 48 entregables, whether or not they feed a layer', function
     }
 });
 
-it('leaves layer 4 drawn as pending, because its sources are undecided', function () {
-    // The hatched ring is not decoration: it is the open question made visible.
-    // If someone resolves "Brand Assets" and wires it up, this test should be
-    // the thing that tells them to stop drawing it as pending.
+it('draws no ring as pending, because layer 4 was settled', function () {
+    // ⚠️ THIS TEST DID ITS JOB. It used to assert the opposite — that layer 4
+    // had two sources, did not include Emblemas, and was hatched "sin resolver"
+    // — and its comment said that whoever resolved "Brand Assets" should be
+    // told by this test to stop drawing it as pending. That happened on
+    // 2026-09-16, and the failure was the message arriving.
     expect(BrandEggLayer::Assets->sources())
-        ->not->toContain(DeliverableItem::Emblemas)
-        ->and(BrandEggLayer::Assets->sources())->toHaveCount(2);
+        ->toContain(DeliverableItem::Emblemas)
+        ->and(BrandEggLayer::Assets->readsAssetReadings())->toBeTrue();
 
-    $this->get('/brand-egg')->assertSee('sin resolver', false);
+    $this->get('/brand-egg')
+        ->assertDontSee('sin resolver', false)
+        // The files reach the layer as TEXT, and the screen names the column
+        // rather than implying the Egg looks at pictures.
+        ->assertSee('brand_assets.visual_reading', false);
 });
 
 it('is not linked from the public site', function () {

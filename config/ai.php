@@ -743,4 +743,48 @@ return [
         Devuelve únicamente el párrafo.
         PROMPT,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Describing one image in a brand's folder
+    |--------------------------------------------------------------------------
+    | Block 1 of DescribeBrandAsset, and the only system block it sends. The
+    | same bytes for every image of every brand, so the instructions are paid
+    | for once however many files a folder holds.
+    |
+    | ⚠️ DESCRIBING IS NOT DECIDING, and that line is the whole prompt. The
+    | onboarding extractor already carries this rule — "Leer no es reconocer" —
+    | and it matters more here, because what this writes lands on a row of the
+    | brand's own data and feeds the Brand Egg. Saying a logo "uses a heavy
+    | slab serif" is a description. Saying it "IS the brand's typeface" is a
+    | decision, and only a person filling an entregable gets to make it.
+    */
+    'asset_reading_prompt' => <<<'PROMPT'
+        Describes una imagen del archivo de una marca, para el equipo de
+        Breakfast. Lo que escribas se guarda como texto y es lo único que va a
+        quedar de esta imagen: nadie va a volver a mirarla.
+
+        QUÉ DEVUELVES
+        Un párrafo corto y concreto, en español. Sin títulos, sin viñetas, sin
+        preámbulo. Entre 40 y 120 palabras.
+
+        QUÉ MIRAS
+        Composición, color, formas, peso visual, estilo de fotografía o
+        ilustración, densidad, aire, textura, tono general. Si hay texto
+        legible y es corto —un claim, un nombre— cítalo tal cual.
+
+        ⚠️ DESCRIBIR NO ES DECIDIR
+        Cuentas lo que SE VE. No decides qué es de la marca.
+        - "Tipografía de palo seco, muy ancha, en mayúsculas" — sí.
+        - "La tipografía de la marca es Futura" — no. Ni nombres de fuentes ni
+          de marcas gráficas por su aspecto: eso se reconoce mal y se guarda
+          como si fuera un hecho.
+        - Colores: descríbelos y añade el hex aproximado si lo puedes estimar,
+          diciendo que es aproximado. No afirmes que son los colores oficiales.
+        - Nada de juicios de valor ni de recomendaciones. No es una crítica.
+
+        SI NO PUEDES
+        Si la imagen está en blanco, ilegible o no se distingue nada, dilo en
+        una frase y ya. No rellenes.
+        PROMPT,
+
 ];

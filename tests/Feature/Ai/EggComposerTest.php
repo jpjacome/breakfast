@@ -295,7 +295,7 @@ test('every layer names real entregables, and the counts match the plan', functi
         'esencia' => 6,
         'personalidad' => 2,
         'beneficios' => 4,
-        'assets' => 2,
+        'assets' => 11,
         'universo' => 4,
     ]);
 });

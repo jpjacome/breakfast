@@ -62,12 +62,33 @@ enum BrandEggLayer: string
                 DeliverableItem::Insight,
                 DeliverableItem::Publicos,
             ],
-            // Layer 4 is "Brand Assets / Icons" — which is PortalSection::BrandAssets,
-            // the brand's FILES, not an entregable. LookAndFeel and Relato are the
-            // text half; the images are the outside dependency in §2 Finding 2 and
-            // do not belong in this list.
+            /*
+             * Layer 4 — "Brand Assets / Icons".
+             *
+             * ⚠️ THE NINE VISUAL ENTREGABLES WERE MISSING UNTIL 2026-09-16, and
+             * their absence was the whole reason this ring stayed hollow. The
+             * plan named "Brand Assets", which is PortalSection::BrandAssets —
+             * the brand's FILES — so the layer was written against the two text
+             * entregables and waited on image understanding. But Breakfast
+             * writes the visual definitions down as entregables too, and those
+             * are approved brand data sitting in the database, unread by
+             * anything. Emblemas, Colores and the identificativos say more
+             * about a brand's assets than any single file does.
+             *
+             * The files are not gone from this layer — they arrive as TEXT.
+             * See readsAssetReadings() below.
+             */
             self::Assets => [
                 DeliverableItem::LookAndFeel,
+                DeliverableItem::Emblemas,
+                DeliverableItem::IdentificativoPrincipal,
+                DeliverableItem::IdentificativoSecundario,
+                DeliverableItem::BrandUniverse,
+                DeliverableItem::Colores,
+                DeliverableItem::Tipografia,
+                DeliverableItem::Ilustraciones,
+                DeliverableItem::Personaje,
+                DeliverableItem::Aplicaciones,
                 DeliverableItem::Relato,
             ],
             self::Universo => [
@@ -122,6 +143,25 @@ enum BrandEggLayer: string
             self::Assets => 'Los activos visuales de la marca: su look and feel y su archivo.',
             self::Universo => 'El mundo emocional que la marca abre: a dónde lleva y qué se siente ahí.',
         };
+    }
+
+    /**
+     * Whether this layer also reads the descriptions of the brand's images.
+     *
+     * ⚠️ TEXT, NEVER PICTURES. The Egg is composed from fields of the brand and
+     * nothing else (docs/brand-egg.md §1), so an image reaches a layer only
+     * after DescribeBrandAsset has turned it into words stored on the asset's
+     * own row. The composer sends no image, ever — it reads brand_assets.
+     * visual_reading like any other column.
+     *
+     * ⚠️ AND ONLY LAYER 4, which is why this is a method on the enum rather
+     * than something EggComposer decides. Nothing outside this class chooses
+     * what feeds a layer; a second opinion living in the composer is how the
+     * Egg ends up built from one set of sources and explained by another.
+     */
+    public function readsAssetReadings(): bool
+    {
+        return $this === self::Assets;
     }
 
     /** The ring's position, 1 being the yolk. The <g> in the SVG carries it. */

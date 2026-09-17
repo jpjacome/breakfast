@@ -25,7 +25,7 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 
 | # | item | state |
 |---|---|---|
-| 1 | Brand Egg | 🟡 **steps 1–9 built 2026-09-15.** Only §11 step 10 is open — layer 4's images, gated on brief point 2. See §1 below |
+| 1 | Brand Egg | ✅ **2026-09-16 — step 10 closed.** Layer 4 reads the nine visual entregables plus each image's stored description. See §1 and §1b |
 | 2 | Multi-marca y permisos | ✅ 2026-09-14 · **step 10 closed 2026-09-15** |
 | 3 | Leer las imágenes del toolkit sin segunda carga | ✅ 2026-09-14/15 |
 | 4 | Mostrar imágenes en el chat, ampliar y reproducir video | ✅ 2026-09-15 |
@@ -41,7 +41,7 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 | 14 | Campos propios por marca | ⬜ |
 | 15 | Notas | ⬜ |
 
-**Suite:** 497 → **596 passing** across this cycle. `pint` clean throughout.
+**Suite:** 497 → **605 passing** across this cycle. `pint` clean throughout.
 
 ---
 
@@ -282,6 +282,107 @@ a bad compose payload answering JSON rather than a redirect.
    paragraph; Aprobar then makes `/portal/estrategia` show the link, and the
    link opens.
 
+
+---
+
+## 1b · Brand Egg step 10 — layer 4, and images as text · 2026-09-16
+
+*The last open step of `docs/brand-egg.md` §11, and the answer to its §13
+question 2.*
+
+### The question that was actually open
+
+The plan said layer 4 — "Brand Assets / Icons" — could not be built until
+Brandy understood images, because "Brand Assets" is `PortalSection::BrandAssets`,
+the brand's **files**. So the layer shipped reading `look_and_feel` + `relato`
+and its ring drew hollow.
+
+Two things turned out to be true at once:
+
+1. **The gate had already lifted.** Item 3 shipped image reading on 2026-09-14/15
+   — the digest keeps a *"Cómo se ve"* half. The plan's note was stale.
+2. **⚠️ BUT USING IT WOULD HAVE BROKEN THE EGG'S FOUNDING RULE.**
+   `clients.document_digest` is the model's unreviewed reading of an uploaded
+   PDF and sits at the BOTTOM of the five tiers for exactly that reason.
+   Feeding it into layer 4 promotes unreviewed material into tier 1 — the
+   failure §1 of that plan exists to prevent.
+
+### The rule that settled it
+
+> **Every image entering the brand's database is analysed once and stored as
+> text. The Brand Egg only ever reads text fields. Never images.**
+
+That dissolves the dilemma rather than trading it off. A reading stored on the
+asset's **own row** is not the toolkit: it hangs off a file somebody filed on
+purpose, it shows beside that file, and it can be corrected. **That makes it
+brand data**, and layer 4 reads it like any other column.
+
+### What was built
+
+| | |
+|---|---|
+| `brand_assets.visual_reading` + `read_at` | the picture, in words, on the row |
+| `DescribeBrandAsset` | one image → one description. **Never throws** |
+| `config('ai.asset_reading_prompt')` | *"describir no es decidir"* |
+| upload hook | reads each image as it arrives, inside a **25s budget** |
+| `assets:describe` | backfill, `--limit=25` by default, **never scheduled** |
+| `BrandEggLayer::readsAssetReadings()` | layer 4 only, decided by the enum |
+| layer 4's `sources()` | **2 → 11 entregables** |
+
+### ⚠️ Nine visual entregables fed nothing at all
+
+The layer literally called *"Brand Assets / Icons"* read `look_and_feel` and
+`relato`, while `emblemas`, `brand_universe`, `identificativo_principal`,
+`identificativo_secundario`, `colores`, `tipografia`, `ilustraciones`,
+`personaje` and `aplicaciones` — **approved brand data, several of them
+obligatorios** — reached no layer whatsoever. That absence was most of why the
+ring stayed hollow, and fixing it needed no new capability at all.
+
+Of the 48, **10 fed a layer before this and 19 do now.**
+
+### The rules that keep it cheap and honest
+
+- **Images only.** A PDF here is a brandbook and the onboarding assistant
+  already reads those — two readings of one document can disagree, and paying
+  twice to create a contradiction is the worst of both.
+- **⚠️ `subida` only, never `referencia`.** A `referencia` is a screenshot
+  somebody pasted into a chat, filed so the conversation can still show it —
+  not because anyone decided it describes the brand. Describing those is the
+  cost with none of the value. `AssetSource` already drew that line.
+- **Read once.** `read_at` vs `updated_at` is the staleness check: a file
+  replaced under the same row leaves a description of the old picture, and
+  those two timestamps are the only signal the bytes changed.
+- **⚠️ The upload budget is 25s** because PHP's web `max_execution_time` here is
+  **60s** (§9). A folder dropped in ten at a time would run the request out and
+  lose the upload — the one thing the person actually asked for. Past the
+  budget the reading is skipped and `assets:describe` collects it.
+- **`visual_reading` is NOT `$fillable`.** It is written by one action and
+  nothing else, so no request can mass-assign a description of a picture nobody
+  looked at. A test helper using `create()` for it silently dropped the value,
+  which is how that was found.
+
+### A test that did its job
+
+`BrandEggMapTest` asserted layer 4 had two sources, did not include `Emblemas`,
+and was drawn *"sin resolver"* on the public map. Its comment said that whoever
+resolved "Brand Assets" should be **told by this test** to stop drawing it as
+pending. It failed on exactly that, and the public map now names
+`brand_assets.visual_reading` as a source instead of hatching a ring.
+
+### How it was proved
+
+`tests/Feature/Ai/AssetReadingTest.php` — 9 tests. 596 → **605 passing.**
+Pinned: a `referencia` and a PDF are never read; an image is never read twice;
+a replaced file is; a provider outage leaves the upload intact; and — the one
+that matters — **the composer sends the words and never an `image_url`.**
+
+### Deploy
+
+One migration, `2026_09_16_100000_add_visual_reading_to_brand_assets_table`.
+⚠️ **No `npm run build` and no CSS**, and nothing existing changes behaviour
+until an image is read. Existing folders stay undescribed until
+`php artisan assets:describe` is run — deliberately, since it is a paid call
+per image on a worker pool four other sites share.
 ---
 
 ## 2 · Multi-marca y permisos — ✅ 2026-09-14

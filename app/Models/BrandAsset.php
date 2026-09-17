@@ -44,6 +44,11 @@ class BrandAsset extends Model
             'size_bytes' => 'integer',
             'visibility' => AssetVisibility::class,
             'source' => AssetSource::class,
+            // ⚠️ CAST, OR THE STALENESS CHECK SILENTLY NEVER FIRES.
+            // DescribeBrandAsset compares read_at against updated_at to notice
+            // a file replaced under the same row; uncast, read_at is a string
+            // and greaterThan() would be asked to compare a Carbon with it.
+            'read_at' => 'datetime',
         ];
     }
 

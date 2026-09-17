@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\DescribeBrandAsset;
 use App\Enums\AssetVisibility;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBrandAssetRequest;
@@ -27,6 +28,23 @@ use Illuminate\Http\UploadedFile;
  */
 class BrandAssetController extends Controller
 {
+    /**
+     * How long an upload may spend describing images before it stops.
+     *
+     * ⚠️ PHP'S WEB max_execution_time ON THIS HOST IS 60s (CLAUDE.md §3), and
+     * an upload has already spent time receiving the files before any of this
+     * starts. A reading is a paid call of a few seconds, so a folder dropped in
+     * ten at a time would run the request out and lose the upload itself —
+     * which is the one thing the person actually asked for.
+     *
+     * So the budget stops STARTING readings, and whatever is left keeps
+     * read_at null. `assets:describe` picks those up, and the upload always
+     * survives. Same shape as EggComposer::BUDGET_SECONDS, for the same reason.
+     */
+    private const DESCRIBE_BUDGET_SECONDS = 25;
+
+    public function __construct(private readonly DescribeBrandAsset $describe) {}
+
     public function store(StoreBrandAssetRequest $request, Client $client): RedirectResponse
     {
         /** @var array<int, UploadedFile> $files */
@@ -34,6 +52,7 @@ class BrandAssetController extends Controller
         $single = count($files) === 1;
         $folder = BrandAsset::folderFor($client);
         $visibility = $request->visibility();
+        $startedAt = microtime(true);
 
         foreach ($files as $file) {
             // store() names the file itself, so two uploads called logo.png do
@@ -41,7 +60,7 @@ class BrandAssetController extends Controller
             // for display and for the download's filename.
             $path = $file->store($folder, 'local');
 
-            $client->brandAssets()->create([
+            $asset = $client->brandAssets()->create([
                 'uploaded_by' => $request->user()->id,
                 'title' => $request->titleFor($file->getClientOriginalName(), $single),
                 // One choice for the whole upload: these arrive as a batch —
@@ -54,6 +73,23 @@ class BrandAssetController extends Controller
                 'mime' => $file->getClientMimeType(),
                 'size_bytes' => $file->getSize(),
             ]);
+
+            /*
+             * Read the picture into words, now, while we know it just arrived.
+             *
+             * ⚠️ THIS IS WHAT LETS THE BRAND EGG SEE AN IMAGE WITHOUT EVER
+             * READING ONE. The Egg composes from fields of the brand and never
+             * from a file, so a logo only reaches layer 4 once it has become
+             * text — see DescribeBrandAsset.
+             *
+             * ⚠️ IT NEVER THROWS AND IT IS NEVER REQUIRED. A provider outage
+             * leaves the file uploaded with an empty reading, which is a column
+             * somebody can fill later; failing the upload over it would throw
+             * away the thing that was actually asked for.
+             */
+            if (microtime(true) - $startedAt < self::DESCRIBE_BUDGET_SECONDS) {
+                $this->describe->handle($asset, $request->user()->id);
+            }
         }
 
         $count = count($files);

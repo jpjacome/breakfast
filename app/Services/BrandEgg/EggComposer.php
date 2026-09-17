@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\BrandEgg;
 
 use App\Enums\BrandEggLayer;
+use App\Models\BrandAsset;
 use App\Models\Client;
 use App\Services\Ai\Contracts\LlmClient;
 use App\Services\Ai\Data\Message;
@@ -81,6 +82,7 @@ final class EggComposer
         }
 
         $dependency = $this->dependencyBlock($client, $layer);
+        $assets = $this->assetReadingsBlock($client, $layer);
 
         $messages = [
             // The cached prefix. Marked once, and it is the LAST stable block,
@@ -88,7 +90,7 @@ final class EggComposer
             // cacheableSystem() returns the same plain string, so the bytes are
             // unchanged and the exact-match prefix cache still hits.
             Message::cacheableSystem($this->instructions()),
-            Message::user($this->layerTurn($client, $layer, $sources, $dependency)),
+            Message::user($this->layerTurn($client, $layer, $sources, $dependency, $assets)),
         ];
 
         try {
@@ -307,6 +309,44 @@ final class EggComposer
     }
 
     /**
+     * What the brand's own images look like, in words — layer 4 only.
+     *
+     * ⚠️ THE COMPOSER NEVER SEES A PICTURE. These are readings written once by
+     * DescribeBrandAsset and stored on the asset's own row, so this is a
+     * database field like every other source. That is what keeps the Egg's
+     * founding rule intact: composed from the brand's data, never from a file
+     * (docs/brand-egg.md §1).
+     *
+     * ⚠️ AND IT IS NOT THE TOOLKIT. clients.document_digest is the model's
+     * unreviewed reading of an uploaded PDF, and it sits at the BOTTOM of the
+     * assistant's five tiers for exactly that reason; feeding it here would
+     * promote unreviewed material into tier 1. A reading on brand_assets hangs
+     * off a row somebody filed on purpose and can be corrected beside the file.
+     *
+     * Internal files are included deliberately. This is Breakfast composing
+     * Breakfast's own summary — what a client eventually sees is the approved
+     * paragraph, never this list.
+     */
+    private function assetReadingsBlock(Client $client, BrandEggLayer $layer): ?string
+    {
+        if (! $layer->readsAssetReadings()) {
+            return null;
+        }
+
+        // ⚠️ reorder() first: brandAssets() is declared ->latest(), so an
+        // orderBy() added on top would be a second key behind created_at and
+        // would never decide anything. CLAUDE.md trap 17.
+        $readings = $client->brandAssets()
+            ->whereNotNull('visual_reading')
+            ->reorder('created_at')
+            ->get()
+            ->map(fn (BrandAsset $asset) => "**{$asset->title}**\n".trim((string) $asset->visual_reading))
+            ->all();
+
+        return $readings === [] ? null : implode("\n\n", $readings);
+    }
+
+    /**
      * Block 3: which layer, and the text it is composed from.
      *
      * Everything per-layer and per-brand is here, below the cached prefix. The
@@ -319,6 +359,7 @@ final class EggComposer
         BrandEggLayer $layer,
         string $sources,
         ?string $dependency,
+        ?string $assets = null,
     ): string {
         $turn = 'MARCA: '.$client->name
             ."\n\nCAPA QUE TE TOCA ESCRIBIR: {$layer->label()} (capa {$layer->ring()} de 5)\n"
@@ -331,6 +372,13 @@ final class EggComposer
             $turn .= "\n\n---\n\nADEMÁS, ESTA CAPA LEE EL RESULTADO DE OTRA CAPA DEL BRAND EGG.\n"
                 ."No la repitas: parte de ella y di lo que esta capa añade.\n\n"
                 .$dependency;
+        }
+
+        if ($assets !== null) {
+            $turn .= "\n\n---\n\nCÓMO SE VEN LOS ARCHIVOS DE ESTA MARCA.\n"
+                .'Son descripciones escritas al archivarlos, no los archivos. '
+                ."Úsalas para decir cómo SE VE la marca, no para inventar qué archivos tiene:\n\n"
+                .$assets;
         }
 
         return $turn."\n\n---\n\nEscribe ahora el párrafo de la capa «{$layer->label()}».";
