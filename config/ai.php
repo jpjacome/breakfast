@@ -199,6 +199,40 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Conversations
+    |--------------------------------------------------------------------------
+    |
+    | How much of a conversation the model reads before the early part is
+    | folded into a summary — item 5.
+    |
+    | CHARACTERS, NOT TOKENS, and deliberately. Tokens are what the provider
+    | bills, but they only arrive in ai_usage_logs AFTER a request: a token
+    | meter cannot show anything until the first answer lands, is always one
+    | turn stale, and cannot move while somebody is typing. Characters are
+    | countable instantly, which is what makes the meter a warning rather than
+    | a receipt. See App\Services\Ai\ConversationBudget.
+    |
+    | And the thread really is text: an earlier turn replays its files BY NAME,
+    | never re-inlined, so bytes never accumulate — only words do.
+    |
+    | 40,000 is about an hour of real conversation. One exchange runs roughly a
+    | thousand characters all in — a couple of sentences from the person, a
+    | paragraph back — and twenty to thirty of those fit in half an hour.
+    |
+    | ⚠️ IT IS NOT SIZED AGAINST THE HOST, and should not be. 40,000 characters
+    | is around 11,000 tokens on a model whose window is far larger, most of it
+    | billing at the cached rate. The number is a judgement about when a PERSON
+    | would say "remind me what we decided", not about when the infrastructure
+    | complains. There is deliberate room above it.
+    |
+    */
+
+    'conversation' => [
+        'budget_chars' => (int) env('AI_CONVERSATION_BUDGET_CHARS', 40000),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Brand context
     |--------------------------------------------------------------------------
     | Guardrail, not a budget: if a client's context documents exceed this,
