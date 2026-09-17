@@ -767,69 +767,108 @@ brand_egg_messages
   timestamps
 ```
 
-### 14.3 One layer at a time, in ring order
+### 14.3 How a layer is opened — the checklist IS the interface
 
-The assistant works a layer at a time and the screen says which — clicking a
-ring focuses it, which the existing `brand-egg.js` already does for hovering
-and selecting. Order is 1 → 2 → 3 → 5, because **layer 5 reads layer 2's
-output** and composing it first produces a universe built on nothing.
+Every layer begins the same way, in three parts, and the shape never varies:
 
-⚠️ **Layer 4 is not in that sequence.** It is an inventory of files, not prose,
-so it is not written — it is picked. See 14.8.
+1. **Where we are in the egg.** Which ring, of five, and what it is for.
+2. **The checklist** — the entregables that compose THIS layer, each ticked or
+   not, each marked obligatorio or opcional.
+3. **One question**, about the first empty obligatorio, naming that entregable.
 
-The person can jump anywhere; the order is a default, not a rail.
+Each answer re-prints the list with its new tick and asks the next one. The
+person always knows how much is left and what filling it is FOR — which is the
+thing a free-form chat cannot tell them.
+
+⚠️ **THE CHECKLIST IS RENDERED BY THE SERVER, NOT WRITTEN BY THE MODEL.** The
+ticks come from `BrandEggLayer::sources()` read against `brand_deliverables`,
+exactly as the board does. A model asked to keep a tally gets it right most of
+the time, and a wrongly ticked entregable is a small lie about whether the
+brand's promise exists — the one kind of error this app is built to make
+impossible. The model writes the sentence underneath; the list is derived state,
+like everything else here.
+
+⚠️ **AN ENTREGABLE FEEDS MORE THAN ONE LAYER, so a later ring opens PART-TICKED
+and the assistant must say so rather than ask again.** `Valores` feeds layers 1,
+2 and 5. `Relato` feeds 1, 3 and 4. `Brand promise` and `Manifesto` feed 1 and
+5; `Brand statement` feeds 1 and 3; `Look and feel` feeds 4 and 5. So by the
+time layer 3 opens, two of its four are already in — and being told *"Relato y
+Brand statement ya los tenemos de la yema, faltan dos"* is the difference
+between this feeling like progress and feeling like a form that repeats itself.
+
+⚠️ **AN EMPTY OPCIONAL IS OFFERED AND SKIPPED, NEVER CHASED.** ERR-07 again: not
+every brand has a Manifesto or a Claim, and a layer that keeps asking for one
+teaches the team the Egg is unfinished when it is finished. The assistant asks
+once, and *"no tienen, lo saltamos"* closes it.
+
+### 14.3b Ring order
+
+1 → 2 → 3 → 5, because **layer 5 reads layer 2's output** and building it first
+produces a universe resting on nothing. ⚠️ **Layer 4 is not in that sequence** —
+it is a list of files, so it is picked rather than written (14.8). The person can
+jump anywhere; the order is a default, not a rail.
 
 ---
 
-### 14.4 Layer 1 · Esencia, tagline y valores
+### 14.4 Layer 1 · Esencia, tagline y valores — la yema
 
-> *Lo que la marca es: su esencia, su promesa y los valores que la sostienen.*
+> **Capa 1 de 5 · la yema.** Aquí va lo que la marca ES: su esencia, su promesa
+> y los valores que la sostienen. Todo lo demás se apoya en esto, así que
+> empezamos aquí. Se arma con seis entregables:
+>
+> - ⬜ Relato de marca · *obligatorio*
+> - ⬜ Brand promise · *obligatorio*
+> - ⬜ Brand statement · *obligatorio*
+> - ⬜ Valores de marca · *obligatorio*
+> - ⬜ Manifesto · *opcional*
+> - ⬜ Claim · *opcional*
+>
+> Empecemos por el **Relato de marca**. ¿De dónde nace esta marca? No la
+> empresa — la marca. ¿Qué pasó para que alguien decidiera que esto tenía que
+> existir?
 
-**Reads:** `relato` · `brand_promise` · `brand_statement` · `manifesto` ·
-`valores` · `claim`
+One question per entregable, each naming it:
 
-**Cold — what it asks, in this order:**
+| entregable | what it asks |
+|---|---|
+| **Relato** | ¿De dónde nace? ¿Qué pasó para que alguien decidiera que tenía que existir? |
+| **Brand promise** | En una frase, ¿qué le promete a quien la elige? Sin adjetivos — algo que se pueda cumplir o incumplir |
+| **Brand statement** | ¿Cómo se presenta en dos líneas? Qué es, para quién, y por qué importa |
+| **Valores** | ¿Cuáles son las tres o cuatro cosas que no negocia, ni cuando cuestan dinero? |
+| **Manifesto** *(opc.)* | ¿Hay algo que esta marca defiende y diría en voz alta? Si no lo hay, lo saltamos |
+| **Claim** *(opc.)* | ¿Ya usan una frase para cerrar? Si no, te propongo tres cuando tengamos el resto |
 
-1. ¿De dónde nace esta marca? ¿Qué la hizo existir?
-2. Si desapareciera mañana, ¿qué se perdería que nadie más da?
-3. ¿Qué promete? En una frase, sin adjetivos.
-4. ¿Cuáles son las tres o cuatro cosas que no negocia, ni por dinero?
-5. ¿Hay una frase que ya usen para presentarse?
+**When the six are in**, the assistant closes the layer — *"con esto ya puedo
+escribir la yema"* — and the composed text arrives as a card: accept, edit, or
+ask again.
 
-⚠️ **One question at a time, never a form.** A list of five questions in one
-message gets one answer to the first and silence on the rest. The assistant
-asks, listens, and follows what it hears — a brand born from a family recipe
-needs a different second question than one born from a gap in the market.
-
-**Warm:** synthesise the relationship between relato, promesa and valores. If
-`claim` exists it is the tagline; if not, the assistant may **propose** one and
-must mark it as a proposal, never as the brand's.
-
-**Never:** invent a value. If only `relato` exists, the layer says what it can
-and stops — three true sentences beat six with two invented.
+**Warm start** opens with the ticks already on, asks only about the empties, and
+offers the synthesis. **Never invents a value:** if only the Relato is there, the
+layer says what the Relato supports and stops.
 
 ---
 
 ### 14.5 Layer 2 · Personalidad
 
-> *Cómo se comporta y habla la marca, leída desde sus arquetipos y valores.*
+> **Capa 2 de 5.** Ya tenemos la yema. Esta capa es cómo se COMPORTA y cómo
+> HABLA la marca — la yema dice quién es, ésta dice cómo se nota. Dos
+> entregables:
+>
+> - ⬜ Arquetipos de marca · *obligatorio*
+> - ✅ Valores de marca · *ya lo llenamos en la yema*
+>
+> Falta uno solo. Los **Arquetipos**: leyendo el relato y los valores, te
+> propongo dos que encajan — el Creador y el Sabio. Pero esto lo eligen ustedes,
+> no yo. ¿Cuál se parece más a cómo se comporta esta marca?
 
-**Reads:** `arquetipos` · `valores`
-**⚠️ Should also read `tono`** — see 14.9.
+⚠️ **Arquetipos is a closed vocabulary.** The assistant offers candidates WITH
+its reasoning and a person picks. Writing "El Cuidador" into the entregable on
+its own authority is precisely the invention the app exists to stop.
 
-**Cold:**
-
-1. Si la marca entrara a una reunión, ¿habla primero o escucha?
-2. ¿De qué se ríe? ¿Y qué no le haría gracia nunca?
-3. ¿Trata de tú o de usted? ¿Eso cambia según con quién?
-4. ¿Qué frase NO diría jamás, aunque funcionara?
-
-**Warm:** read the archetypes into behaviour — an archetype is a label, and
-this layer is what it *does* on a Tuesday.
-
-⚠️ **Arquetipos is a closed vocabulary.** The assistant may offer candidates
-with its reasoning, but a person picks. Proposing "El Cuidador" as though it
-were established is exactly the invention this app exists to stop.
+**With both in, the composition questions** — not entregables, but the material
+the layer is written from: ¿habla primero o escucha? · ¿de qué se ríe, y qué no
+le haría gracia nunca? · ¿tú o usted, y cambia según con quién? · ¿qué frase no
+diría jamás, aunque funcionara?
 
 **Feeds layer 5.** Composed before it, always.
 
@@ -837,20 +876,25 @@ were established is exactly the invention this app exists to stop.
 
 ### 14.6 Layer 3 · Beneficios de marca
 
-> *Lo que la marca aporta de verdad a quien la elige.*
+> **Capa 3 de 5.** Lo que la marca APORTA a quien la elige — no lo que es, lo
+> que deja. Cuatro entregables, y dos ya los tenemos:
+>
+> - ✅ Relato de marca · *de la yema*
+> - ✅ Brand statement · *de la yema*
+> - ⬜ Públicos · *obligatorio*
+> - ⬜ Insight principal de marca · *obligatorio*
+>
+> Vamos con **Públicos**. ¿A quién le cambia el día esta marca? Descríbeme a una
+> persona concreta, no a un segmento: qué hace un martes, qué le preocupa.
 
-**Reads:** `brand_statement` · `relato` · `insight` · `publicos`
+| entregable | what it asks |
+|---|---|
+| **Públicos** | ¿A quién le cambia el día? Una persona, no un segmento |
+| **Insight** | ¿Qué le molesta HOY a esa persona, que esta marca resuelve? Una tensión, no una necesidad |
 
-**Cold:**
-
-1. ¿A quién le cambia el día esta marca? Descríbeme a una persona, no a un
-   segmento.
-2. ¿Qué problema real resuelve? ¿Qué le molesta a esa persona hoy?
-3. ¿Qué se lleva alguien que la elige, que no se llevaría de otra?
-4. Y de eso, ¿qué es práctico, qué es emocional y qué dice de quien la usa?
-
-**Warm:** relate `insight` to `publicos` — a benefit with no audience is a
-feature, and an audience with no insight is a demographic.
+**Composition question, once both are in:** ¿qué se lleva quien la elige que no
+se llevaría de otra? — y de eso, ¿qué es práctico, qué es emocional y qué dice
+de quien la usa?
 
 **Never:** claim what competitors do or do not offer. Nothing in the context
 knows that, and it is the easiest sentence in this layer to invent.
@@ -859,42 +903,62 @@ knows that, and it is the easiest sentence in this layer to invent.
 
 ### 14.7 Layer 5 · Brand Universe / Emotions
 
-> *El mundo emocional que la marca abre: a dónde lleva y qué se siente ahí.*
+> **Capa 5 de 5, la de afuera.** El mundo que la marca abre: a dónde lleva y qué
+> se siente ahí. Se apoya en la capa 2, que ya está escrita. Cuatro entregables,
+> tres ya puestos:
+>
+> - ✅ Valores de marca · *de la yema*
+> - ✅ Brand promise · *de la yema*
+> - ✅ Manifesto · *de la yema*
+> - ⬜ Look and feel · *obligatorio*
+>
+> Falta el **Look and feel**. ¿Cómo se ve este mundo? No los colores todavía —
+> la sensación: ¿es luminoso o de penumbra? ¿limpio o cargado? ¿de cerca o de
+> lejos?
 
-**Reads:** `valores` · `manifesto` · `brand_promise` · `look_and_feel`, **plus
-layer 2's text** (`dependsOn()`).
-**⚠️ Should also read `territorio`** — see 14.9.
+**Composition questions:** si fuera un lugar, ¿cuál, y qué hora es ahí? · ¿qué se
+siente al estar dentro — una emoción, no cinco? · ¿qué queda fuera de ese mundo?
 
-**Cold:**
+⚠️ **Refuses to run before layer 2 exists**, and says so instead of composing
+from the entregables alone. Already enforced by `dependsOn()` in `EggComposer`.
 
-1. Si esta marca fuera un lugar, ¿cuál? ¿Qué hora es ahí?
-2. ¿Qué se siente al estar dentro? Una emoción, no cinco.
-3. ¿Qué queda fuera de ese mundo? ¿Qué no encaja ahí?
-
-**Warm:** extend layer 2 rather than repeat it — personality is how the brand
+**Warm:** extends layer 2 rather than restating it — personality is how the brand
 behaves, universe is the world that behaviour creates.
 
-⚠️ **Refuses to run before layer 2 exists**, and says so rather than composing
-from the entregables alone. Already enforced in `EggComposer`.
-
 ---
 
-### 14.8 Layer 4 · Brand Assets — the assistant does something else entirely
+### 14.8 Layer 4 · Brand Assets — a checklist with two halves
 
-**Not prose. An inventory** (`brand_egg_assets`). So the assistant does not
-propose text for this ring. What it does instead:
+**Not prose. An inventory** (`brand_egg_assets`). So its checklist is unlike the
+others: eleven definitions on one side, the brand's actual files on the other,
+and much of the assistant's job is noticing where the two disagree.
 
-| | |
+> **Capa 4 de 5.** Los activos de la marca — las definiciones visuales y el
+> archivo. Aquí no escribo un texto: armamos el inventario.
+>
+> **Definiciones** — 4 de 11
+> ✅ Look and feel · ✅ Colores · ✅ Relato de marca · ✅ Emblemas de marca
+> ⬜ Definición de identificativo principal *(obligatorio)*
+> ⬜ Brand universe (gráfico) *(obligatorio)*
+> ⬜ Identificativo secundario · ⬜ Tipografía · ⬜ Ilustraciones ·
+> ⬜ Personaje · ⬜ Aplicaciones *(opcionales)*
+>
+> **Archivo** — 14 ficheros, 6 sin clasificar
+>
+> Dos cosas que no cuadran: **Colores** está escrito pero no hay ninguna paleta
+> archivada, y hay un PNG llamado *marca-horizontal* que parece el identificativo
+> principal y no está marcado como tal. ¿Lo añado al inventario?
+
+| the assistant does | the card |
 |---|---|
-| **suggests** which files in the folder belong to the identity, reading `type` and `visual_reading` | a card that TOGGLES the asset into the Egg |
-| **flags the unclassified** | *"Hay 6 archivos sin tipo. ¿Alguno es el logo?"* |
-| **flags the mismatches** | *"«Colores» está escrito pero no hay ninguna paleta archivada"* — and the reverse |
+| suggests which files belong, from `type` and `visual_reading` | **toggles an asset**, posting to `clients.egg.asset` |
+| flags the unclassified | *"6 archivos sin tipo. ¿Alguno es el logo?"* — sets `brand_assets.type` |
+| flags each mismatch, both directions | a definition with no file, a file no definition mentions |
+| asks the eleven definition questions | ordinary entregable proposals, as on every other layer |
 
-⚠️ **A different card type from the other four.** Elsewhere a proposal fills a
-textarea; here it posts to `clients.egg.asset`. Worth building second, after the
-text layers work.
-
----
+⚠️ **Two card types on one ring, which no other layer has.** Elsewhere a proposal
+fills a textarea. Here half of them do and half toggle a row. Worth building
+last, once the text layers work.
 
 ### 14.9 ⚠️ Four entregables Breakfast validates that feed no layer
 
@@ -926,6 +990,8 @@ expensive. ⚠️ **Ask before wiring.**
 | `App\Services\BrandEgg\EggAssistant` | one turn in, `{reply, proposals[], questions[]}` out |
 | `config('ai.egg_assistant_prompt')` | block 1, identical bytes for every brand and every layer |
 | `POST …/brand-egg/asistente` | `throttle:10,1` + `ai-turn`, JSON, FormRequest with `failedValidation()` |
+| `App\Services\BrandEgg\LayerProgress` | one layer's checklist: each source entregable, filled or not, required or not, and which earlier layer already filled it. The ONE class that decides a tick |
+| `<x-brand-egg.checklist>` | renders it above the turn. Server-side, never the model's words (14.3) |
 | the panel on the existing screen | reusing `assistant-composer.js`, so Enter and ↑-recall behave as on the other three |
 
 ⚠️ **Block 1 carries no layer name and no brand name.** Which ring, which mode
