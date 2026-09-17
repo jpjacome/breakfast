@@ -1438,9 +1438,12 @@ a file a brand asset is being in the Egg's layer 4, which a person curates. See
 docs/brand-egg.md §14.8. So the listing split is cosmetic relief; the inventory
 is the actual definition.
 
-**Worth asking Breakfast separately:** should the client's Brandy keep
-attachments at all? A client's screenshot is almost never a brand asset, and it
-is the highest-junk of the three sources.
+**The client's Brandy keeps attachments ON PURPOSE and that is settled**
+(confirmed 2026-09-17). A file a client pastes is stored so **Breakfast** can
+reach it in the file manager — the row lands `interno`, so the brand never sees
+it in its own Archivos even though it came from them. That is the point: the
+client shows you something, and you still have it tomorrow. Do not "tidy" this
+by dropping client attachments.
 
 ---
 
