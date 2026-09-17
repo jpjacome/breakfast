@@ -59,11 +59,18 @@ it('shows an approved egg to someone who may read Estrategia', function () {
         ->assertSee('Una marca de barrio que hace café como en casa.');
 });
 
-it('404s while the egg is unapproved', function () {
-    // ⚠️ 404, NOT A MESSAGE. A member should not learn there is a draft of
-    // their brand's essence they are not being shown — "todavía no está
-    // aprobado" is a sentence about Breakfast's internal work, said to the
-    // wrong audience.
+it('opens while the egg is unapproved, and shows none of its words', function () {
+    /*
+     * ⚠️ THIS TEST ASSERTED A 404 UNTIL 2026-09-17, and the reversal is
+     * Breakfast's call. Hiding the page meant a brand had no idea the Brand Egg
+     * was part of what they were getting until the day it appeared.
+     *
+     * What approval gates has NOT moved: the composed TEXT of each layer. The
+     * drawing and the five purposes are identical on every brand's egg, so they
+     * describe the shape and say nothing about this brand — but a paragraph
+     * nobody has signed off is exactly the unreviewed reading this app exists
+     * to keep away from a client.
+     */
     [$client, $owner] = brandAndOwner([PortalSection::Estrategia->value => AccessLevel::Read->value]);
 
     $client->brandEgg()->save($client->brandEgg()->make([
@@ -71,7 +78,27 @@ it('404s while the egg is unapproved', function () {
         'generated_at' => now(),
     ]));
 
-    actingAs($owner)->get(route('portal.estrategia.egg'))->assertNotFound();
+    actingAs($owner)->get(route('portal.estrategia.egg'))
+        ->assertOk()
+        // The draft itself never reaches the brand.
+        ->assertDontSee('Un borrador sin aprobar.', false)
+        // The shape does, and so does what each layer is for.
+        ->assertSee(BrandEggLayer::Esencia->description(), false)
+        // ⚠️ And the empty state is not phrased as Breakfast's homework —
+        // ERR-07. It is an egg, and it is still cooking.
+        ->assertSee('se está cocinando', false)
+        ->assertDontSee('pendiente', false)
+        ->assertDontSee('aprobado', false);
+});
+
+it('offers the egg from Estrategia even before there is one', function () {
+    // Same reason: the brand should know the thing exists.
+    [$client, $owner] = brandAndOwner([PortalSection::Estrategia->value => AccessLevel::Read->value]);
+
+    actingAs($owner)->get(route('portal.estrategia'))
+        ->assertOk()
+        ->assertSee(route('portal.estrategia.egg'), false)
+        ->assertSee('Todavía se está cocinando', false);
 });
 
 it('404s for someone who was not granted Estrategia at all', function () {
@@ -99,16 +126,29 @@ it('keeps showing the egg after entregables move, rather than pulling it back', 
     actingAs($owner)->get(route('portal.estrategia.egg'))->assertOk();
 });
 
-it('links the egg from Estrategia only once it is approved', function () {
+it('links the egg from Estrategia always, and says which state it is in', function () {
+    /*
+     * ⚠️ IT USED TO ASSERT THE LINK WAS ABSENT UNTIL APPROVAL, and Breakfast
+     * reversed that on 2026-09-17: a brand had no idea the Brand Egg was part
+     * of what they were getting until the day it appeared.
+     *
+     * The link is always there; the LINE UNDER IT changes. And neither version
+     * reads as Breakfast being late - ERR-07. It is an egg, and before it is
+     * ready it is cooking.
+     */
     [$client, $owner] = brandAndOwner([PortalSection::Estrategia->value => AccessLevel::Read->value]);
 
-    actingAs($owner)->get(route('portal.estrategia'))->assertDontSee('Brand Egg');
+    actingAs($owner)->get(route('portal.estrategia'))
+        ->assertOk()
+        ->assertSee('Brand Egg')
+        ->assertSee('se está cocinando', false);
 
     approveEgg($client);
 
     actingAs($owner)->get(route('portal.estrategia'))
         ->assertOk()
-        ->assertSee('Brand Egg');
+        ->assertSee('Brand Egg')
+        ->assertDontSee('se está cocinando', false);
 });
 
 it('offers the client no way to write to their own egg', function () {

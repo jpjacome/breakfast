@@ -28,25 +28,32 @@
         </p>
     @endif
 
-    {{-- The Brand Egg, when there is an approved one.
+    {{-- The Brand Egg. ALWAYS here, approved or not.
 
          ⚠️ A LINK RATHER THAN THE DRAWING INLINE. The egg is the brand told
          whole, in five paragraphs; dropped at the top of this page it would
          push the entregables — which is what people come here for — below the
-         fold, and say the same things twice on one screen. It also keeps the
-         404 honest: an unapproved egg leaves nothing here at all, rather than
-         a heading with an empty space under it.
+         fold, and say the same things twice on one screen.
 
-         brandEggState() is derived, so this cannot disagree with the page it
-         points at. --}}
-    @if ($client->brandEggState()->isVisibleToClient())
-        <a class="brand-egg-entry" href="{{ route('portal.estrategia.egg') }}">
-            <span class="brand-egg-entry-title">Brand Egg</span>
-            <span class="brand-egg-entry-note">
+         ⚠️ IT USED TO BE HIDDEN UNTIL APPROVAL, and that changed 2026-09-17 at
+         Breakfast's request: a brand had no idea the Brand Egg was part of what
+         they were getting until the day it appeared. What approval gates is the
+         TEXT of each layer, on the page itself — not whether the brand knows
+         the thing exists.
+
+         ⚠️ The second line never reads as a debt. ERR-07: "todavía no está
+         aprobado" is a sentence about Breakfast's internal work said to the
+         wrong audience. --}}
+    <a class="brand-egg-entry" href="{{ route('portal.estrategia.egg') }}">
+        <span class="brand-egg-entry-title">Brand Egg</span>
+        <span class="brand-egg-entry-note">
+            @if ($client->brandEggState()->isVisibleToClient())
                 Tu marca en cinco capas, de dentro hacia fuera.
-            </span>
-        </a>
-    @endif
+            @else
+                Tu marca en cinco capas. Todavía se está cocinando.
+            @endif
+        </span>
+    </a>
 
     {{-- SEG-05. Above the entregables: it is the one thing on this page the
          client can act on, and burying it under forty of their own brand

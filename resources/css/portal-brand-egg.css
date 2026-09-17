@@ -97,3 +97,25 @@
   line-height: 1.8;
   max-width: 60ch;
 }
+
+/*
+   The Brand Egg before it has been approved.
+
+   ⚠️ The page is reachable from the first day (2026-09-17) so a brand knows
+   the thing exists, but an unapproved layer shows no text — approval gates the
+   WORDS, never the shape. What is left is the drawing, each layer's purpose,
+   and one sentence saying it is still cooking.
+*/
+.portal-egg-cooking {
+  display: grid;
+  gap: .75rem;
+  padding: 1.25rem;
+  border: 2px dashed var(--ink-faint);
+  border-radius: 36px;
+  max-width: 60ch;
+}
+
+.portal-egg-cooking p { margin: 0; }
+
+/* A layer with no text yet: its name and what it is for, quieter. */
+.portal-egg-layer.is-cooking { opacity: .7; }

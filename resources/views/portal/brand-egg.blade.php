@@ -33,8 +33,37 @@
         </div>
 
         <div class="portal-egg-layers">
+
+            {{-- ⚠️ SAID ONCE, AT THE TOP, AND NEVER LAYER BY LAYER. Five
+                 "esta capa está vacía" would be five reminders of what the
+                 brand has not been given — ERR-07 of the beta review. One
+                 sentence about the whole thing is a state; five are a debt.
+
+                 The metaphor is Breakfast's own: they are a breakfast agency
+                 and this is an egg. "Se está cocinando" says the same as
+                 "todavía no está aprobado" without making it sound like
+                 somebody is late. --}}
+            @unless ($approved)
+                <section class="portal-egg-cooking">
+                    <p>
+                        Aquí va tu marca contada en cinco capas, de la yema hacia
+                        fuera: lo que es, cómo se comporta, qué aporta, con qué se
+                        ve y a dónde lleva.
+                    </p>
+                    <p>
+                        <b>Todavía se está cocinando</b> con tu equipo de Breakfast.
+                        Cada capa aparece aquí en cuanto queda lista.
+                    </p>
+                </section>
+            @endunless
+
             @foreach ($layers as $layer)
-                @php $text = $egg->text($layer); @endphp
+                {{-- ⚠️ APPROVAL GATES THE WORDS, NOT THE SHAPE. The drawing
+                     and each layer's purpose are the same on every brand's egg,
+                     so they say nothing about this one; the composed text is
+                     what a person signed off, and an unapproved layer shows
+                     none of it. --}}
+                @php $text = $approved ? $egg->text($layer) : ''; @endphp
 
                 {{-- ⚠️ AN UNCOMPOSED LAYER IS ABSENT, NOT SHOWN AS A GAP. The
                      same rule the rest of this side follows: a client does not
@@ -43,8 +72,8 @@
                      homework (ERR-07). The ring says it instead, by being
                      hollow, which is a fact about the drawing rather than a
                      sentence about the work. --}}
-                @if ($text !== '')
-                    <section class="portal-egg-layer"
+                @if ($text !== '' || ! $approved)
+                    <section class="portal-egg-layer @unless($text) is-cooking @endunless"
                              data-brand-egg-card
                              data-layer="{{ $layer->value }}">
                         <h2 class="portal-egg-layer-title">
@@ -58,7 +87,9 @@
                              words — see BrandEggLayer::description(). --}}
                         <p class="portal-egg-layer-purpose">{{ $layer->description() }}</p>
 
-                        <p class="portal-egg-layer-text">{{ $text }}</p>
+                        @if ($text !== '')
+                            <p class="portal-egg-layer-text">{{ $text }}</p>
+                        @endif
                     </section>
                 @endif
             @endforeach

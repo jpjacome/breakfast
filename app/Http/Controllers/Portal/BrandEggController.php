@@ -9,25 +9,28 @@ use App\Enums\PortalSection;
 use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * The brand's own Brand Egg — read-only, and only once it is approved.
+ * The brand's own Brand Egg — read-only, and always reachable.
  *
- * ⚠️ APPROVAL IS THE ONE PLACE THIS APP GATES ON IT. Everywhere else the state
- * changes what something SAYS: the assistant reads an unapproved Egg quite
- * happily and is simply told it is a draft (docs/brand-egg.md §8). Here it
- * decides whether the page exists at all, because the Egg is the single
- * artefact in this app whose whole claim is that a person signed it off —
- * showing a brand a draft of its own essence would undo the claim, and a
- * synthesis nobody has checked is exactly the unreviewed reading this app
- * exists to keep away from a client.
+ * ⚠️ IT USED TO 404 UNTIL THE EGG WAS APPROVED, AND THAT CHANGED 2026-09-17.
+ * Hiding the page entirely meant a brand had no idea the Brand Egg was part of
+ * what they were getting until the day it appeared, and the section it lives
+ * under looked like it was missing something nobody had mentioned. Breakfast
+ * asked for it to be visible from the start.
  *
- * ⚠️ AND IT 404s RATHER THAN EXPLAINING ITSELF. A member should not learn there
- * is a draft of their brand's essence they are not being shown — "todavía no
- * está aprobado" is a sentence about Breakfast's internal work, said to the
- * wrong audience. Same reasoning as the section middleware 404ing rather than
- * 403ing (CLAUDE.md §6).
+ * ⚠️ WHAT APPROVAL STILL GATES IS THE WORDS, and that has not moved an inch.
+ * The drawing and the five layer PURPOSES are the same on every brand's egg —
+ * they describe the shape of the thing, not this brand — so showing them says
+ * nothing about anybody. The composed TEXT is what a person signed off, and an
+ * unapproved layer shows none of it. The Egg is the single artefact in this app
+ * whose whole claim is that somebody checked it; a draft shown to the brand
+ * would undo that claim.
+ *
+ * ⚠️ AND THE EMPTY STATE IS NOT PHRASED AS BREAKFAST'S UNFINISHED HOMEWORK.
+ * ERR-07 of the beta review: "todavía no está aprobado" is a sentence about
+ * internal work said to the wrong audience. What a client is told is what the
+ * thing IS and that it is being built with them.
  */
 class BrandEggController extends Controller
 {
@@ -38,17 +41,14 @@ class BrandEggController extends Controller
         // session (CLAUDE.md §5, trap 16).
         $client = $request->user()->activeBrand();
 
-        $state = $client->brandEggState();
-
-        if (! $state->isVisibleToClient()) {
-            throw new NotFoundHttpException;
-        }
-
         return view('portal.brand-egg', [
             'section' => PortalSection::Estrategia,
             'client' => $client,
             'egg' => $client->brandEggOrNew(),
             'layers' => BrandEggLayer::cases(),
+            // ⚠️ THE ONE THING APPROVAL DECIDES HERE: whether the composed text
+            // of each layer is shown. The shape is always shown.
+            'approved' => $client->brandEggState()->isVisibleToClient(),
         ]);
     }
 }
