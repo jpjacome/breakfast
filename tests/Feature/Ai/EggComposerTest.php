@@ -297,7 +297,9 @@ test('every layer names real entregables, and the counts match the plan', functi
         'esencia' => 6,
         'personalidad' => 2,
         'beneficios' => 4,
-        'assets' => 11,
+        // ⚠️ ZERO, and it is the only layer that reads nothing: an inventory
+        // of files, not a reading of entregables. See BrandEggLayer::sources().
+        'assets' => 0,
         'universo' => 4,
     ]);
 });

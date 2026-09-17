@@ -1397,6 +1397,51 @@ account, **that person** is notified and accepts before any membership row is
 written. Neither the message nor the timing may differ between "existed" and
 "did not", or the enumeration leak comes back through the side door.
 
+### C · The file manager mixes pasted screenshots with the brand's real files
+
+Found 2026-09-17, while specifying layer 4 of the Brand Egg. Not caused by that
+work — it has been true since brief point 3 landed on 2026-09-14.
+
+**What happens.** `KeepAssistantAttachments` is called by all THREE assistant
+controllers — the dashboard's, the onboarding board's, and the client's Brandy
+— so every image anybody pastes anywhere becomes a `brand_assets` row on that
+brand. A client pasting a screenshot of a broken page files a row in their own
+brand's folder.
+
+**Why it was built that way, and it should stay.** Before it, a brandbook
+uploaded to an assistant went to the provider and was thrown away — the message
+tables store filenames, never bytes — so putting that same toolkit in the
+brand's folder meant uploading it a second time. Keeping is right. ⚠️ **The user
+was explicit on 2026-09-17 that pasted images must go on being stored.**
+
+**What is actually wrong is the LISTING.** `FileManagerController` has no filter
+on `source` at all, so `/admin/archivos` returns references and real deliverables
+in one list separated only by a badge. A brand after fifty conversations has
+fifty screenshots beside its twelve real assets.
+
+⚠️ **On disk they are ALREADY separated** — `marcas/{slug}/referencias/` versus
+`marcas/{slug}/assets/` — so the fix is presentation only:
+
+**Split the listing into two groups**, *Archivos de la marca* and *Referencias y
+adjuntos*, on `/admin/archivos` and the process screen. One table, one folder
+structure, both groups on the same screen.
+
+⚠️ **THIS IS NOT REINTRODUCING `context_documents`.** That split files by what
+they FED and put them on screens that hid each other, so people deleted a
+brandbook thinking it a deliverable (CLAUDE.md §2). This splits by **how they
+arrived**, which is a fact a person can see while looking at the file, and
+nothing is hidden from anything.
+
+⚠️ **AND IT IS ONLY HALF THE ANSWER.** The other half is already decided and
+belongs to the Egg: **being a row in `brand_assets` means nothing.** What makes
+a file a brand asset is being in the Egg's layer 4, which a person curates. See
+docs/brand-egg.md §14.8. So the listing split is cosmetic relief; the inventory
+is the actual definition.
+
+**Worth asking Breakfast separately:** should the client's Brandy keep
+attachments at all? A client's screenshot is almost never a brand asset, and it
+is the highest-junk of the three sources.
+
 ---
 
 ## Producción · «No obtuve respuesta.» — 2026-09-15

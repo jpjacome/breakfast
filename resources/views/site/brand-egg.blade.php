@@ -157,6 +157,13 @@
 
                     @if ($layer->isInventory())
                         <p class="egg-map-source">
+                            <span><b>Los archivos de la marca</b></span>
+                            {{-- The layer IS this list. It reads no entregable at
+                                 all, which is why nothing is printed above. --}}
+                            <span class="egg-map-col">brand_egg_assets</span>
+                            <span class="egg-map-badge req">inventario</span>
+                        </p>
+                        <p class="egg-map-source">
                             <span><b>Cómo se ven los archivos de la marca</b></span>
                             {{-- Not an entregable and not a column on
                                  brand_deliverables — it is a field on each file's
@@ -169,10 +176,11 @@
 
                 @if ($layer->isInventory())
                     <p class="egg-map-note">
-                        Esta capa lee además <b>cómo se ven los archivos de la marca</b>. No las
-                        imágenes: el texto. Cada imagen que se archiva se describe una vez y esa
-                        descripción se guarda junto al archivo, así que la capa recibe palabras
-                        como cualquier otra, y el Brand Egg nunca mira una foto.
+Esta capa no se sintetiza de ningún entregable: <b>es</b> la lista de archivos de
+                        la marca, elegidos uno a uno. Y lee <b>cómo se ven</b>. No las imágenes:
+                        el texto. Cada imagen que se archiva se describe una vez y esa descripción
+                        se guarda junto al archivo, así que la capa recibe palabras como cualquier
+                        otra, y el Brand Egg nunca mira una foto.
                     </p>
                 @endif
             </article>

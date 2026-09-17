@@ -63,34 +63,45 @@ enum BrandEggLayer: string
                 DeliverableItem::Publicos,
             ],
             /*
-             * Layer 4 — "Brand Assets / Icons".
+            /*
+             * Layer 4 — "Brand Assets / Icons" — READS NO ENTREGABLE AT ALL,
+             * and the empty array is the decision rather than an oversight.
              *
-             * ⚠️ THE NINE VISUAL ENTREGABLES WERE MISSING UNTIL 2026-09-16, and
-             * their absence was the whole reason this ring stayed hollow. The
-             * plan named "Brand Assets", which is PortalSection::BrandAssets —
-             * the brand's FILES — so the layer was written against the two text
-             * entregables and waited on image understanding. But Breakfast
-             * writes the visual definitions down as entregables too, and those
-             * are approved brand data sitting in the database, unread by
-             * anything. Emblemas, Colores and the identificativos say more
-             * about a brand's assets than any single file does.
+             * ⚠️ IT HAD ELEVEN AND THEY WERE REMOVED ON 2026-09-17. Two of them
+             * came from the brief (Look and feel, Relato); nine visual ones
+             * were added on 2026-09-16 on the reasoning that Breakfast writes
+             * its visual definitions down as entregables, so the layer should
+             * not have to wait on image understanding to hold anything. Both
+             * moves were wrong for the same reason, and Breakfast said so:
              *
-             * The files are not gone from this layer — they arrive as TEXT.
-             * See readsAssetReadings() below.
+             * **THE EGG IS TIER 1.** Deriving the list of a brand's assets from
+             * the entregables would put tier 2 above tier 1 on the one layer
+             * where the Egg is meant to BE the source. And it cannot work
+             * anyway: nobody knows in advance what assets a brand will have, so
+             * a fixed list of eleven entregables cannot describe them.
+             *
+             * What layer 4 is: **a list of assets and their type**, curated by a
+             * person out of `brand_assets`, held as row ids in
+             * `brand_egg_assets`. Type, title, description and URL are read off
+             * those rows at render time (BrandEgg::inventoryMarkdown()).
+             *
+             * ⚠️ AND IT IS WHAT MAKES A FILE A BRAND ASSET. `brand_assets` is
+             * every file we hold for a brand — uploads, references, things
+             * somebody pasted at an assistant. Being in that table means
+             * nothing; being in the Egg's inventory means a person decided this
+             * one IS the brand's.
+             *
+             * The nine entregables are not lost and nothing about the board
+             * changes. They live in tier 2 where Brandy already reads them, and
+             * they hold a different thing: the RULE about an asset — "el
+             * identificativo principal se usa sobre fondo claro" — whose text
+             * may contain a link (CLAUDE.md §8 rule 1). Prose about an asset in
+             * tier 2; the asset itself in tier 1. No overlap in meaning even
+             * where both name the same PNG.
+             *
+             * @see docs/brand-egg.md §14.8
              */
-            self::Assets => [
-                DeliverableItem::LookAndFeel,
-                DeliverableItem::Emblemas,
-                DeliverableItem::IdentificativoPrincipal,
-                DeliverableItem::IdentificativoSecundario,
-                DeliverableItem::BrandUniverse,
-                DeliverableItem::Colores,
-                DeliverableItem::Tipografia,
-                DeliverableItem::Ilustraciones,
-                DeliverableItem::Personaje,
-                DeliverableItem::Aplicaciones,
-                DeliverableItem::Relato,
-            ],
+            self::Assets => [],
             self::Universo => [
                 DeliverableItem::Valores,
                 DeliverableItem::Manifesto,

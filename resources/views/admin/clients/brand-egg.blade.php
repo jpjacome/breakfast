@@ -240,12 +240,20 @@
                         </form>
                     </details>
 
-                    <p class="brand-egg-layer-sources">
-                        <b>Se sintetiza de:</b>
-                        {{ collect($layer->sources())->map(fn ($item) => $item->label())->implode(' · ') }}
-                        @if ($layer->dependsOn())
-                            — y del resultado de «{{ $layer->dependsOn()->label() }}», que por eso
-                            se compone antes.
+<p class="brand-egg-layer-sources">
+                        @if ($layer->isInventory())
+                            {{-- No entregable feeds this layer, on purpose: it IS the
+                                 brand's list of assets rather than a reading of one.
+                                 See BrandEggLayer::sources(). --}}
+                            <b>No se sintetiza:</b> es el inventario de archivos de la marca.
+                            Cada archivo entra con su tipo y su descripción.
+                        @else
+                            <b>Se sintetiza de:</b>
+                            {{ collect($layer->sources())->map(fn ($item) => $item->label())->implode(' · ') }}
+                            @if ($layer->dependsOn())
+                                — y del resultado de «{{ $layer->dependsOn()->label() }}», que por eso
+                                se compone antes.
+                            @endif
                         @endif
                     </p>
 

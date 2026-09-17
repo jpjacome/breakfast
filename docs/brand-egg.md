@@ -1209,33 +1209,104 @@ brand behaves, universe is the world that behaviour creates.
 
 ---
 
-### 14.8 Layer 4 · Brand Assets — a checklist with two halves
+### 14.8 Layer 4 · Brand Assets — a list of assets and their type
 
-**Not prose. An inventory** (`brand_egg_assets`). Its checklist is unlike the
-others: eleven definitions on one side, the brand's actual files on the other,
-and much of the work is Brandy naming where the two disagree.
+**It reads no entregable.** `BrandEggLayer::Assets->sources()` is `[]`, and that
+empty array is the decision — settled with Breakfast 2026-09-17, after the layer
+had been given two entregables by the brief and nine more on 2026-09-16.
 
-> **Definiciones** — 4 de 11 · ✅ Look and feel · ✅ Colores · ✅ Relato ·
-> ✅ Emblemas · ⬜ Identificativo principal *(oblig.)* · ⬜ Brand universe
-> *(oblig.)* · ⬜ Identificativo secundario · ⬜ Tipografía · ⬜ Ilustraciones ·
-> ⬜ Personaje · ⬜ Aplicaciones
->
-> **Archivo** — 14 ficheros, 6 sin clasificar
->
-> Dos cosas no cuadran: **Colores** está escrito y no hay ninguna paleta
-> archivada, y hay un PNG que se llama *marca-horizontal* y tiene toda la pinta
-> del identificativo principal. ¿Lo sumo al inventario?
+⚠️ **BOTH OF THOSE WERE THE SAME MISTAKE: THE EGG IS TIER 1.** Deriving a
+brand's list of assets from the entregables puts tier 2 above tier 1 on the one
+layer where the Egg is meant to BE the source. And it cannot work anyway —
+**nobody knows in advance what assets a brand will have**, so a fixed list of
+eleven entregables cannot describe an unknown set of files.
 
-| she does | the card |
+```
+brand_assets        every file we hold for this brand — storage
+      ↓  a person picks which ones ARE the brand's
+brand_egg_assets    layer 4 · tier 1
+      ↓  rendered at request time
+  - Logo · marca-principal.png — /archivos/84
+    Marca horizontal en negro sobre fondo claro.
+```
+
+⚠️ **THIS LAYER IS WHAT MAKES A FILE A BRAND ASSET.** Being a row in
+`brand_assets` means nothing on its own — that table holds uploads, references,
+and whatever anybody pasted at an assistant (`KeepAssistantAttachments`, which
+runs on all three). Being in the Egg's inventory means **a person decided this
+one is the brand's**. That is the whole job of the layer, and it is why it is
+tier 1 rather than a screen.
+
+Nothing needs generating: `type` and `title` are columns, `visual_reading` is
+written once on upload by `DescribeBrandAsset`, and the URL resolves through the
+gated `/archivos/{asset}` route both sides already share.
+
+### 14.8a What about the nine visual entregables?
+
+They are untouched, they stay on the board, and they hold a **different thing**.
+
+| | holds |
 |---|---|
-| suggests which files belong, from `type` and `visual_reading` | **toggles an asset**, posting to `clients.egg.asset` |
-| flags the unclassified | *"6 archivos sin tipo. ¿Alguno es el logo?"* — sets `brand_assets.type` |
-| flags each mismatch, both ways | a definition with no file filed under it; a file no definition mentions |
-| asks the eleven definition questions | ordinary entregable proposals, as on every other layer |
+| `brand_deliverables.identificativo_principal` | **the rule** — *"se usa sobre fondo claro, nunca sobre la paleta secundaria"* — whose text may contain a link (CLAUDE.md §8 rule 1) |
+| `brand_egg_assets` | **the file** — row 84, typed, described, resolvable |
 
-⚠️ **Two card types on one layer, which no other has.** Elsewhere a proposal
-fills a textarea; here half of them do and half toggle a row. Build it last,
-once the text layers work.
+Prose *about* an asset in tier 2; the asset itself in tier 1. No overlap in
+meaning even where both name the same PNG — and Brandy already reads the
+entregables, so putting them in layer 4 as well was asking for the same material
+twice.
+
+⚠️ **The pivot is also the sturdier of the two.** A link inside prose keeps
+saying `/archivos/84` after the row is gone; `BrandAsset::fromUrl()` then returns
+null and the entregable points at nothing. A pivot row is a real foreign key —
+delete the file and it leaves the Egg cleanly. That is the reason the inventory
+holds row ids in the first place.
+
+### 14.8b What the assistant does here — two jobs, not seven beats
+
+⚠️ **`LayerProgress` DOES NOT APPLY TO THIS LAYER.** With no source entregables
+it would return an empty checklist. Layer 4's progress is not *"4 de 11
+entregables"* — it is *"12 archivos · 5 en el huevo · 6 sin tipo"*, a count of
+files. The panel reads `brand_assets` directly, and `LayerProgress` is only ever
+asked about the four text layers.
+
+1. **Type the untyped** — *"6 archivos sin tipo. Éste parece un logo, ¿lo
+   marco?"* Sets `brand_assets.type`.
+2. **Pick what belongs** — the **toggle** card of 14.3d: *"¿lo sumo al
+   inventario?"*
+
+She only ever suggests files whose `type` is one of the eight identity ones
+(`AssetType::isIdentity()`), so a pasted screenshot is never put forward — nobody
+typed it as a logo.
+
+### 14.8c A pasted image, and the trap in adding one
+
+An image pasted at an assistant is already stored as a `brand_assets` row
+(`KeepAssistantAttachments`), deliberately as `source = referencia`,
+`visibility = interno`, `type = null` — and **undescribed**, because
+`DescribeBrandAsset::shouldRead()` requires `AssetSource::Subida`. Most pasted
+images are somebody showing her a screenshot, not filing an asset.
+
+⚠️ **AN `interno` ASSET IN THE INVENTORY GIVES THE CLIENT A BROKEN EGG.** The
+approved Egg is readable by the brand at `/portal/estrategia/brand-egg`, and
+`canReachBrandAsset()` 404s an internal file — the same failure CLAUDE.md
+already documents for an entregable linking one, on a new surface. **And it is
+invisible from the Breakfast side, because it works for them.**
+
+So she offers rather than acts, and one card carries all four consequences:
+
+> Veo que pegaste un logo. ¿Lo sumo al inventario de la marca?
+>
+> Lo guardo como **Logo**, lo describo, y pasa a ser **compartido** — o sea que
+> la marca lo va a ver en sus Archivos y en el Brand Egg.
+>
+> `[Sí, súmalo]` `[Guárdalo interno, sin sumarlo]` `[Déjalo como está]`
+
+One click sets `type`, runs `DescribeBrandAsset`, flips `visibility` to
+`compartido`, and attaches it. ⚠️ **`source` stays `referencia`** — that is the
+truth about how the file arrived, and provenance is not a permission. What has
+to widen is `shouldRead()`, from *"uploaded images"* to *"uploaded images, or a
+reference somebody put in the Egg"*: a person choosing it is exactly the signal
+that gate was standing in for.
 
 ### 14.9 Where a layer's material actually lives — settled 2026-09-17
 

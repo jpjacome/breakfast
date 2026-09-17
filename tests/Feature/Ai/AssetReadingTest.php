@@ -196,15 +196,30 @@ it('never composes the inventory layer', function () {
         ->toBeNull();
 });
 
-it('gives layer 4 the visual entregables it was missing', function () {
-    // Until 2026-09-16 the layer called "Brand Assets / Icons" read only
-    // look_and_feel and relato, while nine visual entregables fed nothing at
-    // all. That absence was the whole reason the fourth ring stayed hollow.
-    $sources = collect(BrandEggLayer::Assets->sources())->map(fn ($i) => $i->value);
+it('reads no entregable at all, because the Egg IS the list of assets', function () {
+    /*
+     * ⚠️ THIS TEST ASSERTED THE OPPOSITE UNTIL 2026-09-17, and the reversal is
+     * the point. Layer 4 was given two entregables by the brief and nine more
+     * on 2026-09-16, on the reasoning that Breakfast writes its visual
+     * definitions down and the layer should not wait on image understanding.
+     *
+     * Breakfast rejected it, for a reason that outranks the convenience: THE
+     * EGG IS TIER 1. Deriving a brand's asset list from the entregables puts
+     * tier 2 above tier 1 on the one layer where the Egg is meant to BE the
+     * source — and it cannot work anyway, because nobody knows in advance what
+     * assets a brand will have. A fixed list of eleven entregables cannot
+     * describe an unknown set of files.
+     *
+     * So the layer is what it says: a list of assets and their type, curated
+     * out of brand_assets by a person.
+     */
+    expect(BrandEggLayer::Assets->sources())->toBe([])
+        ->and(BrandEggLayer::Assets->isInventory())->toBeTrue();
 
-    expect($sources)->toContain('emblemas')
+    // And the nine are not orphaned — they are tier 2, where they always were,
+    // holding the RULE about an asset rather than the asset.
+    expect(collect(DeliverableItem::cases())->map(fn ($i) => $i->value))
+        ->toContain('emblemas')
         ->toContain('colores')
-        ->toContain('identificativo_principal')
-        ->toContain('brand_universe')
-        ->toContain('tipografia');
+        ->toContain('identificativo_principal');
 });

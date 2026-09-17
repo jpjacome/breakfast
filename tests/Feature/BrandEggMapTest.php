@@ -56,13 +56,18 @@ it('accounts for all 48 entregables, whether or not they feed a layer', function
 });
 
 it('draws no ring as pending, because layer 4 was settled', function () {
-    // ⚠️ THIS TEST DID ITS JOB. It used to assert the opposite — that layer 4
-    // had two sources, did not include Emblemas, and was hatched "sin resolver"
-    // — and its comment said that whoever resolved "Brand Assets" should be
-    // told by this test to stop drawing it as pending. That happened on
-    // 2026-09-16, and the failure was the message arriving.
-    expect(BrandEggLayer::Assets->sources())
-        ->toContain(DeliverableItem::Emblemas)
+    /*
+     * ⚠️ THIS TEST HAS CAUGHT THE SAME SCREEN TWICE NOW, which is why it is
+     * worth keeping. It first asserted layer 4 had two sources and was drawn
+     * "sin resolver"; on 2026-09-16 nine visual entregables were added and it
+     * failed to say so; on 2026-09-17 Breakfast removed all eleven and it
+     * failed again. Each failure was the message arriving on time.
+     *
+     * Settled now, and in the other direction: the layer reads NO entregable,
+     * because the Egg is tier 1 and this layer IS the brand's list of assets
+     * rather than a reading of one.
+     */
+    expect(BrandEggLayer::Assets->sources())->toBe([])
         ->and(BrandEggLayer::Assets->isInventory())->toBeTrue();
 
     $this->get('/brand-egg')
