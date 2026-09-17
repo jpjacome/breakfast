@@ -39,6 +39,60 @@
   }
 }
 
+/* --------------------------------------------------------------------------
+   The plate
+
+   ⚠️ COPIED FROM brand-egg-map.css, WHICH IS THE ARRANGEMENT THAT WORKS. The
+   egg is fried in something: the drawing sits on a cast-iron pan deliberately
+   larger than its frame, so what shows is a fragment of a skillet rather than
+   a picture of one, and the plate's own radius does the cropping.
+
+   ⚠️ `max-width: none` IS THE LOAD-BEARING LINE. brand-egg.css caps the
+   component at 34rem for the general case; without lifting that cap here the
+   drawing does not take the column it is given and collapses to almost
+   nothing. That is exactly what happened on 2026-09-17 — a 20px egg somebody
+   took for a mark on their screen.
+
+   ⚠️ NO aspect-ratio ON THE PLATE. The drawing is portrait, and a square plate
+   forces it into a box it does not fit — the egg then sits off-centre inside
+   its own frame. The plate takes the egg's proportion instead.
+   -------------------------------------------------------------------------- */
+
+.portal-egg-plate {
+  position: relative;
+  overflow: hidden;
+  padding: 1.25rem;
+  border-radius: var(--border-radius);
+  background: var(--surface);
+}
+
+.portal-egg-skillet {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  height: 205%;
+  aspect-ratio: 1;
+  width: auto;
+  max-width: none;
+
+  /* Under the drawing, and never a control: the outer ring reaches the
+     plate's edges and the pan would swallow hovers meant for it. */
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+.portal-egg-plate .brand-egg {
+  position: relative;
+  z-index: 1;
+  max-width: none;
+
+  /* The egg has to be smaller than the pan wherever the pan is drawn, or it
+     overruns the cooking surface and sits on the rim. */
+  scale: .86;
+}
+
 .portal-egg-layers {
   display: grid;
   gap: 2rem;

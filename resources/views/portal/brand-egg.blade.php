@@ -27,9 +27,31 @@
     <div class="portal-egg">
 
         <div class="portal-egg-stage">
-            {{-- No `editable`: the rings still light and select, because a ring
-                 is a control on both sides, but nothing here writes. --}}
-            <x-brand-egg :egg="$egg->layerTexts()" data-brand-egg />
+            {{--
+                THE PLATE, copied from /brand-egg — the one arrangement of this
+                drawing that has always rendered correctly.
+
+                ⚠️ IT IS THE PLATE THAT SIZES THE EGG, NOT THE COLUMN. The
+                component caps itself at 34rem and the plate lifts the cap, so
+                the drawing takes the width it is given instead of collapsing
+                to whatever the SVG's intrinsic size happens to be. That
+                collapse is what put a 20px egg on this page on 2026-09-17.
+
+                ⚠️ THE SKILLET IS SCENERY: alt="", aria-hidden, pointer-events
+                off. "A pan" is not information about the brand, and it sits
+                under the outer ring, which reaches the plate's edges — without
+                pointer-events: none it would swallow hovers meant for a ring.
+            --}}
+            <div class="portal-egg-plate">
+                <img class="portal-egg-skillet"
+                     src="{{ asset('img/skillet.png') }}"
+                     alt="" aria-hidden="true"
+                     width="1050" height="1050">
+
+                {{-- No `editable`: the rings still light and select, because a
+                     ring is a control on both sides, but nothing here writes. --}}
+                <x-brand-egg :egg="$egg->layerTexts()" data-brand-egg />
+            </div>
         </div>
 
         <div class="portal-egg-layers">
