@@ -841,7 +841,8 @@ The opening, as an illustration of the shape 14.3 describes — the list is
 > - ⬜ Manifesto · *opcional*
 > - ⬜ Claim · *opcional*
 >
-> Empecemos por el **Relato de marca**, que es el que destraba a los demás. ¿De
+> Empecemos por el **Relato de marca**. Va primero porque los otros cinco se
+> apoyan en él. ¿De
 > dónde nace esta marca? No la empresa — la marca. ¿Qué pasó para que alguien
 > decidiera que esto tenía que existir?
 
