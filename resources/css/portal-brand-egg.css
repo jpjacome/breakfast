@@ -178,10 +178,19 @@
    deep. */
 .portal-egg-plate .portal-egg-skillet {
   position: absolute;
-  top: 50%;
+
+  /* ⚠️ JUDGED BY EYE ON THIS PAGE, not copied from /brand-egg. The map's 205%
+     at dead centre is tuned for a plate with a table of contents beside it;
+     here the pan sits in a pane the height of the viewport, and at 205% the
+     rim ran off entirely and it read as a dark background with an egg on it.
+
+     top is 46% rather than 50% because the drawing is portrait and its visual
+     weight sits low - centring the pan geometrically left it looking like it
+     had slipped down. */
+  top: 46%;
   left: 50%;
   translate: -50% -50%;
-  height: 205%;
+  height: 174%;
   aspect-ratio: 1;
   width: auto;
   max-width: none;
