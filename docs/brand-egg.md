@@ -1031,6 +1031,7 @@ expensive. ⚠️ **Ask before wiring.**
 | `POST …/brand-egg/asistente` | `throttle:10,1` + `ai-turn`, JSON, FormRequest with `failedValidation()` |
 | `App\Services\BrandEgg\LayerProgress` | one layer's checklist: each source entregable, filled or not, required or not, and which earlier layer already filled it. The ONE class that decides a tick |
 | `<x-brand-egg.checklist>` | renders it above the turn. Server-side, never the model's words (14.3) |
+| `PATCH …/entregables/{item}` | the one-entregable write the play-back card accepts into. ⚠️ NOT the board's route — see 14.12 |
 | the panel on the existing screen | reusing `assistant-composer.js`, so Enter and ↑-recall behave as on the other three |
 
 ⚠️ **Block 1 carries no layer name and no brand name.** Which ring, which mode
@@ -1045,16 +1046,49 @@ composer.
 3. cold-start behaviour, tuned against a real empty brand.
 4. layer 4's asset cards.
 
-### 14.12 The decision that blocks nothing but shapes everything
+### 14.12 ✅ DECIDED — the chat writes entregables, and the Egg is composed from them
 
-**When Breakfast answers «¿de dónde nace esta marca?» in the chat, does that
-answer also land in the `relato` entregable, or only in the Egg?**
+**When Breakfast answers «¿de dónde nace esta marca?» in the chat, that answer
+lands in the `relato` entregable.** Confirmed 2026-09-17. The play-back card of
+14.3a already says so out loud — *"¿lo guardo así en **Relato de marca**?"* —
+and naming the destination is what makes it honest.
 
-- **Only the Egg:** you can end up with a full Egg over empty entregables, which
-  inverts the hierarchy the rest of the system assumes — the Egg is supposed to
-  be a synthesis *of* them, and tier 2 would be emptier than tier 1.
-- **Both:** the assistant writes entregables from a conversation, which is what
-  the onboarding assistant already does — a second path to the same columns.
+So the order never inverts: **the conversation fills tier 2, and tier 1 is
+composed from tier 2, exactly as `EggComposer` already does it.** A brand can
+never end up with a full Egg sitting over empty entregables, and the cold path
+and the warm path converge on the same shape rather than being two systems.
 
-Neither is obviously right, and it decides whether this assistant is a **third**
-writer of brand data or a **reader** of it.
+⚠️ **THIS MAKES IT THE THIRD DOOR ONTO `brand_deliverables`** — the board's
+form, the onboarding assistant's proposals, and now this. That is the shape
+CLAUDE.md §11 warns about for the file manager (*"a folder filled from two doors
+that disagree is a folder nobody trusts"*), and it is acceptable here for the
+same reason it is there: **every door is a person clicking**, and none of them
+writes on the model's authority. §8 rule 4 still holds — no provenance column,
+because there is no state where the model authored a value alone.
+
+⚠️ **BUT IT CANNOT POST TO THE BOARD'S ROUTE.**
+`ClientProcessController::update()` takes `UpdateDeliverablesRequest` and fills
+from `$request->deliverables()`, which is the WHOLE set as the board's form
+submits it. A card posting one entregable through it would blank the other 47 —
+a data loss with no error and no way back, triggered by accepting a suggestion.
+
+So the card needs its own narrow write: **one entregable, named in the route,
+nothing else touched.**
+
+```
+PATCH  /admin/clientes/{marca}/entregables/{item}    admin.clients.deliverable.update
+```
+
+- `{item}` is bound to `DeliverableItem`, so an unknown key is a 404 rather than
+  a column name arriving from a request — the enum is the whitelist.
+- `covers-client` already guards it, being under the `/admin` group with a
+  `{client}` segment (CLAUDE.md §6).
+- It answers JSON, because the caller is a `fetch()` (trap 13).
+- ⚠️ **It writes the text it is given, not text the model produced.** The card
+  carries what the person saw and accepted; the endpoint does not call the
+  assistant, re-generate, or re-phrase.
+
+**It is not only the Egg assistant's.** The same route is what the entregables
+board should use the day somebody wants a single field saved without submitting
+48 — so it is written as a general one-entregable write, in the Actions style of
+CLAUDE.md §10, rather than as a private helper of this feature.
