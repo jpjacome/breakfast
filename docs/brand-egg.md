@@ -1237,27 +1237,91 @@ and much of the work is Brandy naming where the two disagree.
 fills a textarea; here half of them do and half toggle a row. Build it last,
 once the text layers work.
 
-### 14.9 ⚠️ Four entregables Breakfast validates that feed no layer
+### 14.9 Where a layer's material actually lives — settled 2026-09-17
 
-§1 of the brief says Breakfast validates *esencia, promesa, **territorio** e
-insight, públicos, personalidad y valores, **tono**, **pilares**, **mensajes**,
-criterios visuales*.
+Walking layers 2, 3 and 5 against the beats turned up a real question and one
+wrong answer, and the wrong answer is worth recording because it is an easy one
+to reach twice.
 
-Four of those reach nothing today, and two are **obligatorios**:
+**Every layer asks two kinds of question.** The *entregable* questions, which
+have a column, and the *composition* questions — the material the layer's text
+is actually written from. In the yolk they are the same set, which is why layer
+1 came out clean. Nowhere else:
 
-| entregable | proposed home | why |
+| layer | its composition questions | the entregable that would hold them |
 |---|---|---|
-| `tono` *(oblig.)* | **layer 2** | the layer is literally "cómo se comporta y HABLA" |
-| `territorio` *(oblig.)* | **layer 5** | territory is the world the brand occupies |
-| `pilares_contenido` | **layer 2** | what it talks about is part of how it speaks |
-| `temas_conversacion` *(oblig.)* · `lineamientos` | **layer 2** | "mensajes" in their list |
+| 2 · Personalidad | ¿habla primero o escucha? ¿tú o usted? ¿qué no diría jamás? | `tono` *(oblig.)* · `temas_conversacion` *(oblig.)* · `lineamientos` |
+| 3 · Beneficios | ¿qué se lleva quien la elige que no se llevaría de otra? | `analisis_categoria` *(oblig.)* · `analisis_digital` |
+| 5 · Universo | ¿si fuera un lugar, cuál? ¿qué queda fuera? | `territorio` *(oblig.)* · `contexto_simbologia` *(oblig.)* |
 
-**This is a question for Breakfast, not a decision to take here.** Their two
-documents enumerate the Egg differently — the 2026-09-08 brief names five
-layers, §1 names eleven things — and building against the wrong reading is
-expensive. ⚠️ **Ask before wiring.**
+⚠️ **THE WRONG ANSWER WAS "SO THE ANSWER HAS NOWHERE TO LAND".** It does. The
+Egg has its own table — `brand_eggs`, one TEXT column per layer — so a composed
+layer is stored permanently whether or not any entregable underwrites it. And
+**no conversation is ever lost either**: rows in `brand_egg_messages` are
+permanent, exactly like the other two message tables. `scopeThread(…, 20)` is a
+REPLAY cap deciding what rides in the next request; it deletes nothing.
+⚠️ **There is no summarisation anywhere in this codebase** — not for Brandy, not
+for the dashboard, not for onboarding — so do not reason as though a long thread
+gets compressed. It gets *replayed less*.
 
----
+The real problem was narrower, and it was one button.
+
+⚠️ **`EggComposer` READS `sources()` AND NOTHING ELSE**, so a layer built out of
+a conversation could be silently overwritten by *Volver a componer* — the
+composer re-running from two entregables and producing a paragraph that knows
+nothing about tú/usted or jerga corporativa. The layer gets quietly worse and
+the button that did it looks like a refresh.
+
+**The fix is not to wire the entregables. It is to let the composer read the
+thread.**
+
+```
+EggComposer::compose(layer)   ← the layer's entregables
+                              + the turns in brand_egg_messages for THAT layer
+```
+
+⚠️ **AND IT IS CHEAP, BECAUSE `brand_egg_messages.layer` ALREADY EXISTS.** "The
+material layer 2 was built from" is a filtered query returning perhaps ten
+turns, not a fortnight of conversation. That column was added so ➖ could be
+derived; this is the second thing it pays for.
+
+**So a layer that no entregable underwrites is fine.** Nothing is lost, and
+re-composition stops being lossy.
+
+⚠️ **The thread goes in the USER turn, with the entregables, never above it.**
+It changes on every message, so in the cacheable prefix it would give each
+composition its own prefix (CLAUDE.md §7).
+
+**If a layer's thread ever outgrows a request**, summarisation is the answer —
+and it belongs to all three assistants at once, as its own item, not smuggled in
+here. A per-layer thread is small and this is a long way off.
+
+### 14.9b ⚠️ Six obligatorios feed no layer — a question for Breakfast, not a blocker
+
+Of the 19 obligatorios, **six reach no layer of the Egg**: `tono`,
+`temas_conversacion`, `territorio`, `contexto_simbologia`, `analisis_categoria`
+and `brand_x`. (A seventh, `checklist_implementacion`, legitimately is not Egg
+material — it is the client's tickable list, CLAUDE.md §11.)
+
+14.9 settles that this is **not a correctness problem**. What remains is
+Breakfast's own, and it is worth putting to them plainly:
+
+**Those are entregables they SELL.** They are in the 48 the client is handed in
+the toolkit. If the material for `tono` and `territorio` lives only in the Egg
+and in a conversation, the toolkit Breakfast delivers is missing obligatorios
+that were paid for. Wiring them to layers 2, 3 and 5 would mean the same
+conversation fills both — the Egg AND the deliverable — with no extra work for
+the team.
+
+That is a business judgement about their process, so **ask; do not wire it
+unilaterally.** Two more they have to answer before anything is decided:
+
+- ⚠️ **`Brand X` is an obligatorio with NO DEFINITION ANYWHERE.**
+  `docs/entregables.md` line 82 is a numbered row and a label. It could be the
+  differentiator, which would put it at the centre of layer 3. Not a thing to
+  guess at.
+- **`Brand universe (gráfico)`** is layer 4's today, being an asset definition,
+  but it is *named* for layer 5. Both, or a collision of names?
 
 ### 14.10 What gets built
 
@@ -1270,6 +1334,7 @@ expensive. ⚠️ **Ask before wiring.**
 | `App\Services\BrandEgg\LayerProgress` | one layer's checklist: each source entregable, filled or not, required or not, and which earlier layer already filled it. The ONE class that decides a tick |
 | `<x-brand-egg.checklist>` | renders it above the turn. Server-side, never the model's words (14.3) |
 | `PATCH …/entregables/{item}` | the one-entregable write the play-back card accepts into. ⚠️ NOT the board's route — see 14.12 |
+| `EggComposer` takes the thread | its layer's turns alongside its entregables, so *Volver a componer* stops being lossy (14.9) |
 | the panel on the existing screen | reusing `assistant-composer.js`, so Enter and ↑-recall behave as on the other three |
 
 ⚠️ **Block 1 carries no layer name and no brand name.** Which ring, which mode
