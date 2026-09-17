@@ -18,6 +18,8 @@ export default defineConfig({
                 'resources/css/process.css',
                 'resources/css/files.css',
                 'resources/css/admin-brand-egg.css',
+                // The Egg assistant's panel — admin only, beside the rings.
+                'resources/css/egg-assistant.css',
                 // Component stylesheets, not pages': these render in BOTH
                 // shells, so neither shell's file can own them.
                 'resources/css/permissions.css',
@@ -50,6 +52,7 @@ export default defineConfig({
                 'resources/js/process.js',
                 'resources/js/checklist.js',
                 'resources/js/brand-egg.js',
+                'resources/js/egg-assistant.js',
                 'resources/js/copy-link.js',
                 'resources/js/lightbox.js',
                 'resources/js/orb-demo.js',

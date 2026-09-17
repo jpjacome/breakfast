@@ -52,6 +52,12 @@
                             {{ $layer->label() }}
                         </h2>
 
+                        {{-- What the layer is FOR, before what it says about
+                             this brand. Straight from the enum, so the client's
+                             reading of a layer and Breakfast's are the same
+                             words — see BrandEggLayer::description(). --}}
+                        <p class="portal-egg-layer-purpose">{{ $layer->description() }}</p>
+
                         <p class="portal-egg-layer-text">{{ $text }}</p>
                     </section>
                 @endif

@@ -78,6 +78,20 @@
   color: var(--ink-quiet);
 }
 
+/*
+   What the section is FOR, before what it says about this brand.
+
+   Quieter than the text it introduces, because it is the same line on every
+   brand's egg — it explains the shape, and the paragraph under it is the only
+   part that belongs to this one.
+*/
+.portal-egg-layer-purpose {
+  margin-top: .35rem;
+  font-size: .85rem;
+  color: var(--ink-quiet);
+  max-width: 60ch;
+}
+
 .portal-egg-layer-text {
   margin-top: .75rem;
   line-height: 1.8;

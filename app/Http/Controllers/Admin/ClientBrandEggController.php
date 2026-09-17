@@ -88,7 +88,17 @@ class ClientBrandEggController extends Controller
     }
 
     /**
-     * Save ONE entregable — what the play-back card accepts into.
+     * Save ONE entregable of ONE section — what a play-back card accepts into.
+     *
+     * ⚠️ THE SECTION IS IN THE URL AND IT IS A GATE, NOT CONTEXT. Breakfast's
+     * rule, 2026-09-17: this assistant may only ever write the entregables
+     * ATTACHED TO THE SECTION being worked on. Filling the yolk reaches six of
+     * the 48; filling Personalidad reaches two. Everything else 404s.
+     *
+     * The prompt says the same thing — and a prompt is a request. This is the
+     * part that makes it a fact: a loosened prompt, a confused turn or a
+     * hand-made request still cannot land a card on an entregable this section
+     * does not read.
      *
      * ⚠️ IT CANNOT POST TO THE BOARD'S ROUTE, and this is the trap worth
      * knowing before somebody tries. ClientProcessController@update fills from
@@ -98,17 +108,25 @@ class ClientBrandEggController extends Controller
      * blanks the other 47: silent data loss, no error, triggered by accepting
      * a suggestion.
      *
-     * ⚠️ {item} BINDS TO THE ENUM, so the column being written can only ever be
-     * one of the 48 and an unknown key is a 404 — the vocabulary is the
-     * whitelist, never a string from a request body.
+     * ⚠️ BOTH SEGMENTS BIND TO ENUMS, so neither a section nor a column name
+     * ever arrives as a string from a request body. The vocabulary is the
+     * whitelist.
      *
      * ⚠️ IT WRITES THE TEXT IT IS GIVEN. It does not call the assistant,
      * re-generate or re-phrase: the card carries what the person read and
      * accepted, and anything else would break the guarantee the whole app
      * rests on.
      */
-    public function deliverable(Request $request, Client $client, DeliverableItem $item): JsonResponse
-    {
+    public function deliverable(
+        Request $request,
+        Client $client,
+        BrandEggLayer $layer,
+        DeliverableItem $item,
+    ): JsonResponse {
+        // Fail closed. 404 rather than 422: an entregable this section does not
+        // read is not a bad value, it is a route that does not exist here.
+        abort_unless(in_array($item, $layer->sources(), true), 404);
+
         $text = trim((string) $request->input('texto'));
 
         $client->deliverables()->firstOrNew()->fill([
@@ -116,7 +134,12 @@ class ClientBrandEggController extends Controller
             'updated_by' => $request->user()->id,
         ])->save();
 
-        return response()->json(['saved' => $item->value]);
+        return response()->json([
+            'saved' => $item->value,
+            // The card moved a tick, and the tick is derived — so the panel is
+            // handed the new reading rather than inferring one.
+            'checklist' => LayerProgress::for($client->fresh(), $layer)->toMarkdown(),
+        ]);
     }
 
     public function edit(Client $client): View

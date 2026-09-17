@@ -1,0 +1,150 @@
+/*
+    The Brand Egg assistant's panel — admin only.
+
+    It sits in the aside beside the Egg's state, so it is narrow by definition:
+    everything here is a single column and nothing assumes width.
+
+    ⚠️ ONLY TOKENS general.css DEFINES. This file is loaded next to
+    admin-brand-egg.css on one screen today, and the moment the panel appears
+    anywhere else a token only /admin defines renders it unstyled — the
+    permissions.css bug, which cost an afternoon (CLAUDE.md §9).
+*/
+
+.egg-assistant {
+    display: grid;
+    gap: 1rem;
+    padding: 1.25rem;
+    border: 2px solid var(--box-edge, var(--ink-faint));
+    border-radius: 36px;
+    background: var(--page);
+}
+
+.egg-assistant-head { display: grid; gap: .35rem; }
+
+/* ---------------------------------------------------------------- the rings */
+
+/*
+    Which section is being filled.
+
+    ⚠️ A radio group rather than a dropdown, and visible rather than collapsed:
+    the current section decides which entregables a card is even allowed to
+    write, so it has to be readable at a glance while typing.
+*/
+.egg-assistant-rings {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+}
+
+.egg-assistant-ring input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.egg-assistant-ring span {
+    display: inline-block;
+    padding: .3rem .6rem;
+    border: 2px solid var(--ink-faint);
+    border-radius: 36px;
+    font-size: .75rem;
+    cursor: pointer;
+}
+
+.egg-assistant-ring input:checked + span {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--page);
+}
+
+/* Focus has to be visible on the box, since the input itself is not. */
+.egg-assistant-ring input:focus-visible + span { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* ------------------------------------------------------------ the checklist */
+
+.egg-assistant-checklist { font-size: .8rem; }
+.egg-assistant-checklist ul { margin: 0; padding-left: 1.1rem; display: grid; gap: .15rem; }
+.egg-assistant-checklist:empty { display: none; }
+
+/* --------------------------------------------------------------- the thread */
+
+.egg-assistant-thread {
+    display: grid;
+    gap: .75rem;
+    max-height: 26rem;
+    overflow-y: auto;
+    font-size: .85rem;
+}
+
+.egg-turn { display: grid; gap: .4rem; }
+.egg-turn p { margin: 0; }
+.egg-turn-user { justify-items: end; text-align: right; color: var(--ink-quiet); }
+.egg-turn-waiting { color: var(--ink-quiet); font-style: italic; }
+
+.egg-turn-layer {
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--ink-quiet);
+}
+
+/* ----------------------------------------------------------------- the card */
+
+/*
+    A proposal, as buttons a person clicks.
+
+    ⚠️ The text is a TEXTAREA, not a paragraph. Editing before accepting is one
+    of Breakfast's three conditions — editable, confirmed, cited — and an
+    "Editar" button that swaps a <p> for a field is a click nobody should have
+    to make to fix a word.
+*/
+.egg-card {
+    display: grid;
+    gap: .5rem;
+    padding: .75rem;
+    border: 2px solid var(--accent);
+    border-radius: 36px;
+}
+
+.egg-card-text {
+    width: 100%;
+    resize: vertical;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    padding: 0;
+}
+
+.egg-card-text:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+
+.egg-card-actions { display: flex; flex-wrap: wrap; gap: .35rem; }
+
+.egg-card-done { margin: 0; font-size: .75rem; color: var(--ink-quiet); }
+
+/*
+    A proposal in the history.
+
+    ⚠️ Text, never buttons. Whether it was accepted is already answered by the
+    checklist above, and a live button on yesterday's proposal would offer to
+    save something that may have been superseded twice since.
+*/
+.egg-card-past {
+    margin: 0;
+    padding-left: .75rem;
+    border-left: 2px solid var(--ink-faint);
+    color: var(--ink-quiet);
+}
+
+/* ------------------------------------------------------------- the composer */
+
+.egg-assistant-ask {
+    display: flex;
+    align-items: flex-end;
+    gap: .35rem;
+}
+
+.egg-assistant-ask textarea {
+    flex: 1;
+    resize: none;
+}

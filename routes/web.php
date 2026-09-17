@@ -221,16 +221,21 @@ Route::middleware(['auth', 'breakfast', 'covers-client'])
             ->name('clients.egg.assistant');
 
         /*
-         * ONE entregable, named in the URL — what a play-back card accepts into.
+         * ONE entregable of ONE section — what a play-back card accepts into.
+         *
+         * ⚠️ THE SECTION IN THE PATH IS A GATE. This assistant may only write
+         * the entregables attached to the section being filled — six on the
+         * yolk, two on Personalidad — and anything else 404s in the controller.
+         * The prompt says so too, but a prompt is a request and this is a fact.
          *
          * ⚠️ DELIBERATELY NOT the board's route. That one is a full save of the
          * 48-field form and returns every column, so a single entregable posted
          * through it would blank the other 47 — see the controller.
          *
-         * ⚠️ {item} binds to DeliverableItem, so the enum is the whitelist and
-         * the column name never comes from a request body.
+         * ⚠️ Both segments bind to enums, so neither the section nor the column
+         * name ever arrives as a string from a request body.
          */
-        Route::patch('clientes/{client}/entregables/{item}', [ClientBrandEggController::class, 'deliverable'])
+        Route::patch('clientes/{client}/brand-egg/{layer}/entregables/{item}', [ClientBrandEggController::class, 'deliverable'])
             ->name('clients.deliverable.update');
 
         // Layer 4's inventory: put a file in the Egg, or take it out. A toggle

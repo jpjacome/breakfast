@@ -35,8 +35,8 @@
 
 <x-layouts.app
     :title="$client->name.' · Brand Egg'"
-    :css="['brand-egg', 'admin-brand-egg']"
-    :scripts="['resources/js/brand-egg.js']"
+    :css="['brand-egg', 'admin-brand-egg', 'egg-assistant']"
+    :scripts="['resources/js/brand-egg.js', 'resources/js/egg-assistant.js']"
     :heading="$heading"
 >
 
@@ -143,6 +143,17 @@
                      carry a permanent blank row. --}}
                 <p class="brand-egg-status-note" data-brand-egg-report hidden></p>
             </section>
+
+            {{--
+                Brandy, building the egg with the team — step 1 of §1.
+
+                ⚠️ IN THE ASIDE, BESIDE THE STATE, NOT ABOVE THE LAYERS. The
+                layers are what the Egg IS and they are the page; this is how
+                it gets made. Putting a conversation at the top would make the
+                screen about talking rather than about the five paragraphs
+                somebody has to read and approve.
+            --}}
+            <x-admin.egg-assistant :client="$client" :layers="$layers" />
         </aside>
 
         {{-- ------------------------------------------------------------
@@ -218,8 +229,14 @@
                                  layer on screen, and this codebase has no
                                  visually-hidden utility — adding one for a
                                  single field would be speculative CSS. --}}
+                            {{-- data-brand-egg-layer-input is what a card from
+                                 the assistant fills. ⚠️ It FILLS, it does not
+                                 post: the person still presses Guardar on the
+                                 layer they are about to change, which keeps the
+                                 one path that writes a layer a person's. --}}
                             <textarea id="text-{{ $layer->value }}"
                                       name="text"
+                                      data-brand-egg-layer-input="{{ $layer->value }}"
                                       aria-label="Texto de la capa {{ $layer->label() }}"
                                       rows="6"
                                       maxlength="5000"

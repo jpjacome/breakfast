@@ -219,7 +219,7 @@ it('saves one entregable without touching the other 47', function () {
     ])->save();
 
     actingAs($this->admin)
-        ->patchJson(route('admin.clients.deliverable.update', [$this->client, DeliverableItem::Relato->value]), [
+        ->patchJson(route('admin.clients.deliverable.update', [$this->client, BrandEggLayer::Esencia->value, DeliverableItem::Relato->value]), [
             'texto' => 'Nace de una abuela.',
         ])
         ->assertOk();
@@ -236,7 +236,7 @@ it('moves the tick when an entregable is accepted', function () {
         ->toBe(DeliverableItem::Relato);
 
     actingAs($this->admin)
-        ->patchJson(route('admin.clients.deliverable.update', [$this->client, DeliverableItem::Relato->value]), [
+        ->patchJson(route('admin.clients.deliverable.update', [$this->client, BrandEggLayer::Esencia->value, DeliverableItem::Relato->value]), [
             'texto' => 'Nace de una abuela.',
         ]);
 
@@ -247,7 +247,7 @@ it('moves the tick when an entregable is accepted', function () {
 it('404s on a key that is not one of the 48', function () {
     // ⚠️ The enum is the whitelist. A column name never comes from a request.
     actingAs($this->admin)
-        ->patchJson(route('admin.clients.deliverable.update', [$this->client, 'updated_by']), [
+        ->patchJson(route('admin.clients.deliverable.update', [$this->client, BrandEggLayer::Esencia->value, 'updated_by']), [
             'texto' => 'nope',
         ])
         ->assertNotFound();
@@ -255,7 +255,7 @@ it('404s on a key that is not one of the 48', function () {
 
 it('keeps an equipo member out of the narrow write too', function () {
     actingAs(User::factory()->equipo()->create())
-        ->patchJson(route('admin.clients.deliverable.update', [$this->client, DeliverableItem::Relato->value]), [
+        ->patchJson(route('admin.clients.deliverable.update', [$this->client, BrandEggLayer::Esencia->value, DeliverableItem::Relato->value]), [
             'texto' => 'Nace de una abuela.',
         ])
         ->assertNotFound();
@@ -301,4 +301,91 @@ it('still refuses a layer with no entregables and no conversation', function () 
     expect(app(EggComposer::class)
         ->compose($this->client, BrandEggLayer::Personalidad))
         ->toBeNull();
+});
+
+it('refuses an entregable that the section does not read', function () {
+    /*
+     * ⚠️ BREAKFAST'S RULE, MADE A FACT. This assistant may only write the
+     * entregables ATTACHED TO THE SECTION being filled. The prompt says so too
+     * — and a prompt is a request. A loosened prompt, a confused turn or a
+     * hand-made request still cannot land a card on an entregable this section
+     * does not read.
+     *
+     * Publicos feeds layer 3, never layer 1.
+     */
+    actingAs($this->admin)
+        ->patchJson(route('admin.clients.deliverable.update', [
+            $this->client, BrandEggLayer::Esencia->value, DeliverableItem::Publicos->value,
+        ]), ['texto' => 'Vecinos del barrio.'])
+        ->assertNotFound();
+
+    expect($this->client->fresh()->deliverables?->value(DeliverableItem::Publicos) ?? '')->toBe('');
+
+    // And the same entregable through its OWN section is fine.
+    actingAs($this->admin)
+        ->patchJson(route('admin.clients.deliverable.update', [
+            $this->client, BrandEggLayer::Beneficios->value, DeliverableItem::Publicos->value,
+        ]), ['texto' => 'Vecinos del barrio.'])
+        ->assertOk();
+});
+
+it('hands the new checklist back when a card is accepted', function () {
+    // The card moved a tick and the tick is derived, so the panel is handed the
+    // new reading rather than inferring one.
+    actingAs($this->admin)
+        ->patchJson(route('admin.clients.deliverable.update', [
+            $this->client, BrandEggLayer::Esencia->value, DeliverableItem::Relato->value,
+        ]), ['texto' => 'Nace de una abuela.'])
+        ->assertOk()
+        ->assertJsonPath('saved', 'relato');
+});
+
+it('tells Brandy how to wrap a proposal, in ASCII', function () {
+    /*
+     * ⚠️ A CONTRACT WITH egg-assistant.js. Anything inside the marker becomes a
+     * card; anything outside is prose. The asymmetry is the design: a marker
+     * she forgets degrades into a readable sentence, where a malformed JSON
+     * field would have broken the turn.
+     */
+    $prompt = config('ai.egg_assistant_prompt');
+
+    expect($prompt)
+        ->toContain('⟦guardar seccion=esencia item=relato⟧')
+        ->toContain('⟦/guardar⟧')
+        // ASCII keys, so an accent cannot break the parse.
+        ->not->toContain('sección=')
+        // And the rule that keeps her inside the section.
+        ->toContain('Nunca nombras un entregable que no alimenta esta sección');
+});
+
+it('renders the panel on the admin egg screen', function () {
+    actingAs($this->admin)
+        ->get(route('admin.clients.egg.edit', $this->client))
+        ->assertOk()
+        ->assertSee('data-egg-assistant', false)
+        // The ring picker decides where a card is allowed to save, so it has to
+        // be on screen rather than behind a dropdown.
+        ->assertSee('data-egg-layer', false)
+        // And the save endpoint carries both placeholders the script fills in.
+        ->assertSee('__LAYER__', false)
+        ->assertSee('__ITEM__', false);
+});
+
+it('gives the client the purpose of each layer, not just its text', function () {
+    $client = Client::factory()->create();
+
+    $client->brandEgg()->create([
+        BrandEggLayer::Esencia->value => 'Una panadería de barrio.',
+        'generated_at' => now(),
+    ])->forceFill(['approved_at' => now(), 'approved_by' => $this->admin->id])->save();
+
+    $owner = User::factory()->clientOwner($client->id, ['estrategia' => 'read'])->create();
+
+    actingAs($owner)
+        ->get(route('portal.estrategia.egg'))
+        ->assertOk()
+        ->assertSee('Una panadería de barrio.', false)
+        // Straight from the enum, so the client's reading of a layer and
+        // Breakfast's are the same words.
+        ->assertSee(BrandEggLayer::Esencia->description(), false);
 });
