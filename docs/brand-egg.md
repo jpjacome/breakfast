@@ -369,7 +369,20 @@ request at ~182s. That is inside the budget but not comfortably, so:
 
 ---
 
-## 7. The toolkit as the second tier — ✅ BUILT 2026-09-15
+## 7. The toolkit as the second tier — ⛔ BUILT 2026-09-15, REMOVED 2026-09-17
+
+> ⚠️ **THIS WHOLE SECTION DESCRIBES A TIER THAT NO LONGER EXISTS.** Breakfast
+> settled what the toolkit is on 2026-09-17: it is the final PDF they deliver,
+> and the 48 entregables are extracted from it. So the toolkit has nothing the
+> entregables lack, and feeding its digest as a fifth tier put an unreviewed
+> second account of the same facts against the reviewed one.
+>
+> The one thing it did carry that they did not — *"cómo se ve"* — now lives on
+> `brand_assets.visual_reading` and reaches the Egg through its inventory layer.
+>
+> Kept below because the reasoning about ORDERING and about ksort is still true
+> of the four tiers that remain, and because the two-phase read it describes is
+> still how a brandbook is turned into entregables.
 
 **Done, and verified against the real provider.** The four tiers are numbered
 (`1. Entregables`, `2. La marca`, `3. Proceso`, `4. Toolkit (respaldo…)`) because

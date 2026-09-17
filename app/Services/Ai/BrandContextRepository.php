@@ -17,13 +17,16 @@ use App\Services\Ai\Data\BrandContext;
  * This is the ONLY class in the AI layer that touches Eloquent. Everything
  * downstream takes the DTO, so schema changes land here and nowhere else.
  *
- * ⚠️ THE CONTEXT IS THE DATABASE FIRST, IN FIVE NUMBERED TIERS:
+ * ⚠️ THE CONTEXT IS THE DATABASE, IN FOUR NUMBERED TIERS:
  *
  *   1. Brand Egg      the brand's primary memory, synthesised and signed off
  *   2. Entregables    the reviewed detail beneath it
  *   3. La marca       the ficha
  *   4. Proceso        where the project stands
- *   5. Toolkit        background only, and nobody reviewed it
+ *
+ * ⚠️ AND NOTHING ELSE. There is no toolkit tier: the toolkit is the PDF the 48
+ * entregables were extracted FROM, so tier 2 already carries everything it
+ * said. See the note in for().
  *
  * ⚠️ THE NUMBERS ARE WHAT HOLD THE ORDER, NOT THE INSERTION. BrandContext::make()
  * ksorts the titles so prompt bytes never depend on map ordering — which means
@@ -90,25 +93,35 @@ final class BrandContextRepository
         if ($documents !== []) {
             $documents['3. La marca (ficha)'] = $this->brandBlock($client);
             $documents['4. Proceso del proyecto (proceso)'] = $this->processBlock($client);
-
-            // ⚠️ THE TOOLKIT, AND IT IS NEW HERE. clients.document_digest was
-            // written by the onboarding assistant and read by NOTHING: Brandy
-            // had never seen a brandbook, only the entregables a person
-            // accepted from one. The brief worried the toolkit was acting as
-            // the brand's main memory; the truth was the inverse.
-            //
-            // It rides inside this guard for the same reason the two above do.
-            // A brand with an uploaded toolkit and not one entregable written
-            // would otherwise report hasUsableContext() true, and the assistant
-            // would be offered on the strength of a document nobody reviewed —
-            // which is the one thing this whole app exists to prevent.
-            $toolkit = trim((string) $client->document_digest);
-
-            if ($toolkit !== '') {
-                $documents['5. Toolkit de la marca (respaldo, NO es la fuente principal)'] =
-                    $this->toolkitBlock($toolkit);
-            }
         }
+
+        /*
+         * ⚠️ THERE IS NO TOOLKIT TIER, AND THAT IS THE POINT — removed
+         * 2026-09-17, having been added on 2026-09-15.
+         *
+         * The toolkit is the final PDF Breakfast delivers to a brand, and the
+         * 48 entregables are EXTRACTED FROM IT. So once that extraction has
+         * happened the toolkit has nothing left to say: everything in it is
+         * already in tier 2, reviewed one entregable at a time by a person.
+         * Feeding the digest as well put an unreviewed second account of the
+         * same facts in front of the model on every single turn, competing
+         * with the reviewed one.
+         *
+         * It was added because the digest held something the entregables did
+         * not — "cómo se ve", what the material LOOKED like, which no text
+         * column carried. That gap is closed: images are read into
+         * brand_assets.visual_reading and reach the Egg through its inventory
+         * layer, where the description hangs off a row somebody filed and can
+         * be corrected.
+         *
+         * ⚠️ clients.document_digest STILL EXISTS and must stay. It is the
+         * working note of the extraction itself — BrandOnboardingController
+         * reads a PDF into it once and then makes four batched calls over that
+         * stored text, which is what stops a 94MB toolkit travelling five
+         * times and what keeps each call inside this host's limits (§3). It is
+         * scaffolding for building the entregables, never a source for
+         * answering from.
+         */
 
         return BrandContext::make(
             clientId: $client->id,
@@ -135,7 +148,8 @@ final class BrandContextRepository
      * ordering a model can lose track of in a long prompt, and the ficha is two
      * tiers away from the thing it would be describing — so the tier says what
      * it is in its own first lines, where it cannot be separated from the text
-     * it governs. Same argument as toolkitBlock(), and the same shape.
+     * it governs. The toolkit tier used to make the same argument in its own
+     * first lines, before it was removed for saying what tier 2 already said.
      *
      * ⚠️ THE DATE IS ABSOLUTE AND THE LINE IS STABLE PER BRAND. It lands in
      * block 2, whose exact bytes are the caching mechanism: "aprobado hace dos
@@ -190,32 +204,6 @@ final class BrandContextRepository
 
 '
             .$egg->toMarkdown();
-    }
-
-    /**
-     * What was read out of the brand's own documents, framed as backup.
-     *
-     * ⚠️ THE FRAMING IS PART OF THE DOCUMENT, not only of the house prompt.
-     * This block sits below the entregables in the assembled context, but
-     * "below" is an ordering a model can lose track of in a long prompt — so
-     * the tier says what it is in its own first line, where it cannot be
-     * separated from the text it governs.
-     *
-     * The rule it states is the same one the entregables carry: what the brand
-     * IS comes from what a person reviewed. A brandbook is what the material
-     * said before anybody agreed to it, which makes it good for detail the
-     * entregables do not carry and useless as a way to contradict them.
-     */
-    private function toolkitBlock(string $digest): string
-    {
-        return 'Esto es lo que se leyó de los documentos que subió el equipo '
-            ."(brandbooks, briefs, presentaciones). Es material de RESPALDO.\n\n"
-            .'- Los entregables mandan. Si algo de aquí los contradice, lo '
-            ."señalas y no decides por tu cuenta.\n"
-            .'- Sirve para dar detalle que los entregables no traen, nunca '
-            ."para reemplazarlos.\n"
-            .'- Nada de aquí está aprobado: es lo que decían los documentos, '
-            ."no lo que la marca definió.\n\n---\n\n".$digest;
     }
 
     /**

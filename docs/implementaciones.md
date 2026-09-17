@@ -41,7 +41,7 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 | 14 | Campos propios por marca | ⬜ |
 | 15 | Notas | ⬜ |
 
-**Suite:** 497 → **605 passing** across this cycle. `pint` clean throughout.
+**Suite:** 497 → **618 passing** across this cycle. `pint` clean throughout.
 
 ---
 
@@ -383,6 +383,103 @@ One migration, `2026_09_16_100000_add_visual_reading_to_brand_assets_table`.
 until an image is read. Existing folders stay undescribed until
 `php artisan assets:describe` is run — deliberately, since it is a paid call
 per image on a worker pool four other sites share.
+
+---
+
+## 1c · The toolkit stops being a tier, and layer 4 becomes an inventory · 2026-09-17
+
+Two corrections from Breakfast in one sitting, and both simplify rather than add.
+
+### ⚠️ The toolkit is not a source. It is where the entregables came from.
+
+Settled in one sentence: **the toolkit is the final PDF Breakfast delivers to a
+brand, and the 48 entregables are extracted from it.** Once that has happened
+the toolkit has nothing left to say — everything in it is in tier 2 already,
+reviewed one entregable at a time by a person.
+
+So the fifth tier added on 2026-09-15 was sending an **unreviewed second account
+of the same facts** on every single turn, competing with the reviewed one. It is
+gone. Four tiers now: Brand Egg · Entregables · La marca · Proceso.
+
+⚠️ **What justified it at the time was real, and closed a day later.** The digest
+held *"cómo se ve"*, which no text column carried. Images are now read into
+`brand_assets.visual_reading` and reach the Egg through its inventory layer,
+where the description hangs off a row somebody can correct. The gap it filled
+no longer exists.
+
+⚠️ **`clients.document_digest` STAYS.** Not as memory — as the working note of
+the extraction itself. `BrandOnboardingController` reads a PDF into it once and
+then makes four batched calls over that stored text, which is what stops a 94MB
+toolkit travelling five times and what keeps each call inside this host's
+limits. **Scaffolding for building the entregables, never a source for
+answering from.**
+
+### ⚠️ Layer 4 is a list of files, not a paragraph
+
+The other four layers say what a brand IS, and a paragraph is right for each.
+"Brand Assets / Icons" is **not a claim about the brand — it is a list of things
+that exist.** Written as prose it could describe a logo but never point at one,
+so *"muéstrame el logo"* had no answer.
+
+`brand_eggs.assets` is gone. The layer holds rows in `brand_egg_assets`, and the
+type, description and URL are read from `brand_assets` whenever something asks:
+
+| | |
+|---|---|
+| correct a file's description | the Egg is corrected, nothing re-run |
+| replace the logo file | the Egg points at the new one |
+| delete a file | it leaves the Egg, rather than leaving prose about something gone |
+
+A pivot rather than a JSON array of ids, for the same reason
+`brand_deliverables` is 48 columns and not a blob: a foreign key is enforced by
+the database and an id in a JSON array is a number nobody checks.
+
+**And a curated subset, not "the brand's files"** — the folder holds the
+contract too, and what belongs to the identity is exactly the judgement the Egg
+exists to record.
+
+The layer is **never composed**: there is nothing for a model to write, and
+asking would produce a paragraph competing with the list for the same ring.
+
+### The inventory that makes it possible
+
+`brand_assets` gained `type` (`AssetType`, 14 cases) — the third independent
+label beside `visibility` (who may see it) and `source` (how it arrived). It
+decides neither, because dividing a folder by what files ARE is the mistake that
+killed `context_documents`.
+
+⚠️ **`null` means "nobody has said", deliberately not `otro`.** A file uploaded
+before this existed and one a person judged miscellaneous are different states.
+
+Two endpoints for the file manager that does not exist yet — `PATCH …/tipo` and
+`PATCH …/descripcion`. The second is what makes a machine reading into brand
+data: **a description nobody can correct is exactly the unreviewed material the
+Egg may not be built from.** It moves `read_at` with the edit, or `shouldRead()`
+would call a hand-written correction stale and the next `assets:describe` would
+overwrite a person's words with the machine's.
+
+### ⚠️ A migration that reads an enum is not immutable
+
+`create_brand_eggs_table` builds its columns from `BrandEggLayer::columns()`.
+When that method stopped returning the inventory layer, **the past changed**: a
+fresh database never gets an `assets` column while an existing one has it. The
+unconditional drop failed all 615 tests at once. The drop is conditional now.
+
+⚠️ `brand_deliverables` has the identical shape — a 49th entregable would do the
+same thing.
+
+### How it was proved
+
+`AssetInventoryTest` (10) and a rewritten `AssetReadingTest`. 605 → **618
+passing.** Two tests that asserted the toolkit tier were reversed rather than
+deleted, so the record shows the decision changing.
+
+### Deploy
+
+Two more migrations, both additive: `add_type_to_brand_assets_table` and
+`create_brand_egg_assets_table`. ⚠️ The second also drops `brand_eggs.assets`,
+which is safe because `brand_eggs` has never been deployed — both run for the
+first time on production in the same pass.
 ---
 
 ## 2 · Multi-marca y permisos — ✅ 2026-09-14

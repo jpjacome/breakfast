@@ -35,7 +35,7 @@ function brandWithEgg(): Client
     return $client->fresh();
 }
 
-it('puts the egg above the entregables and the toolkit below them', function () {
+it('puts the egg above the entregables, and carries no toolkit at all', function () {
     $client = brandWithEgg();
     $client->update(['document_digest' => 'Lo que decía el brandbook.']);
 
@@ -43,13 +43,14 @@ it('puts the egg above the entregables and the toolkit below them', function () 
 
     $egg = mb_strpos($prompt, 'Brand Egg de la marca');
     $deliverables = mb_strpos($prompt, 'Entregables de la marca');
-    $toolkit = mb_strpos($prompt, 'Toolkit de la marca');
 
     expect($egg)->not->toBeFalse()
         ->and($deliverables)->not->toBeFalse()
-        ->and($toolkit)->not->toBeFalse()
         ->and($egg)->toBeLessThan($deliverables)
-        ->and($deliverables)->toBeLessThan($toolkit);
+        // ⚠️ FOUR TIERS, NOT FIVE. The toolkit is the PDF the entregables were
+        // extracted from, so tier 2 already says everything it said — removed
+        // 2026-09-17.
+        ->and($prompt)->not->toContain('Toolkit de la marca');
 });
 
 it('carries an unapproved egg, and says it is a draft', function () {

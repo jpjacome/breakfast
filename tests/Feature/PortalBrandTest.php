@@ -251,24 +251,43 @@ test('the process block does not make an empty brand look usable', function () {
 | the entregables, because the whole point is that it is backup.
 */
 
-test('the toolkit reaches the assistant, below the entregables', function () {
+test('the toolkit never reaches the assistant, because the entregables already carry it', function () {
+    /*
+     * ⚠️ THIS TEST USED TO ASSERT THE OPPOSITE, and the reversal is the point.
+     *
+     * The toolkit is the final PDF Breakfast delivers, and the 48 entregables
+     * are EXTRACTED FROM IT. So once that has happened the toolkit has nothing
+     * left to say — everything in it is in tier 2 already, reviewed one
+     * entregable at a time by a person. Sending the digest as well put an
+     * unreviewed second account of the same facts in front of the model on
+     * every turn, competing with the reviewed one.
+     *
+     * It was added on 2026-09-15 because the digest held what the entregables
+     * did not: "cómo se ve". That gap closed on 2026-09-16 — images are read
+     * into brand_assets.visual_reading and reach the Egg through its inventory
+     * layer, where the description hangs off a row somebody can correct.
+     */
     $this->client->deliverables->update([DeliverableItem::Relato->value => 'Nació en Guadalajara.']);
     $this->client->update(['document_digest' => "## brandbook.pdf\nEl claim es «Café de verdad»."]);
 
     $prompt = app(BrandContextRepository::class)->for($this->client->fresh())->toPrompt();
 
     expect($prompt)
-        ->toContain('Café de verdad')
-        // It says what it is in its own first lines, where the framing cannot
-        // be separated from the text it governs.
-        ->toContain('material de RESPALDO')
-        ->toContain('Los entregables mandan');
+        ->toContain('Nació en Guadalajara.')
+        ->not->toContain('Café de verdad')
+        ->not->toContain('Toolkit de la marca')
+        ->not->toContain('material de RESPALDO');
+});
 
-    // ⚠️ ORDER, not merely presence. BrandContext::make() ksorts the titles, so
-    // the numbering is what holds the hierarchy — not the alphabet, and not the
-    // order this repository happens to insert them in.
-    expect(mb_strpos($prompt, 'Entregables de la marca'))
-        ->toBeLessThan(mb_strpos($prompt, 'Toolkit de la marca'));
+test('the digest survives as the extraction working note, not as a memory tier', function () {
+    // ⚠️ THE COLUMN MUST STAY. BrandOnboardingController reads a PDF into it
+    // ONCE and then makes four batched calls over that stored text — which is
+    // what stops a 94MB toolkit travelling five times and what keeps each call
+    // inside this host's limits. It is scaffolding for building the
+    // entregables, never a source for answering from.
+    $this->client->update(['document_digest' => 'Lo que decía el brandbook.']);
+
+    expect($this->client->fresh()->document_digest)->toBe('Lo que decía el brandbook.');
 });
 
 test('a toolkit alone does not make the assistant worth offering', function () {
