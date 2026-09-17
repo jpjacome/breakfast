@@ -27,6 +27,8 @@ class AssistantMessage extends Model
     public const SURFACE_PORTAL = 'portal';
 
     protected $fillable = [
+        // Which conversation this turn belongs to - item 5.
+        'conversation_id',
         'user_id',
         'surface',
         'role',

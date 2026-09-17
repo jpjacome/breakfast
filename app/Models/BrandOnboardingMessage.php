@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class BrandOnboardingMessage extends Model
 {
     protected $fillable = [
+        // Which conversation this turn belongs to - item 5.
+        'conversation_id',
         'client_id',
         'user_id',
         'role',

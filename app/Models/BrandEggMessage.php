@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class BrandEggMessage extends Model
 {
     protected $fillable = [
+        // Which conversation this turn belongs to - item 5.
+        'conversation_id',
         'client_id',
         'user_id',
         'role',
