@@ -1038,6 +1038,72 @@ vocabulary is closed and a person must pick (14.5); the three proposed claims
 are a menu for the same reason as the valores. So layer 2's single question and
 layer 1's last two entregables are all one card type.
 
+### 14.3e Offering an optional, and taking no for an answer
+
+> Nos quedan dos opcionales. El **Manifesto** es para marcas que defienden algo
+> en voz alta — si aquí no lo hay, lo saltamos y no pasa nada. No todas las
+> marcas lo tienen ni lo necesitan.
+>
+> `[No aplica]` `[Sí hay, te cuento]`
+
+⚠️ **THE SKIP IS A BUTTON, NOT A SENTENCE SHE HAS TO INTERPRET.** *"No sé"*,
+*"creo que no"* and *"ahorita no"* are three different things to a model and one
+thing to a person. The button writes the turn that `LayerProgress` reads as ➖,
+and that derivation only holds if the refusal is unambiguous — a model deciding
+whether a hedge counted as a no would be the checklist guessing at the
+database again.
+
+**She says it is fine in the same breath as offering it.** *"No pasa nada, no
+todas las marcas lo tienen"* discharges ERR-07 at the moment it could bite,
+rather than repairing it afterwards.
+
+### 14.3f The claim — the one thing she volunteers unasked
+
+> Y el **Claim**. ¿Ya usan alguna frase? Si no, con todo lo de arriba te
+> propongo tres:
+>
+> — **«Caliente a las seis.»** · la promesa, dicha corta
+> — **«El pan que se levanta contigo.»** · el trabajo de noche, desde el lado
+>   del cliente
+> — **«Masa madre, barrio de siempre.»** · los dos valores que elegiste
+>
+> `[+]` `[+]` `[+]` `[Escribir otra]` `[No aplica]`
+
+14.3d's card exactly, with one difference: **each option cites its OWN source**,
+not the set. A tagline is a menu by nature, which is why this is the one place
+she puts options forward without being asked for them.
+
+⚠️ **`claim` is optional, so it carries 14.3e's `[No aplica]` as well.** A brand
+with no tagline has to be able to finish layer 1.
+
+### 14.3g Closing a layer
+
+> Con esto ya tengo la yema. Te la dejo abajo — léela como si fuera lo primero
+> que alguien sabe de esta marca.
+>
+> **[el texto compuesto]**
+>
+> Salió del relato, la promesa, el statement y los tres valores. El manifesto y
+> el claim los dejamos fuera.
+>
+> `[Aprobar]` `[Editar]` `[Volver a componer]` `[Seguir con la capa 2]`
+
+1. **Offered only when `LayerProgress::isComposable()` says so** — every
+   obligatorio filled. Built and tested.
+2. ⚠️ **THE COMPOSITION CITES ITS SOURCES, INCLUDING WHAT WAS LEFT OUT.** Same
+   rule as 14.3c, and the omissions matter more here than anywhere: somebody who
+   knows the manifesto was declined reads the layer differently from somebody
+   who assumes it was forgotten.
+3. **This is where a declined contradiction comes back** — 14.3b's one carve-out
+   from the push-once rule. *"Ojo: la promesa dice X y el relato dice Y"* prints
+   on this card, once, where a person is already deciding.
+4. ⚠️ **Aprobar IS THE EXISTING ACTION AND THERE IS NOTHING NEW TO BUILD.**
+   `EggComposer` already writes the layer to `brand_eggs` as it composes — it
+   has to, or *"sin aprobar"* could not exist as a state — so the write is not
+   waiting on this card. What Aprobar decides is what it has always decided:
+   whether the brand ever sees the layer on
+   `/portal/estrategia/brand-egg`, which 404s while the Egg is a draft.
+
 ### 14.4 Layer 1 · Esencia, tagline y valores — the yolk
 
 **Reads** — six entregables, four obligatorios: `relato` · `brand_promise` ·
