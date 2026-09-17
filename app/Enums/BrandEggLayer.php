@@ -146,20 +146,20 @@ enum BrandEggLayer: string
     }
 
     /**
-     * Whether this layer also reads the descriptions of the brand's images.
+     * Whether this layer is an INVENTORY rather than a paragraph.
      *
-     * ⚠️ TEXT, NEVER PICTURES. The Egg is composed from fields of the brand and
-     * nothing else (docs/brand-egg.md §1), so an image reaches a layer only
-     * after DescribeBrandAsset has turned it into words stored on the asset's
-     * own row. The composer sends no image, ever — it reads brand_assets.
-     * visual_reading like any other column.
+     * ⚠️ EXACTLY ONE LAYER IS, and it changes what the layer physically is.
+     * The other four hold text a composer wrote; this one holds a list of rows
+     * in `brand_assets`, and its description and URL are fetched from there
+     * when something asks. So it is never composed, never approved as prose,
+     * and correcting a file's description corrects the Egg with nothing to
+     * re-run.
      *
-     * ⚠️ AND ONLY LAYER 4, which is why this is a method on the enum rather
-     * than something EggComposer decides. Nothing outside this class chooses
-     * what feeds a layer; a second opinion living in the composer is how the
-     * Egg ends up built from one set of sources and explained by another.
+     * "Brand Assets / Icons" is not a claim about the brand — it is a list of
+     * things that exist. Written as prose it could describe a logo but never
+     * point at one.
      */
-    public function readsAssetReadings(): bool
+    public function isInventory(): bool
     {
         return $this === self::Assets;
     }
@@ -176,9 +176,33 @@ enum BrandEggLayer: string
         };
     }
 
-    /** @return array<int, string> Every column name, for the migration and $fillable. */
+    /**
+     * The layers that are TEXT, and therefore have a column on `brand_eggs`.
+     *
+     * ⚠️ NOT every case. The inventory layer holds rows in a pivot, not a
+     * column, so including it here would create a column nothing writes and
+     * give the Egg two places claiming to hold layer 4.
+     *
+     * @return array<int, string>
+     */
     public static function columns(): array
     {
-        return array_column(self::cases(), 'value');
+        return array_values(array_map(
+            fn (self $layer) => $layer->value,
+            array_filter(self::cases(), fn (self $layer) => ! $layer->isInventory()),
+        ));
+    }
+
+    /**
+     * The layers a composer can write. Same set as columns(), said as cases.
+     *
+     * @return array<int, self>
+     */
+    public static function composable(): array
+    {
+        return array_values(array_filter(
+            self::cases(),
+            fn (self $layer) => ! $layer->isInventory(),
+        ));
     }
 }

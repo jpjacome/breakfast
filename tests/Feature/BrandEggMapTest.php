@@ -63,7 +63,7 @@ it('draws no ring as pending, because layer 4 was settled', function () {
     // 2026-09-16, and the failure was the message arriving.
     expect(BrandEggLayer::Assets->sources())
         ->toContain(DeliverableItem::Emblemas)
-        ->and(BrandEggLayer::Assets->readsAssetReadings())->toBeTrue();
+        ->and(BrandEggLayer::Assets->isInventory())->toBeTrue();
 
     $this->get('/brand-egg')
         ->assertDontSee('sin resolver', false)

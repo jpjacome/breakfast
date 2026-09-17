@@ -6,13 +6,9 @@ use App\Actions\DescribeBrandAsset;
 use App\Enums\AssetSource;
 use App\Enums\AssetType;
 use App\Enums\AssetVisibility;
-use App\Enums\BrandEggLayer;
-use App\Enums\DeliverableItem;
 use App\Models\BrandAsset;
 use App\Models\Client;
 use App\Models\User;
-use App\Services\BrandEgg\EggComposer;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -158,61 +154,70 @@ it('404s for an equipo member who was not put on the brand', function () {
 
 /* --- what the Brand Egg does with the inventory --------------------------- */
 
-it('tells layer 4 which file is the logo, and where it lives', function () {
-    $this->client->deliverables->update([
-        DeliverableItem::Emblemas->value => 'Un emblema circular.',
-    ]);
+it('puts a file in the Egg, and takes it out again', function () {
+    $asset = anAsset($this->client, ['type' => AssetType::Logo]);
 
-    $asset = anAsset($this->client, [
-        'type' => AssetType::Logo,
-        'title' => 'Emblema Alea',
-        'visual_reading' => 'Trazo grueso sobre crema.',
-        'read_at' => now(),
-    ]);
+    $this->actingAs($this->admin)
+        ->post(route('admin.clients.egg.asset', [$this->client, $asset]))
+        ->assertRedirect();
 
-    Http::fake(['api.deepseek.com/*' => Http::response([
-        'model' => 'deepseek-v4-pro',
-        'choices' => [['message' => ['content' => 'Un párrafo.'], 'finish_reason' => 'stop']],
-        'usage' => ['prompt_tokens' => 500, 'completion_tokens' => 50],
-    ])]);
+    expect($this->client->fresh()->brandEgg->assets)->toHaveCount(1);
 
-    app(EggComposer::class)->compose($this->client->fresh(), BrandEggLayer::Assets);
+    // The same click again takes it out — it is a toggle, because that is what
+    // clicking a file in a list means.
+    $this->actingAs($this->admin)
+        ->post(route('admin.clients.egg.asset', [$this->client, $asset]));
 
-    Http::assertSent(function ($request) use ($asset) {
-        $sent = json_encode($request->data(), JSON_UNESCAPED_UNICODE);
-
-        return str_contains($sent, 'Logo principal')
-            && str_contains($sent, 'Trazo grueso sobre crema.')
-            // The link, so the layer can name where the file actually is.
-            && str_contains($sent, (string) $asset->id);
-    });
+    expect($this->client->fresh()->brandEgg->assets)->toHaveCount(0);
 });
 
-it('keeps a contract out of a paragraph about how the brand looks', function () {
-    // Every file shares one folder — the pricing sheet sits beside the logo —
-    // so the type is what stops a scanned invoice describing the identity.
-    $this->client->deliverables->update([
-        DeliverableItem::Emblemas->value => 'Un emblema circular.',
-    ]);
+it('refuses a file belonging to another brand', function () {
+    // ⚠️ 404, NOT 403. The Egg is the one place whose whole claim is that a
+    // person approved what is in it, and a wrong id must not confirm that
+    // somebody else's file exists.
+    $other = Client::factory()->create();
+    $theirs = anAsset($other);
 
-    anAsset($this->client, [
-        'type' => AssetType::Documento,
-        'title' => 'Contrato firmado',
-        'visual_reading' => 'CLAUSULA-SEXTA-CONFIDENCIALIDAD',
+    $this->actingAs($this->admin)
+        ->post(route('admin.clients.egg.asset', [$this->client, $theirs]))
+        ->assertNotFound();
+});
+
+it('reads the description from the file, so correcting it corrects the Egg', function () {
+    // ⚠️ THE POINT OF STORING IDS. The Egg holds the row; the words are fetched
+    // when asked. So a correction needs nothing re-run and nothing recomposed.
+    $asset = anAsset($this->client, [
+        'type' => AssetType::Logo,
+        'visual_reading' => 'Lo que dijo la máquina.',
         'read_at' => now(),
     ]);
 
-    Http::fake(['api.deepseek.com/*' => Http::response([
-        'model' => 'deepseek-v4-pro',
-        'choices' => [['message' => ['content' => 'Un párrafo.'], 'finish_reason' => 'stop']],
-        'usage' => ['prompt_tokens' => 500, 'completion_tokens' => 50],
-    ])]);
+    $egg = $this->client->brandEgg()->make(['generated_at' => now()]);
+    $this->client->brandEgg()->save($egg);
+    $egg->assets()->attach($asset->getKey(), ['position' => 1]);
 
-    app(EggComposer::class)->compose($this->client->fresh(), BrandEggLayer::Assets);
+    $this->actingAs($this->admin)
+        ->patch(route('admin.clients.assets.reading', [$this->client, $asset]), [
+            'visual_reading' => 'Corregido a mano.',
+        ]);
 
-    Http::assertSent(fn ($request) => ! str_contains(
-        json_encode($request->data(), JSON_UNESCAPED_UNICODE), 'CLAUSULA-SEXTA',
-    ));
+    expect($this->client->fresh()->brandEgg->toMarkdown())
+        ->toContain('Corregido a mano.')
+        ->not->toContain('Lo que dijo la máquina.');
+});
+
+it('drops a file out of the Egg when the file is deleted', function () {
+    // The cascade is what stops the Egg pointing at something that is gone —
+    // the failure prose could never avoid.
+    $asset = anAsset($this->client, ['type' => AssetType::Logo]);
+
+    $egg = $this->client->brandEgg()->make(['generated_at' => now()]);
+    $this->client->brandEgg()->save($egg);
+    $egg->assets()->attach($asset->getKey(), ['position' => 1]);
+
+    $asset->delete();
+
+    expect($this->client->fresh()->brandEgg->assets)->toHaveCount(0);
 });
 
 it('still reads an untyped image, because null means nobody has said', function () {

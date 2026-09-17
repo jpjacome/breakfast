@@ -144,7 +144,7 @@ test('layer 5 composed before layer 2 says the dependency is missing rather than
 
 /* --- the cached prefix --------------------------------------------------- */
 
-test('the prefix is byte-identical across all five layers', function () {
+test('the prefix is byte-identical across every composed layer', function () {
     // Five layers each with their own system block is five separate prefixes
     // and five paid readings of the same instructions per brand, every time
     // somebody clicks Componer todo. The layer's name belongs in the user turn.
@@ -167,7 +167,9 @@ test('the prefix is byte-identical across all five layers', function () {
         return true;
     });
 
-    expect($prefixes)->toHaveCount(5)
+    // FOUR, not five: the inventory layer holds rows in brand_egg_assets and
+    // is never composed, so no call is made for it.
+    expect($prefixes)->toHaveCount(4)
         ->and(array_unique($prefixes))->toHaveCount(1);
 });
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\DescribeBrandAsset;
 use App\Enums\AssetSource;
+use App\Enums\AssetType;
 use App\Enums\AssetVisibility;
 use App\Enums\BrandEggLayer;
 use App\Enums\DeliverableItem;
@@ -157,51 +158,42 @@ it('leaves the upload alone when the provider is down', function () {
 
 /* --- what the composer does with it -------------------------------------- */
 
-it('sends layer 4 the words, never the picture', function () {
-    $this->client->deliverables->update([
-        DeliverableItem::Emblemas->value => 'Un emblema circular.',
-    ]);
-
-    anImageAsset($this->client, [
+it('puts the reading in the Egg through the inventory, never as a picture', function () {
+    // ⚠️ THE READING REACHES THE ASSISTANT VIA THE EGG, NOT VIA THE COMPOSER.
+    // Layer 4 holds rows in brand_egg_assets; its description and URL are read
+    // from brand_assets at render time. So the assistant sees words, and no
+    // image ever travels — which is the rule the whole feature exists to keep.
+    $asset = anImageAsset($this->client, [
+        'type' => AssetType::Logo,
+        'title' => 'Emblema Alea',
         'visual_reading' => 'FONDO CREMA CON UN TRAZO GRUESO',
         'read_at' => now(),
     ]);
 
-    fakeAssetReading('La marca se apoya en un emblema de trazo grueso.');
+    $egg = $this->client->brandEgg()->make(['generated_at' => now()]);
+    $this->client->brandEgg()->save($egg);
+    $egg->assets()->attach($asset->getKey(), ['position' => 1]);
 
-    app(EggComposer::class)->compose($this->client->fresh(), BrandEggLayer::Assets);
+    $markdown = $this->client->fresh()->brandEgg->toMarkdown();
 
-    Http::assertSent(function ($request) {
-        $sent = json_encode($request->data(), JSON_UNESCAPED_UNICODE);
-
-        return str_contains($sent, 'FONDO CREMA CON UN TRAZO GRUESO')
-            // No attachment part: the composer is text in, text out.
-            && ! str_contains($sent, 'image_url')
-            && ! str_contains($sent, 'base64');
-    });
+    expect($markdown)->toContain('FONDO CREMA CON UN TRAZO GRUESO')
+        ->toContain('Logo principal')
+        // The link, so "muéstrame el logo" has an actual file to answer with.
+        ->toContain('/archivos/'.$asset->id)
+        ->not->toContain('base64');
 });
 
-it('gives the asset readings to layer 4 and to no other layer', function () {
+it('never composes the inventory layer', function () {
+    // There is nothing for a language model to write: the layer is a list of
+    // rows. Asking it to compose would produce a paragraph competing with the
+    // list for the same ring — and Http::preventStrayRequests() would catch the
+    // call this must not make.
     $this->client->deliverables->update([
-        DeliverableItem::Relato->value => 'Nació en una cocina.',
-        DeliverableItem::Valores->value => 'Cercanía.',
+        DeliverableItem::Emblemas->value => 'Un emblema circular.',
     ]);
 
-    anImageAsset($this->client, [
-        'visual_reading' => 'SOLO-PARA-LA-CAPA-CUATRO',
-        'read_at' => now(),
-    ]);
-
-    fakeAssetReading('Un párrafo.');
-    app(EggComposer::class)->compose($this->client->fresh(), BrandEggLayer::Esencia);
-
-    Http::assertSent(fn ($request) => ! str_contains(
-        json_encode($request->data(), JSON_UNESCAPED_UNICODE), 'SOLO-PARA-LA-CAPA-CUATRO',
-    ));
-
-    expect(BrandEggLayer::Assets->readsAssetReadings())->toBeTrue()
-        ->and(BrandEggLayer::Esencia->readsAssetReadings())->toBeFalse()
-        ->and(BrandEggLayer::Universo->readsAssetReadings())->toBeFalse();
+    expect(app(EggComposer::class)->compose($this->client, BrandEggLayer::Assets))
+        ->toBeNull();
 });
 
 it('gives layer 4 the visual entregables it was missing', function () {

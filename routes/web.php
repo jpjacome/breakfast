@@ -192,6 +192,11 @@ Route::middleware(['auth', 'breakfast', 'covers-client'])
         Route::post('clientes/{client}/brand-egg/aprobar', [ClientBrandEggController::class, 'approve'])
             ->name('clients.egg.approve');
 
+        // Layer 4's inventory: put a file in the Egg, or take it out. A toggle
+        // rather than two routes, because that is what a click on a file is.
+        Route::post('clientes/{client}/brand-egg/archivos/{asset}', [ClientBrandEggController::class, 'asset'])
+            ->name('clients.egg.asset');
+
         // The meeting roster: every brand at once, plus the calendar. Its own
         // top-level screen because "what does the week look like" is a
         // question about Breakfast, not about any one brand.

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\BrandEggLayer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 /**
  * A brand's Brand Egg — five synthesised layers, one row.
@@ -66,13 +67,51 @@ class BrandEgg extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    /**
+     * The files that make up the inventory layer, in the order somebody chose.
+     *
+     * ⚠️ REFERENCES, NEVER COPIES. The Egg stores row ids; the title, the type,
+     * the description and the URL are read from `brand_assets` every time. So
+     * correcting a file's description corrects the Egg with nothing to re-run,
+     * replacing a logo replaces what the Egg points at, and deleting a file
+     * removes it rather than leaving prose describing something that is gone.
+     */
+    public function assets(): BelongsToMany
+    {
+        return $this->belongsToMany(BrandAsset::class, 'brand_egg_assets')
+            ->withPivot('position')
+            ->withTimestamps()
+            ->orderBy('brand_egg_assets.position');
+    }
+
+    /**
+     * ⚠️ EMPTY FOR THE INVENTORY LAYER, ALWAYS. It has no column and no text —
+     * asking for its words is a category error, and returning '' rather than
+     * failing keeps every caller that loops the five layers honest.
+     */
     public function text(BrandEggLayer $layer): string
     {
+        if ($layer->isInventory()) {
+            return '';
+        }
+
         return trim((string) ($this->{$layer->value} ?? ''));
     }
 
+    /**
+     * Whether this layer has anything in it.
+     *
+     * ⚠️ TWO DIFFERENT QUESTIONS BEHIND ONE NAME. For four layers it is "has
+     * text"; for the inventory it is "has any file". Both are "is this ring
+     * filled in", which is what every caller actually wants — the drawing, the
+     * state, the screen.
+     */
     public function has(BrandEggLayer $layer): bool
     {
+        if ($layer->isInventory()) {
+            return $this->exists && $this->assets()->exists();
+        }
+
         return $this->text($layer) !== '';
     }
 
@@ -121,7 +160,14 @@ class BrandEgg extends Model
         $out = [];
 
         foreach (BrandEggLayer::cases() as $layer) {
-            $out[$layer->value] = $this->has($layer) ? $this->text($layer) : null;
+            // The drawing only asks "is this ring filled", so the inventory
+            // answers with its own count rather than with words it does not
+            // have. A ring is hollow or it is not.
+            $out[$layer->value] = match (true) {
+                ! $this->has($layer) => null,
+                $layer->isInventory() => $this->assets->count().' archivos',
+                default => $this->text($layer),
+            };
         }
 
         return $out;
@@ -151,9 +197,35 @@ class BrandEgg extends Model
         $lines = [];
 
         foreach ($this->composed() as $layer) {
-            $lines[] = "**{$layer->label()}**\n{$this->text($layer)}";
+            $lines[] = "**{$layer->label()}**\n"
+                .($layer->isInventory() ? $this->inventoryMarkdown() : $this->text($layer));
         }
 
         return implode("\n\n", $lines);
+    }
+
+    /**
+     * The inventory layer, rendered from the rows it points at.
+     *
+     * ⚠️ READ AT RENDER TIME, which is the whole reason this layer holds ids
+     * rather than words. The type says what a file IS — a description can tell
+     * you a mark is a heavy circular stamp, never that it is THE primary one —
+     * and the URL is what lets "muéstrame el logo" be answered with the file.
+     *
+     * ⚠️ Still byte-stable for a given set of rows: no timestamps, no counts,
+     * nothing that moves between requests. This lands in block 2, whose exact
+     * bytes are the caching mechanism (CLAUDE.md §7).
+     */
+    private function inventoryMarkdown(): string
+    {
+        return $this->assets
+            ->map(function (BrandAsset $asset): string {
+                $what = $asset->type?->label() ?? 'Sin tipo';
+                $reading = trim((string) $asset->visual_reading);
+
+                return "- {$what} · {$asset->title} — {$asset->url()}"
+                    .($reading === '' ? '' : "\n  {$reading}");
+            })
+            ->implode("\n");
     }
 }

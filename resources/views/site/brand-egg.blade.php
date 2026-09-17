@@ -155,7 +155,7 @@
                         </p>
                     @endforeach
 
-                    @if ($layer->readsAssetReadings())
+                    @if ($layer->isInventory())
                         <p class="egg-map-source">
                             <span><b>Cómo se ven los archivos de la marca</b></span>
                             {{-- Not an entregable and not a column on
@@ -167,7 +167,7 @@
                     @endif
                 </div>
 
-                @if ($layer->readsAssetReadings())
+                @if ($layer->isInventory())
                     <p class="egg-map-note">
                         Esta capa lee además <b>cómo se ven los archivos de la marca</b>. No las
                         imágenes: el texto. Cada imagen que se archiva se describe una vez y esa

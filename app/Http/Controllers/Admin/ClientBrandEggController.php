@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\BrandEggLayer;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ComposeBrandEggRequest;
+use App\Models\BrandAsset;
 use App\Models\Client;
 use App\Services\Ai\AssistantFailure;
 use App\Services\Ai\Exceptions\LlmException;
@@ -143,6 +144,46 @@ class ClientBrandEggController extends Controller
             'skipped' => $text === null ? [$layer->value] : [],
             'stopped' => false,
         ];
+    }
+
+    /**
+     * Put a file into the Egg's inventory, or take it out again.
+     *
+     * ⚠️ THE EGG STORES THE ROW, NOT THE FILE'S DETAILS. Its description, its
+     * type and its URL are read from `brand_assets` whenever something asks —
+     * so correcting a description corrects the Egg with nothing to re-run, and
+     * deleting a file removes it from the Egg rather than leaving a sentence
+     * about something that no longer exists.
+     *
+     * ⚠️ THE ASSET MUST BELONG TO THIS BRAND. Without that check an id from
+     * another brand could be attached by hand, and the Egg is the one place in
+     * the app whose whole claim is that a person approved what is in it.
+     */
+    public function asset(Request $request, Client $client, BrandAsset $asset): RedirectResponse
+    {
+        // Fail closed, and 404 rather than 403: a wrong id must not confirm
+        // that somebody else's file exists (CLAUDE.md §6).
+        abort_unless($asset->client_id === $client->id, 404);
+
+        $egg = $client->brandEggOrNew();
+
+        if (! $egg->exists) {
+            $client->brandEgg()->save($egg);
+        }
+
+        if ($egg->assets()->whereKey($asset->getKey())->exists()) {
+            $egg->assets()->detach($asset->getKey());
+
+            return back()->with('status', "«{$asset->title}» ya no está en el Brand Egg.");
+        }
+
+        // Appended, not sorted: the order is somebody's choice and new files
+        // join the end of it rather than jumping the queue.
+        $egg->assets()->attach($asset->getKey(), [
+            'position' => (int) $egg->assets()->max('position') + 1,
+        ]);
+
+        return back()->with('status', "«{$asset->title}» añadido al Brand Egg.");
     }
 
     /**

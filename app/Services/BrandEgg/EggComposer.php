@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\BrandEgg;
 
 use App\Enums\BrandEggLayer;
-use App\Models\BrandAsset;
 use App\Models\Client;
 use App\Services\Ai\Contracts\LlmClient;
 use App\Services\Ai\Data\Message;
@@ -75,6 +74,14 @@ final class EggComposer
      */
     public function compose(Client $client, BrandEggLayer $layer, ?int $userId = null): ?string
     {
+        // ⚠️ THE INVENTORY LAYER IS NOT WRITTEN, IT IS CHOSEN. Layer 4 holds
+        // rows in brand_assets, not prose — there is nothing for a language
+        // model to compose, and asking it to would produce a paragraph that
+        // competes with the list for the same ring.
+        if ($layer->isInventory()) {
+            return null;
+        }
+
         $sources = $this->sourceBlock($client, $layer);
 
         if ($sources === null) {
@@ -82,7 +89,6 @@ final class EggComposer
         }
 
         $dependency = $this->dependencyBlock($client, $layer);
-        $assets = $this->assetReadingsBlock($client, $layer);
 
         $messages = [
             // The cached prefix. Marked once, and it is the LAST stable block,
@@ -90,7 +96,7 @@ final class EggComposer
             // cacheableSystem() returns the same plain string, so the bytes are
             // unchanged and the exact-match prefix cache still hits.
             Message::cacheableSystem($this->instructions()),
-            Message::user($this->layerTurn($client, $layer, $sources, $dependency, $assets)),
+            Message::user($this->layerTurn($client, $layer, $sources, $dependency)),
         ];
 
         try {
@@ -153,6 +159,12 @@ final class EggComposer
         $stopped = false;
 
         foreach ($this->order() as $layer) {
+            // Skipped silently rather than reported: it is not a layer that
+            // failed to compose, it is a layer that is never composed.
+            if ($layer->isInventory()) {
+                continue;
+            }
+
             if (microtime(true) - $started > self::BUDGET_SECONDS) {
                 $stopped = true;
                 break;
@@ -309,66 +321,6 @@ final class EggComposer
     }
 
     /**
-     * What the brand's own images look like, in words — layer 4 only.
-     *
-     * ⚠️ THE COMPOSER NEVER SEES A PICTURE. These are readings written once by
-     * DescribeBrandAsset and stored on the asset's own row, so this is a
-     * database field like every other source. That is what keeps the Egg's
-     * founding rule intact: composed from the brand's data, never from a file
-     * (docs/brand-egg.md §1).
-     *
-     * ⚠️ AND IT IS NOT THE TOOLKIT. clients.document_digest is the model's
-     * unreviewed reading of an uploaded PDF, and it sits at the BOTTOM of the
-     * assistant's five tiers for exactly that reason; feeding it here would
-     * promote unreviewed material into tier 1. A reading on brand_assets hangs
-     * off a row somebody filed on purpose and can be corrected beside the file.
-     *
-     * Internal files are included deliberately. This is Breakfast composing
-     * Breakfast's own summary — what a client eventually sees is the approved
-     * paragraph, never this list.
-     */
-    private function assetReadingsBlock(Client $client, BrandEggLayer $layer): ?string
-    {
-        if (! $layer->readsAssetReadings()) {
-            return null;
-        }
-
-        // ⚠️ reorder() first: brandAssets() is declared ->latest(), so an
-        // orderBy() added on top would be a second key behind created_at and
-        // would never decide anything. CLAUDE.md trap 17.
-        $readings = $client->brandAssets()
-            ->whereNotNull('visual_reading')
-            ->reorder('created_at')
-            ->get()
-            /*
-             * ⚠️ A CONTRACT IS NOT THE BRAND'S LOOK. Every file lives in one
-             * folder — the pricing sheet beside the logo — so the type is what
-             * keeps a scanned invoice out of a paragraph about visual
-             * identity. An UNTYPED file still passes: null means "nobody has
-             * said" rather than "not identity", and excluding it would quietly
-             * drop every image described before types existed.
-             */
-            ->filter(fn (BrandAsset $asset) => $asset->type?->isIdentity() ?? true)
-            ->map(function (BrandAsset $asset): string {
-                // The type first, because it is the one thing the picture
-                // cannot say about itself: a description can tell you a mark is
-                // a heavy circular stamp, never that it is THE primary one.
-                $what = $asset->type?->label() ?? 'Sin tipo';
-
-                // ⚠️ THE LINK IS THE POINT, not decoration. Layer 4 is the only
-                // part of the Egg that is about things that exist as files, so
-                // the paragraph has to be able to name where one lives. It is a
-                // route, so it stays permission-checked on every request.
-                return "**{$what} · {$asset->title}**\n"
-                    .$asset->url()."\n"
-                    .trim((string) $asset->visual_reading);
-            })
-            ->all();
-
-        return $readings === [] ? null : implode("\n\n", $readings);
-    }
-
-    /**
      * Block 3: which layer, and the text it is composed from.
      *
      * Everything per-layer and per-brand is here, below the cached prefix. The
@@ -381,7 +333,6 @@ final class EggComposer
         BrandEggLayer $layer,
         string $sources,
         ?string $dependency,
-        ?string $assets = null,
     ): string {
         $turn = 'MARCA: '.$client->name
             ."\n\nCAPA QUE TE TOCA ESCRIBIR: {$layer->label()} (capa {$layer->ring()} de 5)\n"
@@ -394,13 +345,6 @@ final class EggComposer
             $turn .= "\n\n---\n\nADEMÁS, ESTA CAPA LEE EL RESULTADO DE OTRA CAPA DEL BRAND EGG.\n"
                 ."No la repitas: parte de ella y di lo que esta capa añade.\n\n"
                 .$dependency;
-        }
-
-        if ($assets !== null) {
-            $turn .= "\n\n---\n\nCÓMO SE VEN LOS ARCHIVOS DE ESTA MARCA.\n"
-                .'Son descripciones escritas al archivarlos, no los archivos. '
-                ."Úsalas para decir cómo SE VE la marca, no para inventar qué archivos tiene:\n\n"
-                .$assets;
         }
 
         return $turn."\n\n---\n\nEscribe ahora el párrafo de la capa «{$layer->label()}».";
