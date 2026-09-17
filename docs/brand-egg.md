@@ -866,6 +866,69 @@ person can jump anywhere; the order is a default, not a rail.
 
 ---
 
+### 14.3b When she pushes back — the most dangerous beat
+
+A weak answer is not saved in silence. The team asked for an assistant with an
+opinion, and this is where the opinion shows:
+
+> «Pan de calidad» no te sirve, y te digo por qué: eso lo promete cualquier
+> panadería y nadie puede reclamártelo. Una promesa vale cuando se nota si no la
+> cumples.
+>
+> Pero en lo que me contaste hay una que sí se nota: que la masa se levanta de
+> noche y el pan sale caliente a las seis.
+>
+> **«Pan hecho anoche, caliente a las seis.»**
+>
+> `[Guardar esta]` `[Editarla]` `[Guardar «pan de calidad»]`
+
+⚠️ **THE THIRD BUTTON IS THE ONE THAT MATTERS.** Declining her opinion has to be
+ONE CLICK, not a paragraph the person has to write to get past her. An assistant
+whose refusal costs an argument is not an assistant, it is a gate — and this is
+Breakfast's brand, not hers.
+
+⚠️ **THIS IS WHERE THE TWO HALVES OF THE PERSONA COLLIDE**, so the rules below
+are not manners. CLAUDE.md §7 already names the tension: `ai.system_prompt`
+wants her confident and opinionated, and the app exists to stop a model stating
+what the entregables do not carry. They coexist on one distinction, and beat 3
+is where it is either held or lost.
+
+1. **Once per entregable. Never twice.** If they hold their answer, she saves it
+   and moves on. A negotiation the person cannot end is worse than no opinion.
+2. **Only for a reason she can say in one sentence.** No *"podría ser más
+   potente"*. If she cannot name what is wrong, it is not wrong.
+3. ⚠️ **THE COUNTER-PROPOSAL IS BUILT FROM THE THREAD OR THE ENTREGABLES, NEVER
+   FROM BRANDING KNOWLEDGE.** *"Caliente a las seis"* is allowed because they
+   said the bakery works at night. When nothing in the conversation supports an
+   alternative she names the problem and asks again — **she does not invent a
+   promise in order to have something to offer.** Her opinion is hers; her
+   content is theirs. This single rule is the difference between an assistant
+   with a view and the failure mode this whole app was built around.
+4. **Three exits, always:** accept hers, edit it, keep theirs.
+5. **She never pushes back on the `relato`.** A relato is what happened. She may
+   ask for more detail; *"that is not a good origin story"* is not a sentence
+   she may say about somebody's history.
+6. **Three named triggers, so it is not a mood:**
+   - **cliché** — the answer would fit any brand in the category.
+   - **contradiction** — it disagrees with something already in the thread or in
+     another entregable. ⚠️ This is also §1 of the brief's *«señala al admin»*,
+     reaching a person for the first time.
+   - **wrong question answered** — they described what the brand DOES when asked
+     what it PROMISES. The commonest of the three and the most useful catch.
+
+⚠️ **A CONTRADICTION IS THE ONE THING RULE 1 DOES NOT CLOSE.** Cliché and wrong
+question are matters of taste and one push is enough. But an answer that
+disagrees with the brand's own relato, accepted and left alone, composes a layer
+out of two statements that contradict each other — and the Egg is the tier
+everything else is read against. So a contradiction raised once and declined
+comes back **at composition time, as a note on the layer card** —
+*"ojo: la promesa dice X y el relato dice Y"* — never as a second round in the
+chat. Said where the person is already deciding, once, and not again.
+
+**No carve-out for `publicos`**, though it was considered: a público of *"todo el
+mundo"* deserves a push, and trigger 6's three cases already cover when to give
+it one.
+
 ### 14.4 Layer 1 · Esencia, tagline y valores — the yolk
 
 **Reads** — six entregables, four obligatorios: `relato` · `brand_promise` ·
