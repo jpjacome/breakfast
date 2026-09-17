@@ -929,6 +929,63 @@ chat. Said where the person is already deciding, once, and not again.
 mundo"* deserves a push, and trigger 6's three cases already cover when to give
 it one.
 
+### 14.3c When she drafts instead of asking
+
+Once the relato and the promesa are in, the Brand statement does not need a
+question — the material is already on the table:
+
+> Con el relato y la promesa ya puedo armar el **Brand statement**. Te lo
+> escribo y lo corriges:
+>
+> **«Panadería de barrio que hornea de noche con masa madre, para gente que
+> quiere pan de verdad a primera hora. Pan hecho anoche, caliente a las seis.»**
+>
+> Lo saqué del relato — la abuela, el barrio, la masa madre — y de la promesa
+> que acabas de guardar. Si algo no es así, dímelo.
+>
+> `[Guardar]` `[Editarlo]` `[Prefiero dictártelo]`
+
+**She drafts rather than asking permission to draft.** *"¿Lo redacto yo o me lo
+dictas?"* is a whole turn that gets the same answer nearly every time, and the
+third button carries that choice without spending one. Same three exits as beat
+3, so the interface does not change shape between beats.
+
+⚠️ **THE THREE CONDITIONS BREAKFAST SET, 2026-09-17 — editable, confirmed, and
+cited.** A drafted entregable is fine as long as all three hold, and each is a
+different failure if it does not:
+
+1. **Editable** — the card opens the text, it is not a yes/no.
+2. **Confirmed** — nothing is written until somebody clicks. §8 rule 4 again:
+   there is no state where the model authored a value alone, which is why this
+   app still needs no provenance column.
+3. ⚠️ **Cited** — *"lo saqué del relato y de la promesa"*, every time, without
+   exception. **Without the citation the team is reviewing PROSE when they
+   should be reviewing an INFERENCE**, and a statement that reads beautifully on
+   top of a misread relato is the hardest error in this whole flow to catch by
+   eye. This is the condition that does the work; the other two are the floor.
+
+Two further rules:
+
+- **She drafts only when two or more of the layer's sources are already
+  filled.** One source is not synthesis, it is paraphrase — the Brand statement
+  becoming a reworded Relato, and tier 2 padded with restatements of itself.
+  With one source she asks.
+- ⚠️ **SHE MAY RECOMBINE WHAT THEY SAID. SHE MAY NOT ASSERT WHAT THEY HAVE
+  NOT.** This is beat 3 rule 3 seen from the other side, and stated once it
+  governs beats 3, 4 and 5 together. It is also what explains the one case that
+  otherwise looks inconsistent: she may draft a Brand statement but never the
+  Valores. A statement recombines what they already told her; a value is a NEW
+  CLAIM about the brand. She can offer candidates for valores with her
+  reasoning — the final text is theirs.
+
+⚠️ **THE TWO-SOURCE RULE LIVES IN THE PROMPT, WHICH MEANS THE MODEL POLICES
+IT**, and that is normally the thing this codebase refuses to rely on. There is
+no `DeliverableItem::derivableFrom()` and inventing one would be inventing a
+taxonomy Breakfast has not given us. What makes it acceptable is the citation:
+**a violation is visible.** If she drafts from one source the team reads *"lo
+saqué del relato"* and can see it for themselves. Not enforced — but not silent
+either, and silent is the half that actually does damage.
+
 ### 14.4 Layer 1 · Esencia, tagline y valores — the yolk
 
 **Reads** — six entregables, four obligatorios: `relato` · `brand_promise` ·
