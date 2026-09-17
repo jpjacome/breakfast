@@ -33,7 +33,7 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 | 6 | Rediseño del Dashboard | ⬜ **last, by decision 2026-09-17** — build the screens in the current style first so they can be used, then restyle. References are pages 4–5 of `docs/Brief for Brandy correcciones.pdf` |
 | 7 | Editar una pregunta enviada | ✅ 2026-09-15 — **solved as RECALL, not as editing in place.** The cancel half is not blocked but CLOSED: streaming is impossible on this host, measured 2026-09-16. See §7 and §9 |
 | 8 | Waffle giratorio | ⬜ |
-| 9 | Prueba de uso simultáneo e informe de hosting | 🟡 **hosting half MEASURED 2026-09-16 — EP limit is 30.** See §9. The session half (3+ on one account, 3+ accounts) is still open |
+| 9 | Prueba de uso simultáneo e informe de hosting | ✅ **CLOSED 2026-09-17 with the measurement, by decision.** EP limit is exactly 30, account-wide; over-limit is HTTP 508 in ~0.6s; `max_execution_time` is 60s; streaming is impossible. See §9. ⚠️ **The brief's own test — 3+ on one account, 3+ accounts — is deliberately NOT run**: it answers less than what was measured (a browser session is one request at a time, so three people are three concurrent requests out of thirty) and it is run against production, where holding workers takes down four sibling sites. Breakfast gets the number that matters |
 | 10 | Regla de seguridad: contraseñas, tokens, instrucciones | ✅ 2026-09-16 — **the exposure was the instructions, not credentials.** See §10 |
 | 11 | La notificación abre la reunión correcta | ✅ 2026-09-17 — see §11 |
 | 12 | Checklist agrupado por categorías | ⬜ |
