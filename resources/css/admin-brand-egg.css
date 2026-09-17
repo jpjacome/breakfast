@@ -262,21 +262,30 @@
      visible — is true at any pane size without a media query per height. The
      max-width above is what governs when the page scrolls normally instead. */
   .admin .brand-egg-stage .brand-egg {
-    /* ⚠️ flex-basis 0, NOT auto. With auto the drawing's base size is its own
-       aspect-ratio height — taller than the pane — and shrinking from there
-       leaves the card longer than the space it has, which the pane's
-       overflow: hidden then eats off the bottom. Basis 0 makes the drawing
-       take the space that is LEFT, which is the correct reading of "the egg
-       gets whatever room remains". */
-    flex: 1 1 0;
-    /* ⚠️ THE FLOOR. Below this the egg stops shrinking and the pane scrolls
-       instead — five rings in less than 300px are five hairlines, and a
-       drawing nobody can read is not worth the room it is still taking. */
-    min-height: 300px;
+    /* ⚠️ HEIGHT DECIDES THE SIZE, AND IT IS 80% OF THE PANE — not "whatever
+       room remains". Taking the remainder made the egg as tall as its column
+       and there was no pan left around it: the drawing ran to the edges and
+       the skillet read as a dark border. 80% leaves the cooking surface
+       visible on every side, which is the whole picture.
+
+       The SVG letterboxes itself inside that box (preserveAspectRatio is the
+       default), so the one thing that must be true — the whole egg, always
+       visible — holds at any pane size without a media query per height. */
+    flex: none;
+    height: 80%;
+    /* ⚠️ NO min-height, AND ITS REMOVAL IS THE POINT. There was a 300px floor
+       here — "five rings in less than 300px are five hairlines" — and it made
+       sense while the drawing took the remainder of the pane. Against a
+       percentage height it can only push the egg BACK OUT of the box it was
+       just told to fit in, which is the one thing this rule exists to prevent.
+       A pane too short for a readable egg is answered by the 540px gate below,
+       where the panes give up and the page scrolls normally. */
     width: 100%;
     max-width: none;
-    height: auto;
     margin-block: 0;
+    /* Centred in what is left, so the 20% shows as pan above and below rather
+       than as a gap under the egg. */
+    align-self: center;
   }
 
 
