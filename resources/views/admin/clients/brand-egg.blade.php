@@ -36,7 +36,11 @@
 <x-layouts.app
     :title="$client->name.' · Brand Egg'"
     :css="['brand-egg', 'admin-brand-egg', 'egg-assistant']"
-    :scripts="['resources/js/brand-egg.js', 'resources/js/egg-assistant.js']"
+    :scripts="[
+        'resources/js/brand-egg.js',
+        'resources/js/egg-assistant.js',
+        'resources/js/brand-egg-split.js',
+    ]"
     :heading="$heading"
 >
 
@@ -57,11 +61,31 @@
         (its first home) made the thing you spend the hour in the narrowest
         column on the screen.
     --}}
-    <div class="brand-egg-work">
+    <div class="brand-egg-work" data-egg-split-work>
 
         <div class="brand-egg-talk">
             <x-admin.egg-assistant :client="$client" :layers="$layers" />
         </div>
+
+        {{--
+            The line between the rows, and it moves.
+
+            ⚠️ A CONTROL, SO IT TAKES THE KEYBOARD. Same rule the rings follow:
+            a thing that only answers a mouse is not a control. role="separator"
+            with tabindex, and brand-egg-split.js gives it the arrows, Home and
+            End — plus a double-click to put it back in the middle.
+
+            Outside the two-row media query it simply has nothing to separate,
+            and the CSS hides it there rather than leaving a draggable line on a
+            page that is one column.
+        --}}
+        <div class="brand-egg-split"
+             data-egg-split
+             role="separator"
+             aria-orientation="horizontal"
+             aria-label="Repartir el alto entre la conversación y las capas"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"
+             tabindex="0"></div>
 
         <div class="brand-egg-screen">
 

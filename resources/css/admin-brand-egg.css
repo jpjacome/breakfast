@@ -51,8 +51,11 @@
 }
 
 /* Below the two-row gate the page is an ordinary scrolling column: the
-   conversation, then the drawing, then the layers. No panes to hold. */
+   conversation, then the drawing, then the layers. No panes to hold — and
+   nothing for the handle to separate, so it is not drawn at all rather than
+   left as a draggable line that cannot move anything. */
 .admin .brand-egg-work { display: grid; gap: 1.5rem; }
+.admin .brand-egg-split { display: none; }
 
 .admin .brand-egg-stage .brand-egg {
   /* ⚠️ NO CEILING, changed 2026-09-17. It was 24rem — "smaller than the
@@ -209,9 +212,48 @@
     flex: 1 1 0;
     min-height: 0;
     display: grid;
-    grid-template-rows: 1fr 1fr;
+    /* ⚠️ THE TOP ROW TAKES A VARIABLE AND THE BOTTOM TAKES WHAT IS LEFT, so
+       the default with nothing set is the equal split the screen was designed
+       with — brand-egg-split.js only ever writes --egg-split, and removing it
+       restores this without the script knowing what "restored" looks like. */
+    grid-template-rows: var(--egg-split, 1fr) auto minmax(0, 1fr);
     gap: 1rem;
   }
+
+  /* --- the handle ------------------------------------------------------- */
+
+  .admin .brand-egg-split {
+    height: .5rem;
+    border-radius: 36px;
+    cursor: row-resize;
+    /* Invisible until it is wanted. A permanent bar across the screen is a
+       piece of furniture; a line that appears under the pointer is an offer. */
+    background: transparent;
+    transition: background var(--duration) var(--ease);
+    /* The hit area is the row's own height plus a little either side, without
+       the row growing — 8px of target is not enough to catch. */
+    margin-block: -.25rem;
+    padding-block: .25rem;
+    background-clip: content-box;
+  }
+
+  .admin .brand-egg-split:hover,
+  .admin .brand-egg-split:focus-visible,
+  .admin .brand-egg-work.is-splitting .brand-egg-split {
+    background: var(--accent);
+  }
+
+  /* ⚠️ WHILE DRAGGING, NOTHING ELSE REACTS. Without this the pointer sweeping
+     down the page selects the transcript it passes over, and every ring it
+     crosses lights up — the drag ends with half the screen highlighted and a
+     layer selected nobody asked for. */
+  .admin .brand-egg-work.is-splitting {
+    user-select: none;
+    cursor: row-resize;
+  }
+
+  .admin .brand-egg-work.is-splitting * { pointer-events: none; }
+  .admin .brand-egg-work.is-splitting .brand-egg-split { pointer-events: auto; }
 
   .admin .brand-egg-work > * { min-height: 0; }
 

@@ -74,6 +74,7 @@ export default defineConfig({
                 'resources/js/checklist.js',
                 'resources/js/brand-egg.js',
                 'resources/js/egg-assistant.js',
+                'resources/js/brand-egg-split.js',
                 'resources/js/copy-link.js',
                 'resources/js/lightbox.js',
                 'resources/js/orb-demo.js',
