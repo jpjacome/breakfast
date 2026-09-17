@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\BrandEgg;
 
 use App\Enums\BrandEggLayer;
+use App\Models\BrandEggMessage;
 use App\Models\Client;
 use App\Services\Ai\Contracts\LlmClient;
 use App\Services\Ai\Data\Message;
@@ -83,8 +84,14 @@ final class EggComposer
         }
 
         $sources = $this->sourceBlock($client, $layer);
+        $conversation = $this->conversationBlock($client, $layer);
 
-        if ($sources === null) {
+        // ⚠️ THE CONVERSATION RESCUES A LAYER THE ENTREGABLES CANNOT BUILD.
+        // Three of the five ask composition questions no column answers —
+        // "¿tú o usted?", "si fuera un lugar, ¿cuál?" — and those answers live
+        // in brand_egg_messages and nowhere else. Requiring an entregable would
+        // refuse to compose a layer the team has just spent an hour on.
+        if ($sources === null && $conversation === null) {
             return null;
         }
 
@@ -96,7 +103,7 @@ final class EggComposer
             // cacheableSystem() returns the same plain string, so the bytes are
             // unchanged and the exact-match prefix cache still hits.
             Message::cacheableSystem($this->instructions()),
-            Message::user($this->layerTurn($client, $layer, $sources, $dependency)),
+            Message::user($this->layerTurn($client, $layer, $sources, $dependency, $conversation)),
         ];
 
         try {
@@ -298,6 +305,44 @@ final class EggComposer
     }
 
     /**
+     * What was said about this layer in the Egg conversation.
+     *
+     * ⚠️ THIS IS WHAT STOPS *Volver a componer* BEING LOSSY, and it is the
+     * whole reason it exists. The composer read `sources()` and nothing else,
+     * so a layer built out of a conversation — tú/usted, what the brand would
+     * never say, what its world feels like — could be silently overwritten by
+     * a paragraph that knows none of it. The layer got quietly worse and the
+     * button that did it looked like a refresh.
+     *
+     * ⚠️ CHEAP, BECAUSE `brand_egg_messages.layer` ALREADY EXISTS. "What layer
+     * 2 was built from" is a filtered query of about ten turns, not a fortnight
+     * of conversation. That column was added so ➖ could be derived; this is
+     * the second thing it pays for.
+     *
+     * ⚠️ IT GOES IN THE USER TURN, never above it. It changes on every message,
+     * so in the cacheable prefix it would give each composition its own prefix
+     * (CLAUDE.md §7).
+     */
+    private function conversationBlock(Client $client, BrandEggLayer $layer): ?string
+    {
+        $turns = BrandEggMessage::query()
+            ->where('client_id', $client->id)
+            ->where('layer', $layer->value)
+            ->orderBy('id')
+            ->limit(40)
+            ->get();
+
+        if ($turns->isEmpty()) {
+            return null;
+        }
+
+        return $turns
+            ->map(static fn (BrandEggMessage $t): string => ($t->isFromAssistant() ? 'BRANDY' : 'EQUIPO')
+                .': '.trim((string) $t->body))
+            ->implode("\n\n");
+    }
+
+    /**
      * The text of the layer this one reads the OUTPUT of, when there is one.
      *
      * ⚠️ MISSING IS SAID, NOT SKIPPED SILENTLY. Layer 5 reads layer 2's result,
@@ -331,15 +376,31 @@ final class EggComposer
     private function layerTurn(
         Client $client,
         BrandEggLayer $layer,
-        string $sources,
+        ?string $sources,
         ?string $dependency,
+        ?string $conversation = null,
     ): string {
         $turn = 'MARCA: '.$client->name
             ."\n\nCAPA QUE TE TOCA ESCRIBIR: {$layer->label()} (capa {$layer->ring()} de 5)\n"
-            .$layer->description()
-            ."\n\n---\n\nENTREGABLES DE LOS QUE SE SINTETIZA ESTA CAPA.\n"
-            ."Esto es todo lo que tienes. Lo que no esté aquí, no existe para este mensaje:\n\n"
-            .$sources;
+            .$layer->description();
+
+        if ($sources !== null) {
+            $turn .= "\n\n---\n\nENTREGABLES DE LOS QUE SE SINTETIZA ESTA CAPA:\n\n".$sources;
+        }
+
+        if ($conversation !== null) {
+            /*
+             * ⚠️ SAID TO BE WORTH THE SAME AS AN ENTREGABLE, because it is. The
+             * team answered these questions in the Egg conversation and
+             * accepted what came back; three of the five layers are written
+             * mostly from material no column holds. Framing it as "background"
+             * would have her write the layer from the entregables and mention
+             * the rest in passing.
+             */
+            $turn .= "\n\n---\n\nY ESTO ES LO QUE EL EQUIPO DIJO SOBRE ESTA CAPA.\n"
+                ."Vale igual que un entregable: son sus propias palabras.\n\n"
+                .$conversation;
+        }
 
         if ($dependency !== null) {
             $turn .= "\n\n---\n\nADEMÁS, ESTA CAPA LEE EL RESULTADO DE OTRA CAPA DEL BRAND EGG.\n"
@@ -347,7 +408,10 @@ final class EggComposer
                 .$dependency;
         }
 
-        return $turn."\n\n---\n\nEscribe ahora el párrafo de la capa «{$layer->label()}».";
+        // ⚠️ The closing rule stays whatever the sources were. It is the one
+        // sentence standing between a synthesis and an invention.
+        return $turn."\n\n---\n\nEscribe ahora el párrafo de la capa «{$layer->label()}». "
+            .'Sólo con lo de arriba: lo que no esté aquí, no existe para este mensaje.';
     }
 
     /**

@@ -41,7 +41,7 @@ The list of 15, as agreed. ✅ done · 🟡 partial · ⬜ not started.
 | 14 | Campos propios por marca | ⬜ |
 | 15 | Notas | ⬜ |
 
-**Suite:** 497 → **674 passing** across this cycle. `pint` clean throughout.
+**Suite:** 497 → **692 passing** across this cycle. `pint` clean throughout.
 
 ---
 
@@ -482,7 +482,7 @@ which is safe because `brand_eggs` has never been deployed — both run for the
 first time on production in the same pass.
 ---
 
-## 1d · The Egg assistant — planned in full, checklist built · 2026-09-17
+## 1d · The Egg assistant — back end built · 2026-09-17
 
 ### The objective
 
@@ -574,11 +574,45 @@ already exists.
 anything, the assistant could talk a layer into looking finished without a
 column moving.
 
+### The back end, finished 2026-09-17
+
+| | |
+|---|---|
+| `ai.egg_assistant_prompt` | block 1 — **byte-identical for every brand, layer and mode**. A transcription of §14.3a–g, not a design |
+| `EggAssistant` | one turn. Replays **only this layer's** thread |
+| `POST …/brand-egg/asistente` | `throttle:20,1` + `ai-turn`, JSON, `failedValidation()` overridden |
+| `PATCH …/entregables/{item}` | the narrow write a play-back card accepts into |
+| `EggComposer` | now reads **the layer's own turns** beside its entregables |
+
+⚠️ **The reply carries the CHECKLIST with it.** Accepting a card moves a tick,
+and a tick is derived from `brand_deliverables` — so the screen is handed the
+new reading rather than inferring one from what she said.
+
+⚠️ **WHICH LAYER AND WHICH MODE GO IN THE USER TURN.** Putting *"estás en la
+capa Personalidad"* in the system block reads more naturally and would give each
+of the five layers its own cached prefix — five paid readings of the same
+instructions per brand. A test pins that the system block names neither the
+layer nor the brand.
+
+⚠️ **WHAT SHE ASKED IS READ FROM THE REPLY, not requested as JSON.** A
+structured field alongside her prose is a second thing to get wrong every turn,
+and a malformed one would silently stop ➖ ever appearing. Matching the
+entregable's own label against what she wrote is duller and cannot fail halfway.
+Only **this layer's** sources are candidates, so a passing mention of "el tono"
+cannot mark an entregable as offered on a layer that never reads it.
+
+⚠️ **THE COMPOSER NO LONGER LOSES A CONVERSATION-BUILT LAYER.** It read
+`sources()` and nothing else, so *Volver a componer* could overwrite tú/usted
+and what the brand would never say with a paragraph that knows none of it — the
+layer quietly getting worse behind something that looks like a refresh. The
+turns are framed as **worth the same as an entregable**, because they are: the
+team said them and accepted what came back.
+
 ### Still open
 
-`ai.egg_assistant_prompt`, `EggAssistant`, the POST route, the narrow
-`PATCH …/entregables/{item}` write, and the composer reading the thread. Then
-the panel. See `docs/brand-egg.md` §14.10–14.11.
+Only the front end: the panel on the existing Egg screen, reusing
+`assistant-composer.js`, and layer 4's toggle and pasted-image cards. See
+`docs/brand-egg.md` §14.10–14.11.
 
 ### Deploy
 

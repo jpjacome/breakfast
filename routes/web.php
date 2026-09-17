@@ -208,6 +208,31 @@ Route::middleware(['auth', 'breakfast', 'covers-client'])
         Route::post('clientes/{client}/brand-egg/aprobar', [ClientBrandEggController::class, 'approve'])
             ->name('clients.egg.approve');
 
+        /*
+         * The conversation that co-creates the Egg — step 1 of §1 of the brief.
+         *
+         * ⚠️ BOTH GATES (trap 5). throttle counts requests per minute because
+         * every turn is a paid call; 'ai-turn' bounds how many run AT ONCE,
+         * which is the thing that takes the public site down. A rate limit
+         * cannot express duration.
+         */
+        Route::post('clientes/{client}/brand-egg/asistente', [ClientBrandEggController::class, 'assistant'])
+            ->middleware(['throttle:20,1', 'ai-turn'])
+            ->name('clients.egg.assistant');
+
+        /*
+         * ONE entregable, named in the URL — what a play-back card accepts into.
+         *
+         * ⚠️ DELIBERATELY NOT the board's route. That one is a full save of the
+         * 48-field form and returns every column, so a single entregable posted
+         * through it would blank the other 47 — see the controller.
+         *
+         * ⚠️ {item} binds to DeliverableItem, so the enum is the whitelist and
+         * the column name never comes from a request body.
+         */
+        Route::patch('clientes/{client}/entregables/{item}', [ClientBrandEggController::class, 'deliverable'])
+            ->name('clients.deliverable.update');
+
         // Layer 4's inventory: put a file in the Egg, or take it out. A toggle
         // rather than two routes, because that is what a click on a file is.
         Route::post('clientes/{client}/brand-egg/archivos/{asset}', [ClientBrandEggController::class, 'asset'])

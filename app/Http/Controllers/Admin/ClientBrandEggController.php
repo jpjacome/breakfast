@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\BrandEggLayer;
+use App\Enums\DeliverableItem;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ComposeBrandEggRequest;
+use App\Http\Requests\EggAssistantRequest;
 use App\Models\BrandAsset;
 use App\Models\Client;
 use App\Services\Ai\AssistantFailure;
 use App\Services\Ai\Exceptions\LlmException;
+use App\Services\BrandEgg\EggAssistant;
 use App\Services\BrandEgg\EggComposer;
+use App\Services\BrandEgg\LayerProgress;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -39,7 +43,81 @@ use Illuminate\Http\Request;
  */
 class ClientBrandEggController extends Controller
 {
-    public function __construct(private readonly EggComposer $composer) {}
+    public function __construct(
+        private readonly EggComposer $composer,
+        private readonly EggAssistant $assistant,
+    ) {}
+
+    /**
+     * One turn of the conversation that co-creates the Egg — §1 of the brief.
+     *
+     * ⚠️ JSON, like compose(), and for the same reason: a fetch() drives the
+     * panel so the screen can keep the checklist and the thread in step
+     * without a reload.
+     *
+     * ⚠️ IT ANSWERS WITH THE CHECKLIST AS WELL AS THE REPLY. The whole point of
+     * the flow is that accepting a card moves a tick, and the tick is derived
+     * from `brand_deliverables` — so the screen has to be handed the new
+     * reading rather than guessing at it from what she said.
+     */
+    public function assistant(EggAssistantRequest $request, Client $client): JsonResponse
+    {
+        $layer = $request->layer();
+
+        try {
+            $answer = $this->assistant->answer(
+                $client,
+                $request->user(),
+                (string) $request->validated('message'),
+                $layer,
+            );
+        } catch (LlmException $e) {
+            // What a person may be told when a turn fails — never the
+            // provider's own words. forStaff: this panel is /admin, and the
+            // Breakfast team can be told more than a client can.
+            return response()->json(['error' => AssistantFailure::message($e, forStaff: true)], 502);
+        }
+
+        return response()->json([
+            'reply' => $answer['reply'],
+            'layer' => $layer?->value,
+            'checklist' => $layer === null || $layer->isInventory()
+                ? null
+                : LayerProgress::for($client->fresh(), $layer)->toMarkdown(),
+        ]);
+    }
+
+    /**
+     * Save ONE entregable — what the play-back card accepts into.
+     *
+     * ⚠️ IT CANNOT POST TO THE BOARD'S ROUTE, and this is the trap worth
+     * knowing before somebody tries. ClientProcessController@update fills from
+     * UpdateDeliverablesRequest::deliverables(), which returns ALL 48 because
+     * that is a full save of a form — an entregable the request does not
+     * mention is one somebody emptied. One entregable through that endpoint
+     * blanks the other 47: silent data loss, no error, triggered by accepting
+     * a suggestion.
+     *
+     * ⚠️ {item} BINDS TO THE ENUM, so the column being written can only ever be
+     * one of the 48 and an unknown key is a 404 — the vocabulary is the
+     * whitelist, never a string from a request body.
+     *
+     * ⚠️ IT WRITES THE TEXT IT IS GIVEN. It does not call the assistant,
+     * re-generate or re-phrase: the card carries what the person read and
+     * accepted, and anything else would break the guarantee the whole app
+     * rests on.
+     */
+    public function deliverable(Request $request, Client $client, DeliverableItem $item): JsonResponse
+    {
+        $text = trim((string) $request->input('texto'));
+
+        $client->deliverables()->firstOrNew()->fill([
+            $item->value => $text === '' ? null : $text,
+            'updated_by' => $request->user()->id,
+        ])->save();
+
+        return response()->json(['saved' => $item->value]);
+    }
 
     public function edit(Client $client): View
     {
