@@ -720,3 +720,236 @@ Three, all cheap to answer and all cheaper to ask than to guess:
    image work), or the graphic entregables (Emblemas, Brand universe, the
    identificativos)?
 3. **"Tagline"** — `Claim`, as assumed here?
+
+---
+
+## 14. The Egg assistant — co-creating the layers · planned 2026-09-17
+
+*Step 1 of §1 of the brief: «La IA administrativa guía a Breakfast para
+construir el Brand Egg mediante **preguntas**, síntesis y edición conjunta.»
+Síntesis and edición are built. This is the preguntas.*
+
+### 14.1 Why it is not just a bigger composer
+
+`EggComposer` reads entregables and writes a paragraph. It cannot help a brand
+that has no entregables — and that is now the normal case, because Breakfast
+inverted the flow: **the Egg is built FIRST, and the toolkit comes after.**
+
+So the assistant has two modes, and it decides which from the data rather than
+from a setting:
+
+| the brand has | mode | what the assistant does |
+|---|---|---|
+| no entregables, no layers | **cold** | asks. Builds the layer out of the answers |
+| entregables written | **warm** | synthesises, and asks only about what is thin |
+| layers already written | **refining** | challenges, tightens, proposes edits |
+
+⚠️ **COLD MODE MEANS THE ASSISTANT HELPS INVENT THE BRAND**, which sits against
+the rule that it must never state an attribute the entregables do not carry.
+That is fine here and the prompt must say why: in cold mode **every word is a
+proposal a person accepts**, and nothing reaches the database unreviewed. But
+the mode has to be stated in the turn, or it will invent in warm mode too —
+where the entregables exist and inventing is the one thing forbidden.
+
+### 14.2 The conversation is the TEAM's, not a person's
+
+`brand_egg_messages`, keyed on `client_id` — two Breakfast people building one
+brand's Egg see one conversation, and either can pick it up.
+
+⚠️ **The opposite of `assistant_messages`**, which is keyed on `user_id`
+precisely so nobody can read somebody else's turns. Same shape as
+`brand_onboarding_messages`, which is also a team thread about one brand.
+
+```
+brand_egg_messages
+  client_id · user_id (who spoke) · role · body
+  proposals json · questions json · layer (which ring this turn is about)
+  timestamps
+```
+
+### 14.3 One layer at a time, in ring order
+
+The assistant works a layer at a time and the screen says which — clicking a
+ring focuses it, which the existing `brand-egg.js` already does for hovering
+and selecting. Order is 1 → 2 → 3 → 5, because **layer 5 reads layer 2's
+output** and composing it first produces a universe built on nothing.
+
+⚠️ **Layer 4 is not in that sequence.** It is an inventory of files, not prose,
+so it is not written — it is picked. See 14.8.
+
+The person can jump anywhere; the order is a default, not a rail.
+
+---
+
+### 14.4 Layer 1 · Esencia, tagline y valores
+
+> *Lo que la marca es: su esencia, su promesa y los valores que la sostienen.*
+
+**Reads:** `relato` · `brand_promise` · `brand_statement` · `manifesto` ·
+`valores` · `claim`
+
+**Cold — what it asks, in this order:**
+
+1. ¿De dónde nace esta marca? ¿Qué la hizo existir?
+2. Si desapareciera mañana, ¿qué se perdería que nadie más da?
+3. ¿Qué promete? En una frase, sin adjetivos.
+4. ¿Cuáles son las tres o cuatro cosas que no negocia, ni por dinero?
+5. ¿Hay una frase que ya usen para presentarse?
+
+⚠️ **One question at a time, never a form.** A list of five questions in one
+message gets one answer to the first and silence on the rest. The assistant
+asks, listens, and follows what it hears — a brand born from a family recipe
+needs a different second question than one born from a gap in the market.
+
+**Warm:** synthesise the relationship between relato, promesa and valores. If
+`claim` exists it is the tagline; if not, the assistant may **propose** one and
+must mark it as a proposal, never as the brand's.
+
+**Never:** invent a value. If only `relato` exists, the layer says what it can
+and stops — three true sentences beat six with two invented.
+
+---
+
+### 14.5 Layer 2 · Personalidad
+
+> *Cómo se comporta y habla la marca, leída desde sus arquetipos y valores.*
+
+**Reads:** `arquetipos` · `valores`
+**⚠️ Should also read `tono`** — see 14.9.
+
+**Cold:**
+
+1. Si la marca entrara a una reunión, ¿habla primero o escucha?
+2. ¿De qué se ríe? ¿Y qué no le haría gracia nunca?
+3. ¿Trata de tú o de usted? ¿Eso cambia según con quién?
+4. ¿Qué frase NO diría jamás, aunque funcionara?
+
+**Warm:** read the archetypes into behaviour — an archetype is a label, and
+this layer is what it *does* on a Tuesday.
+
+⚠️ **Arquetipos is a closed vocabulary.** The assistant may offer candidates
+with its reasoning, but a person picks. Proposing "El Cuidador" as though it
+were established is exactly the invention this app exists to stop.
+
+**Feeds layer 5.** Composed before it, always.
+
+---
+
+### 14.6 Layer 3 · Beneficios de marca
+
+> *Lo que la marca aporta de verdad a quien la elige.*
+
+**Reads:** `brand_statement` · `relato` · `insight` · `publicos`
+
+**Cold:**
+
+1. ¿A quién le cambia el día esta marca? Descríbeme a una persona, no a un
+   segmento.
+2. ¿Qué problema real resuelve? ¿Qué le molesta a esa persona hoy?
+3. ¿Qué se lleva alguien que la elige, que no se llevaría de otra?
+4. Y de eso, ¿qué es práctico, qué es emocional y qué dice de quien la usa?
+
+**Warm:** relate `insight` to `publicos` — a benefit with no audience is a
+feature, and an audience with no insight is a demographic.
+
+**Never:** claim what competitors do or do not offer. Nothing in the context
+knows that, and it is the easiest sentence in this layer to invent.
+
+---
+
+### 14.7 Layer 5 · Brand Universe / Emotions
+
+> *El mundo emocional que la marca abre: a dónde lleva y qué se siente ahí.*
+
+**Reads:** `valores` · `manifesto` · `brand_promise` · `look_and_feel`, **plus
+layer 2's text** (`dependsOn()`).
+**⚠️ Should also read `territorio`** — see 14.9.
+
+**Cold:**
+
+1. Si esta marca fuera un lugar, ¿cuál? ¿Qué hora es ahí?
+2. ¿Qué se siente al estar dentro? Una emoción, no cinco.
+3. ¿Qué queda fuera de ese mundo? ¿Qué no encaja ahí?
+
+**Warm:** extend layer 2 rather than repeat it — personality is how the brand
+behaves, universe is the world that behaviour creates.
+
+⚠️ **Refuses to run before layer 2 exists**, and says so rather than composing
+from the entregables alone. Already enforced in `EggComposer`.
+
+---
+
+### 14.8 Layer 4 · Brand Assets — the assistant does something else entirely
+
+**Not prose. An inventory** (`brand_egg_assets`). So the assistant does not
+propose text for this ring. What it does instead:
+
+| | |
+|---|---|
+| **suggests** which files in the folder belong to the identity, reading `type` and `visual_reading` | a card that TOGGLES the asset into the Egg |
+| **flags the unclassified** | *"Hay 6 archivos sin tipo. ¿Alguno es el logo?"* |
+| **flags the mismatches** | *"«Colores» está escrito pero no hay ninguna paleta archivada"* — and the reverse |
+
+⚠️ **A different card type from the other four.** Elsewhere a proposal fills a
+textarea; here it posts to `clients.egg.asset`. Worth building second, after the
+text layers work.
+
+---
+
+### 14.9 ⚠️ Four entregables Breakfast validates that feed no layer
+
+§1 of the brief says Breakfast validates *esencia, promesa, **territorio** e
+insight, públicos, personalidad y valores, **tono**, **pilares**, **mensajes**,
+criterios visuales*.
+
+Four of those reach nothing today, and two are **obligatorios**:
+
+| entregable | proposed home | why |
+|---|---|---|
+| `tono` *(oblig.)* | **layer 2** | the layer is literally "cómo se comporta y HABLA" |
+| `territorio` *(oblig.)* | **layer 5** | territory is the world the brand occupies |
+| `pilares_contenido` | **layer 2** | what it talks about is part of how it speaks |
+| `temas_conversacion` *(oblig.)* · `lineamientos` | **layer 2** | "mensajes" in their list |
+
+**This is a question for Breakfast, not a decision to take here.** Their two
+documents enumerate the Egg differently — the 2026-09-08 brief names five
+layers, §1 names eleven things — and building against the wrong reading is
+expensive. ⚠️ **Ask before wiring.**
+
+---
+
+### 14.10 What gets built
+
+| | |
+|---|---|
+| `brand_egg_messages` | migration + model |
+| `App\Services\BrandEgg\EggAssistant` | one turn in, `{reply, proposals[], questions[]}` out |
+| `config('ai.egg_assistant_prompt')` | block 1, identical bytes for every brand and every layer |
+| `POST …/brand-egg/asistente` | `throttle:10,1` + `ai-turn`, JSON, FormRequest with `failedValidation()` |
+| the panel on the existing screen | reusing `assistant-composer.js`, so Enter and ↑-recall behave as on the other three |
+
+⚠️ **Block 1 carries no layer name and no brand name.** Which ring, which mode
+and the current state all go in the user turn — five layers each with their own
+system block is five prefixes, the mistake §6 already documents for the
+composer.
+
+### 14.11 Sequencing
+
+1. table + `EggAssistant` + prompt + route. No UI; provable by tests.
+2. the panel, and proposals landing in the four text layers.
+3. cold-start behaviour, tuned against a real empty brand.
+4. layer 4's asset cards.
+
+### 14.12 The decision that blocks nothing but shapes everything
+
+**When Breakfast answers «¿de dónde nace esta marca?» in the chat, does that
+answer also land in the `relato` entregable, or only in the Egg?**
+
+- **Only the Egg:** you can end up with a full Egg over empty entregables, which
+  inverts the hierarchy the rest of the system assumes — the Egg is supposed to
+  be a synthesis *of* them, and tier 2 would be emptier than tier 1.
+- **Both:** the assistant writes entregables from a conversation, which is what
+  the onboarding assistant already does — a second path to the same columns.
+
+Neither is obviously right, and it decides whether this assistant is a **third**
+writer of brand data or a **reader** of it.
