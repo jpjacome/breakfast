@@ -776,9 +776,45 @@ Three parts, and the shape never varies:
    marked obligatorio or opcional.
 3. **One question**, about the first empty obligatorio, naming that entregable.
 
-Each answer re-prints the list one tick further on. The person always knows how
-much is left and what filling it is FOR, which is the thing a free-form chat
-cannot tell them.
+The person always knows how much is left and what filling it is FOR, which is
+the thing a free-form chat cannot tell them.
+
+### 14.3a Every entregable is THREE BEATS, never two
+
+**ask → play it back as a card → tick and move on.** The middle beat is the one
+that is easy to drop and the one that makes the rest trustworthy:
+
+> **ask** — Empecemos por el **Relato de marca**. Va primero porque los otros
+> cinco se apoyan en él. ¿De dónde nace esta marca? No la empresa — la marca.
+>
+> **play back** — Entonces, a ver si te entendí: la marca nace de una abuela que
+> hacía pan para la casa, empezó a repartirlo en el barrio y terminó vendiendo
+> más de lo que podía amasar. ¿Lo guardo así en **Relato de marca**?
+> `[Guardar]` `[Editarlo primero]`
+>
+> **tick** — ✅ Relato de marca · ⬜ Brand promise · ⬜ …
+> Ahora la **Brand promise**: lo que su cliente puede esperar siempre, cada vez
+> que compra. ¿Qué le promete esta marca?
+
+⚠️ **THE TICK CANNOT SHARE A MESSAGE WITH THE PLAY-BACK, and not for reasons of
+manners.** `LayerProgress` reads `brand_deliverables`, and that column is only
+written when somebody clicks the card. A ✅ printed beside *"esto es lo que
+entendí"* would be announcing a save that has not happened — the checklist
+lying about the database on its very first line.
+
+Three rules about the middle beat, each of them a way the turn goes wrong:
+
+- **Play back the CONTENT, not the category.** *"Eso ya es un relato: no es un
+  plan de negocio, es algo que pasó"* tells the team what the word means. They
+  cannot check a definition; they can check a recap. Say the brand's own story
+  back in one sentence and let them correct it.
+- **Name the destination.** *"Lo dejo así"* leaves what, and where? The card says
+  *guardar en Relato de marca*, so what is being stored and under which of the 48
+  is on screen before anybody agrees to it.
+- **Then ask plainly.** A concept explained as a paradox — *"tiene que poder
+  incumplirse; si no se puede fallar, no es una promesa"* — is clever and lands
+  as a riddle at the exact moment the person is meant to answer something. One
+  clause of explanation, then the question.
 
 **The voice is Brandy's** — warm, direct, opinionated, the register
 `ai.system_prompt` already establishes. This is somebody sitting beside you
@@ -814,6 +850,15 @@ that repeats itself.
 again: not every brand has a Manifesto or a Claim, and a layer that keeps asking
 for one teaches the team the Egg is unfinished when it is finished.
 
+⚠️ **WHICH IS WHY THE CHECKLIST HAS A THIRD STATE: ➖ *no aplica*.** With only ✅
+and ⬜ a brand that legitimately has no Manifesto reads 5 de 6 forever, and a
+layer that can never finish is ERR-07 wearing a checkbox. ⚠️ **It is a reading,
+not a column** — `brand_deliverables` still has no status field and must not grow
+one (CLAUDE.md §8 rule 2). The skip is a line in the conversation, so
+`LayerProgress` derives ➖ from an optional entregable that is empty AND was
+offered in a turn already in `brand_egg_messages`. Nothing to keep in sync, and
+a brand that later writes a Manifesto ticks it without anyone clearing a flag.
+
 **Order: 1 → 2 → 3 → 5** — outwards from the yolk, which is also the order the
 data needs, since layer 5 reads layer 2's output. ⚠️ Layer 4 is not in that
 sequence: it is a list of files, so it is picked rather than written (14.8). The
@@ -842,16 +887,17 @@ The opening, as an illustration of the shape 14.3 describes — the list is
 > - ⬜ Claim · *opcional*
 >
 > Empecemos por el **Relato de marca**. Va primero porque los otros cinco se
-> apoyan en él. ¿De
-> dónde nace esta marca? No la empresa — la marca. ¿Qué pasó para que alguien
-> decidiera que esto tenía que existir?
+> apoyan en él. ¿De dónde nace esta marca? No la empresa — la marca. ¿Qué pasó
+> para que alguien decidiera que esto tenía que existir?
+
+From there, each entregable runs the three beats of 14.3a.
 
 One question per entregable, each naming it:
 
 | entregable | what she asks |
 |---|---|
 | **Relato** | ¿De dónde nace? ¿Qué pasó para que alguien decidiera que tenía que existir? |
-| **Brand promise** | En una frase, ¿qué le promete a quien la elige? Algo que se pueda cumplir o incumplir |
+| **Brand promise** | ¿Qué puede esperar su cliente siempre, cada vez? Eso es lo que promete |
 | **Brand statement** | ¿Cómo se presenta en dos líneas? Qué es, para quién, y por qué importa |
 | **Valores** | ¿Cuáles son las tres o cuatro cosas que no negocia, ni cuando cuestan dinero? |
 | **Manifesto** *(opc.)* | ¿Hay algo que esta marca defiende y diría en voz alta? Si no, lo saltamos |
