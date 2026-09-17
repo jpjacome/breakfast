@@ -65,10 +65,33 @@
         @endforeach
     </nav>
 
-    <div class="brand-egg-screen">
+    {{--
+        TWO ROWS, AND THE BOTTOM ONE IS TWO COLUMNS.
+
+            ┌──────────────────────────────┐
+            │  Brandy, building the egg    │  half the page
+            ├───────────────┬──────────────┤
+            │  the drawing  │  state and   │  half the page
+            │  (still)      │  five layers │
+            └───────────────┴──────────────┘
+
+        ⚠️ THE CONVERSATION IS THE TOP HALF BECAUSE IT IS THE WORK. The five
+        paragraphs are the OUTCOME, and they are read a layer at a time while
+        looking at where that layer sits in the drawing — which is why the egg
+        keeps its own column and never scrolls. Putting the panel in the aside
+        (its first home) made the thing you spend the hour in the narrowest
+        column on the screen.
+    --}}
+    <div class="brand-egg-work">
+
+        <div class="brand-egg-talk">
+            <x-admin.egg-assistant :client="$client" :layers="$layers" />
+        </div>
+
+        <div class="brand-egg-screen">
 
         {{-- ------------------------------------------------------------
-             The drawing, and the egg's own state beneath it
+             The drawing. Held still: it is what the right column is about.
              ------------------------------------------------------------ --}}
         <aside class="brand-egg-stage">
             <section class="admin-card">
@@ -85,6 +108,13 @@
 
                 <x-brand-egg :egg="$texts" :state="$state" editable data-brand-egg />
             </section>
+
+        </aside>
+
+        {{-- ------------------------------------------------------------
+             The five layers, as the composer wrote them
+             ------------------------------------------------------------ --}}
+        <div class="admin-stack brand-egg-read">
 
             {{-- ⚠️ THE STATE IS SAID ONCE, HERE, for the whole egg. It sits
                  under the drawing rather than on the cards because that is the
@@ -144,22 +174,6 @@
                 <p class="brand-egg-status-note" data-brand-egg-report hidden></p>
             </section>
 
-            {{--
-                Brandy, building the egg with the team — step 1 of §1.
-
-                ⚠️ IN THE ASIDE, BESIDE THE STATE, NOT ABOVE THE LAYERS. The
-                layers are what the Egg IS and they are the page; this is how
-                it gets made. Putting a conversation at the top would make the
-                screen about talking rather than about the five paragraphs
-                somebody has to read and approve.
-            --}}
-            <x-admin.egg-assistant :client="$client" :layers="$layers" />
-        </aside>
-
-        {{-- ------------------------------------------------------------
-             The five layers, as the composer wrote them
-             ------------------------------------------------------------ --}}
-        <div class="admin-stack">
 
             @foreach ($layers as $layer)
                 @php
@@ -278,6 +292,8 @@
             @endforeach
 
         </div>
+        </div>
+
     </div>
 
 </x-layouts.app>

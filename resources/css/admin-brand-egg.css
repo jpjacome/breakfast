@@ -50,6 +50,10 @@
   .admin .brand-egg-screen { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); }
 }
 
+/* Below the two-row gate the page is an ordinary scrolling column: the
+   conversation, then the drawing, then the layers. No panes to hold. */
+.admin .brand-egg-work { display: grid; gap: 1.5rem; }
+
 .admin .brand-egg-stage .brand-egg {
   /* ⚠️ NO CEILING, changed 2026-09-17. It was 24rem — "smaller than the
      component's own ceiling, because this column is half a screen" — and the
@@ -87,7 +91,7 @@
 
 .admin .brand-egg-skillet {
   position: absolute;
-  top: 50%;
+  top: 46%;
   left: 50%;
   translate: -50% -50%;
 
@@ -100,7 +104,10 @@
      and still show enough curve to be a pan. aspect-ratio rather than
      width: auto so the shape cannot drift if the source is ever re-exported
      at a different size. */
-  height: 180%;
+  /* Matched to the client's egg on 2026-09-17, judged by eye on the page: at
+     180% dead centre the rim sat inside the card and it read as a picture OF a
+     pan. top is 46% because the drawing is portrait and its weight sits low. */
+  height: 174%;
   aspect-ratio: 1;
   width: auto;
   max-width: none;
@@ -196,23 +203,50 @@
 
   .admin-frame:has(.brand-egg-screen) .brand-egg-nav { flex: none; }
 
-  .admin .brand-egg-screen {
+  /* ⚠️ TWO EQUAL ROWS. The conversation is half the page because it is the
+     WORK; the five paragraphs below it are the outcome, read a layer at a time
+     while looking at the drawing beside them. 1fr each rather than a judged
+     split: the moment one is "the important one" the other becomes a strip. */
+  .admin .brand-egg-work {
     flex: 1 1 0;
     min-height: 0;
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .admin .brand-egg-work > * { min-height: 0; }
+
+  /* The panel scrolls inside its own row. Its thread has its own max-height
+     for the stacked layout, which has to go here or the row never fills. */
+  .admin .brand-egg-talk { overflow: hidden; display: flex; }
+  .admin .brand-egg-talk > .egg-assistant { flex: 1 1 auto; min-height: 0; }
+  .admin .brand-egg-talk .egg-assistant-thread { max-height: none; flex: 1 1 0; }
+
+  .admin .brand-egg-screen {
+    min-height: 0;
+  }
+
+  /* The right column is the only thing on this screen that scrolls. */
+  .admin .brand-egg-read {
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: .5rem;
   }
 
   /* --- left pane: the egg, whole and still ------------------------------- */
 
+  /* ⚠️ THE DRAWING'S COLUMN DOES NOT SCROLL. It holds one thing and that thing
+     shrinks to fit, so there is never anything below the fold to reach — and a
+     scrollbar on the egg would invite somebody to look for more of it. The
+     state and the layers do the scrolling, next door. */
   .admin .brand-egg-stage {
     height: 100%;
     min-height: 0;
     display: flex;
     flex-direction: column;
-    /* The pane gives up gracefully rather than losing its bottom edge: between
-       the 300px floor and the 540px gate there is a sliver of window where the
-       card is taller than its pane, and .admin-main's overflow: hidden would
-       otherwise take a bite out of it with no way to reach what was bitten. */
-    overflow-y: auto;
+    overflow: hidden;
   }
 
   .admin .brand-egg-stage > .admin-card {
@@ -230,10 +264,9 @@
   .admin .brand-egg-stage .brand-egg {
     /* ⚠️ flex-basis 0, NOT auto. With auto the drawing's base size is its own
        aspect-ratio height — taller than the pane — and shrinking from there
-       left the card ~50px longer than the space it had, which the pane's
-       overflow: hidden then ate off the bottom: the approval line simply was
-       not there. Basis 0 makes the drawing take the space that is LEFT after
-       the panel and the status line, which is the correct reading of "the egg
+       leaves the card longer than the space it has, which the pane's
+       overflow: hidden then eats off the bottom. Basis 0 makes the drawing
+       take the space that is LEFT, which is the correct reading of "the egg
        gets whatever room remains". */
     flex: 1 1 0;
     /* ⚠️ THE FLOOR. Below this the egg stops shrinking and the pane scrolls
