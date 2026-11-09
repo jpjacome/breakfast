@@ -5,7 +5,10 @@
 
 {{-- css="permissions": this page renders x-portal.permission-grid, whose CSS
      ships with the component rather than with either shell. --}}
-<x-layouts.app :title="$client->name" heading="marca" :css="['permissions', 'meetings', 'checklist']">
+{{-- process.css is named here because this page draws the three steps now —
+     see <x-admin.process-steps>, which moved off the board on 2026-09-17. --}}
+<x-layouts.app :title="$client->name" heading="marca"
+               :css="['permissions', 'meetings', 'process']">
 
     <x-slot:actions>
         <a href="{{ route('admin.clients.index') }}" class="admin-button admin-button-ghost admin-button-sm">← Clientes</a>
@@ -57,10 +60,46 @@
                 $missing = $deliverables->missing();
             @endphp
 
-            <div class="admin-card" style="margin-bottom:1.5rem;display:grid;gap:.875rem">
+            {{-- ⚠️ THE STEPS COME FIRST, and the summary under them. "Where is
+                 this project" is the coarser question, and it is the one
+                 somebody opening a brand is asking; how many of the 48 are
+                 filled is the detail beneath it. --}}
+            <x-admin.process-steps :client="$client" />
+
+            {{--
+                The Brand Egg, in a card of its own.
+
+                ⚠️ IT USED TO SIT INSIDE THE ENTREGABLES CARD, on the argument
+                that it is "the same work seen from the top". Breakfast reordered
+                this page on 2026-09-17 and the Egg earns its own card: it is
+                the brand's primary memory, above the 48 rather than a footnote
+                to them, and the page now reads proceso → huevo → entregables,
+                which is coarse to fine.
+
+                Its state is derived, so this line cannot drift from the screen
+                it points at.
+            --}}
+            @php $eggState = $client->brandEggState(); @endphp
+
+            <div class="admin-card" style="margin:1.5rem 0;display:grid;gap:.875rem">
                 <div class="admin-row admin-row-between" style="flex-wrap:wrap;gap:1rem">
                     <div>
-                        <h3 class="admin-heading">proceso y entregables</h3>
+                        <h3 class="admin-heading">brand egg</h3>
+                        <p class="admin-hint" style="margin-top:.375rem;max-width:52ch">
+                            {{ $eggState->description() }}
+                        </p>
+                    </div>
+                    <a href="{{ route('admin.clients.egg.edit', $client) }}"
+                       class="admin-button admin-button-secondary admin-button-sm">
+                        Abrir Brand Egg
+                    </a>
+                </div>
+            </div>
+
+            <div class="admin-card" style="margin:1.5rem 0;display:grid;gap:.875rem">
+                <div class="admin-row admin-row-between" style="flex-wrap:wrap;gap:1rem">
+                    <div>
+                        <h3 class="admin-heading">los entregables</h3>
                         <p class="admin-hint" style="margin-top:.375rem;max-width:52ch">
                             @if($currentStep)
                                 Paso {{ $currentStep->number() }} de {{ $totalSteps }}:
@@ -76,7 +115,7 @@
                     </div>
                     <a href="{{ route('admin.clients.process.edit', $client) }}"
                        class="admin-button admin-button-secondary admin-button-sm">
-                        Abrir proceso
+                        Abrir entregables
                     </a>
                 </div>
 
@@ -102,45 +141,8 @@
                     </p>
                 @endif
 
-                {{--
-                    The Brand Egg sits INSIDE the proceso card rather than in
-                    one of its own, because it is the same work seen from the
-                    top: five layers synthesised from the entregables listed
-                    just above. A separate card would suggest a second project.
-
-                    Its state is derived, so this line cannot drift from the
-                    screen it points at.
-                --}}
-                @php $eggState = $client->brandEggState(); @endphp
-
-                <div class="admin-row admin-row-between"
-                     style="flex-wrap:wrap;gap:1rem;padding-top:.875rem;border-top:1px solid var(--rule)">
-                    <p class="admin-hint" style="max-width:52ch">
-                        <b>Brand Egg:</b> {{ $eggState->description() }}
-                    </p>
-                    <a href="{{ route('admin.clients.egg.edit', $client) }}"
-                       class="admin-button admin-button-outline admin-button-sm">
-                        Abrir Brand Egg
-                    </a>
-                </div>
             </div>
         </section>
-
-        {{-- ============================================================
-             El checklist, y qué ha marcado la marca — SEG-05
-             ============================================================
-             Read-only on this side. The TEXT is written on the process board
-             like any other entregable; the TICKS belong to the client, and
-             this is the "seguimiento" the report asked for: what they have
-             marked, who marked it, and when.
-             ============================================================ --}}
-        @if (! $checklist->isEmpty())
-            <section style="grid-column:1/-1">
-                <div class="admin-card">
-                    <x-implementation-checklist :checklist="$checklist" :ticks="$ticks" />
-                </div>
-            </section>
-        @endif
 
         {{-- ============================================================
              Reuniones — moved here from the process screen, which is the

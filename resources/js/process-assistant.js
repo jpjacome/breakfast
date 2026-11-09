@@ -269,6 +269,26 @@ ${proposal.value}`
      * Attachments need no exclusion: they render as a <ul class="turn-files">,
      * so a selector for paragraphs cannot reach them.
      */
+    /*
+     * What Up recalls in the composer, read BEFORE the formatter below runs —
+     * a paragraph still holds exactly the characters that were typed until it
+     * does. The blade split the body on blank lines, so joining on one puts it
+     * back the way it was sent.
+     *
+     * ⚠️ THIS THREAD BELONGS TO THE BRAND, NOT TO ONE PERSON. Everyone at
+     * Breakfast working this brand writes into it, which is why the turns carry
+     * a byline at all — so recall reads only the ones the server marked as
+     * yours. Walking back into a colleague's question would be a surprise every
+     * time, and it is not something you sent.
+     */
+    messageField.seed(
+        [...thread.querySelectorAll('.assistant-message-user[data-own]')].map(
+            (turn) => [...turn.querySelectorAll('p:not(.turn-author)')]
+                .map((paragraph) => paragraph.textContent)
+                .join('\n\n'),
+        ),
+    );
+
     for (const paragraph of thread.querySelectorAll('.assistant-message > p')) {
         paragraph.replaceChildren(formatted(paragraph.textContent));
     }

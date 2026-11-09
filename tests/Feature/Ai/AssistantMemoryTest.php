@@ -334,6 +334,11 @@ test('the Breakfast dashboard takes an image too', function () {
 
     expect(AssistantMessage::where('user_id', $this->admin->id)->where('role', 'user')->sole()->attachments)
         ->toBe(['mockup.png']);
+
+    Http::assertSent(fn ($request) => str_contains(
+        json_encode($request->data()),
+        '"type":"image_url"',
+    ));
 });
 
 test('an earlier turn replays the file by name, never by re-sending it', function () {

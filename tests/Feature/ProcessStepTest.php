@@ -114,7 +114,9 @@ test('the process screen dates an evening step as the day it was started', funct
     $this->steps->start($this->client, ProcessStep::Arquitectura);
 
     actingAs($this->admin)
-        ->get(route('admin.clients.process.edit', $this->client))
+        // ⚠️ THE BRAND PAGE, not the board: the three steps moved there on
+        // 2026-09-17. See <x-admin.process-steps>.
+        ->get(route('admin.clients.show', $this->client))
         ->assertOk()
         ->assertSee('En curso desde el 13 de agosto de 2026')
         ->assertDontSee('En curso desde el 14 de agosto de 2026');

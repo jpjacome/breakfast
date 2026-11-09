@@ -2093,3 +2093,755 @@ Both changes are dead until uploaded:
    bare domain. Before this it was a `302` to `https://www.vamosdebreakfast.com/login`,
    staying on `www`.
 3. No migration, no env change.
+
+## 2026-09-18 — el asistente del dashboard sí puede analizar imágenes
+
+Un admin preguntó por una imagen adjunta en `/admin` y Brandy respondió que no
+tenía ojos para verla. El transporte no era el problema: `assistant.js` ya manda
+`files[]`, `Attachment` lo convierte en `image_url` y `AdminContextBuilder` lo
+pone en el mismo turno que la pregunta. La causa era que `ai.admin_prompt` sólo
+describía la tabla de estado como fuente del asistente y no le decía que debía
+usar la imagen adjunta.
+
+El prompt ahora declara que las imágenes se pueden ver y analizar, exige separar
+observaciones visuales de datos confirmados de la marca y pide reconocer cuando
+la imagen no alcanza. La prueba del dashboard además inspecciona el payload
+real y comprueba que contiene una parte `image_url`.
+
+**Prueba:** `php artisan test tests/Feature/Ai/AssistantMemoryTest.php
+--filter="Breakfast dashboard takes an image too|admin question and its answer
+are both kept"` → 2 passing, 10 assertions. No migration ni cambio de env.
+
+## 2026-09-20 — item 5: las conversaciones llegan a la pantalla
+
+El back end de item 5 llevaba desde el 17 completo y **sin tocar por nadie**:
+`conversations`, `conversation_folders`, la columna `conversation_id` en las
+tres tablas de mensajes, `Conversation`, `ConversationFolder`,
+`ConversationBudget`, `SummarisesConversations` y `ConversationMemoryTest`
+existían y pasaban — pero no había ni una ruta, ni un controlador, ni un panel,
+y **nada escribía `conversation_id`**. El tope de 40k caracteres era inerte
+porque nadie preguntaba a `shouldSummarise()`.
+
+### Lo que se construyó
+
+**1. Quién decide a qué conversación pertenece un turno.**
+`App\Services\Ai\ActiveConversation` es la única clase que lo resuelve. Falla
+cerrada: un id que no es de esa persona, de esa superficie o de esa marca es un
+404, nunca un "ignóralo y usa la de siempre" — que es exactamente cómo la
+pregunta de alguien acabaría escrita en el hilo al que apuntó. Se resuelve
+**antes** de la llamada pagada, para no pagar por un rechazo.
+
+`Conversation::isReachableBy()` hace las tres preguntas a la vez (dueño,
+superficie, marca) y compara `client_id` exactamente, null incluido: la del
+dashboard se guarda sin marca a propósito, porque cruza marcas por diseño.
+
+**2. Los dos asistentes escriben y leen por conversación.** `AdminAssistant` y
+`Portal\AssistantController` sellan `conversation_id` en las dos mitades,
+llaman a `titleFrom()` con la primera pregunta, tocan `updated_at`
+(`noteActivity()` — el panel se ordena por ahí y nada más lo movía) y, **después
+de que la respuesta ya aterrizó**, preguntan a `SummarisesConversations`.
+
+El historial pasa de "los últimos 20 turnos de esta persona" a
+`$conversation->replayable()` + el resumen delante. Eso arregla dos cosas que no
+se habían nombrado: abrir una conversación nueva ya no arrastra los turnos de la
+anterior, y pasado el turno 20 la conversación ya no pierde su principio en
+silencio.
+
+⚠️ **El camino viejo sigue ahí** para un turno que llegue sin conversación —
+una pestaña abierta desde antes del despliegue.
+
+**3. El panel.** `ConversationController` (siete endpoints) y
+`ConversationFolderController` (tres), registrados por un closure compartido en
+`routes/web.php` bajo `/admin/conversaciones` y `/portal/conversaciones`.
+
+⚠️ **La superficie es un `defaults()` de ruta, nunca algo que manda el
+navegador** — es el único campo que alguien podría cambiar para leer el
+historial del dashboard desde la sesión de un cliente. `defaults()` es por ruta
+y no existe en el registrar de grupo, y de ahí que sea un closure.
+
+⚠️ **Sólo `resumir` lleva `throttle` + `ai-turn`.** Renombrar es una escritura a
+base de datos; ésa llama al proveedor.
+
+**4. El front.** `resources/js/conversations.js` (lista, carpetas,
+arrastrar y soltar, clic derecho, archivar, borrar, el medidor),
+`resources/css/conversations.css` y dos blades:
+`<x-conversations-panel>` y `<x-conversation-meter>`.
+
+⚠️ **`conversations.css` es la TERCERA hoja de componente** — el panel se
+dibuja en los dos shells, así que no puede vivir en ninguno de los dos. Sólo usa
+tokens que ambos definen; ése fue el otro medio bug de `permissions.css`.
+
+`assistant.js` lo monta una sola vez: los dos paneles son el mismo
+`[data-assistant]`, así que una integración cubre las dos superficies.
+
+### Lo que se corrigió de lo que ya estaba escrito
+
+⚠️ **El backfill de la migración dejaba huérfano el historial del portal.**
+Agrupaba por `user_id` + `surface` y creaba la conversación con `client_id`
+null — pero el panel del portal pide las de la marca activa, así que esas filas
+no se habrían encontrado nunca más. Nada habría fallado; simplemente el
+historial habría desaparecido. Ahora el dashboard es una por persona y el portal
+una por persona **y marca**.
+
+### Lo que NO se hizo, y por qué
+
+⚠️ **El Egg no entra en esto.** `brand_egg_messages` está tecleado sobre la
+MARCA porque armar un huevo es trabajo de equipo, y `Conversation` es de una
+persona hasta en `scopeFor()`. Además `Conversation::messages()`,
+`ConversationBudget` y `SummarisesConversations` tipan `AssistantMessage` y sólo
+eso. Su columna queda puesta para el día que se responda esa pregunta.
+
+### Prueba
+
+`ConversationPanelTest` — 15 tests, 37 assertions. Casi todo es alcance, no
+funcionalidad: 404 en la conversación de otra persona, 404 en la superficie
+equivocada, 404 en otra marca de uno mismo, y que borrar una carpeta **no**
+borra lo que tiene dentro.
+
+Suite completa: **715 passing, 2216 assertions.**
+
+### Deploy
+
+1. **Migraciones** (las seis del 17, ninguna subida todavía): `user_files`,
+   `move_pasted_attachments_to_user_files`, `brand_invitations`,
+   `conversation_folders`, `conversations`,
+   `add_conversation_id_to_message_tables`. ⚠️ La última hace backfill.
+2. `npm run build` — **hecho** (`conversations.css` es entrada nueva, sin ella
+   el manifest revienta la pantalla entera). Subir `public/build/`.
+3. Sin cambios de env.
+
+### 2026-09-20 (cont.) — citar otra conversación con `#conv-N`
+
+Clic derecho en una fila del panel → **Copiar referencia** (`#conv-12`) y
+**Copiar enlace** (`…?conversacion=12`). Son dos cosas distintas y las etiquetas
+tienen que mantenerlas separadas: la referencia se pega en una pregunta y el
+servidor le engancha al turno la memoria de esa conversación; el enlace la abre.
+Quien pegue un enlace en el compositor no obtiene nada, y por eso "referencia"
+va primero.
+
+**Qué recoge una referencia: el resumen Y los últimos turnos.** El resumen solo
+era el diseño obvio y está mal la mayoría de las veces —
+`SummarisesConversations` no dispara hasta cruzar el presupuesto de caracteres,
+así que casi ninguna conversación tiene resumen y una referencia no llevaría
+nada. Los últimos turnos solos pierden justo lo que busca quien cita algo viejo:
+lo que se decidió al principio. Los dos, con tope, se degradan bien en todos los
+casos.
+
+⚠️ **Todo resuelve por `isReachableBy()`, y ahí está toda la seguridad de esto.**
+Una referencia es un NÚMERO que teclea una persona: sin esa comprobación, pegar
+`#conv-7` sería una forma de leer el hilo de otro — un admin el de un cliente, o
+los turnos de una marca dentro del prompt de otra. Un id que falla **se descarta
+en silencio**, nunca se rechaza: un "no encontré esa conversación" responde
+exactamente la pregunta que la comprobación existe para no responder.
+
+Topes, y cada uno tiene su razón:
+
+- **3 referencias por turno.** Cada una se paga en cada turno donde aparece.
+- **4000 caracteres cada una**, el resumen primero y la cola después.
+- **Sólo la forma `#conv-N`.** Un "#12" pelado no cuenta: la gente escribe
+  números por otros motivos, y un turno que creció cuatro mil caracteres porque
+  alguien mencionó una factura sería desconcertante y caro.
+- **Citar la conversación en la que ya estás no hace nada** — ya se está
+  reproduciendo entera.
+
+⚠️ **El digest viaja en la pregunta y NO se guarda con ella.** `remember()`
+recibe la pregunta cruda, así que la transcripción muestra lo que la persona
+escribió ("retoma #conv-12") y no cuatro mil caracteres que nunca tecleó — y no
+se reproduce, ni se vuelve a pagar, en cada turno posterior.
+
+El bloque se encabeza diciendo que es lo que se HABLÓ, no lo que la marca ES, y
+que si contradice un entregable o el Brand Egg manda el entregable.
+
+**Prueba:** `ConversationReferenceTest` — 10 tests. Suite completa: **725
+passing, 2228 assertions.** Sin migración ni cambio de env; `npm run build` para
+la línea del aviso de copiado.
+
+### 2026-09-20 (cont.) — el panel pasa a ser un riel del marco, a la derecha
+
+Era una rejilla de dos columnas envuelta alrededor del asistente, así que medía
+exactamente lo que medía el asistente — y un año de conversaciones mide más que
+eso. Ahora es una **columna del layout**: los dos marcos ya eran
+`var(--rail) minmax(0, 1fr)` y pasan a tres — navegación, contenido, historial —
+con el riel pegado al **borde derecho**, `position: sticky` y alto de ventana
+como el riel de navegación del otro lado.
+
+⚠️ **Va el último en el marcado**, no colocado por número de columna. En
+pantalla estrecha el marco baja a una columna y el orden del DOM es lo que
+decide dónde cae, así que la hoja lo sube con `order: -1`: un historial debajo
+de un dashboard entero es un historial al que nadie baja.
+
+Es un **prop del layout** (`:conversations`), no marcado dentro del panel:
+
+- ⚠️ **Sólo va donde hay un asistente.** `conversations.js` dibuja una
+  conversación DENTRO de `[data-assistant-thread]`; en una pantalla sin
+  asistente cada fila sería un clic que no hace nada.
+- ⚠️ **El prop arrastra su hoja de estilos.** Pedir la columna y olvidar
+  nombrar `conversations` en `:css` la habría dibujado como HTML crudo por el
+  costado de la pantalla — que es exactamente como se rompió `permissions.css`.
+  Lo añade el layout.
+- La condición es `:has(.conversations)`, no una clase en el marco: la presencia
+  del panel ES la condición, así que no hay nada que una página pueda olvidar.
+
+Plegado es **un riel de un botón**, no una desaparición: la cabecera se queda y
+la columna del medio pasa a `auto`, que es el ancho de ese botón. El estado se
+recuerda en `localStorage`, envuelto en try/catch porque en una ventana privada
+revienta en vez de devolver nada.
+
+**Dos bugs propios, corregidos antes de probar:**
+
+1. `--history-rail` estaba declarada en `.conversations` y usada en la regla del
+   marco. Una custom property puesta en un hijo **no la ve el padre**, así que
+   esa pista habría quedado con valor inválido y sin columna. Va en el marco y
+   el panel la hereda.
+2. `grid-template-rows: auto auto minmax(0,1fr) auto` con la línea de "copiada"
+   que se inserta y se borra en tiempo de ejecución: sin ella el scroller caía
+   en la fila del archivo y dejaba de crecer. Ahora es flex, como los dos rieles
+   de navegación.
+
+En pantalla estrecha los dos marcos ya bajan a una columna y meten su navegación
+desde el lado; el historial no puede hacer lo mismo — hay una hamburguesa y es
+de la navegación — así que pasa a ser una banda sobre el contenido con scroll
+propio.
+
+**Suite: 725 passing, 2228 assertions.** `npm run build` hecho.
+
+## 2026-09-20 — las marcas, en el menú
+
+**Ya había un selector**, en la barra superior, desde ACC-02. El problema es que
+un selector parece una etiqueta hasta que alguien lo pulsa: una cuenta con dos
+marcas podía seguir usando una y no enterarse nunca de que la otra estaba ahí.
+El riel es la parte de la pantalla que la gente sí lee, así que las marcas
+ahora se listan **arriba de las secciones**, bajo el título «Tus marcas».
+
+- **Con una sola marca no hay grupo.** Un apartado de menú con una fila que
+  recarga la página en la que ya estás es mobiliario — y le saldría a casi todos
+  los clientes del portal.
+- **Al equipo de Breakfast tampoco.** Pueden abrir `/portal` (el riel escribe
+  "Breakfast" donde va el nombre de una marca) pero no están en ninguna.
+- Formularios planos, sin JavaScript: cambiar de marca es un POST porque cambia
+  de qué va la sesión, y este lado no envía script para el riel.
+- `$brands` se resuelve **una vez**, arriba del marco, porque ahora lo dibujan
+  dos sitios: el riel y el selector de la barra. Consultado dos veces serían dos
+  consultas por petición que pueden discrepar si cambia una membresía a mitad de
+  sesión.
+
+### ⚠️ Un bug de nombres que apareció por el camino
+
+**`.dashboard-brand` era DOS cosas distintas**: el logo de Breakfast arriba del
+riel (`<div>`) y el selector de marca de la barra superior (`<details>`). Y
+`dashboard.css` tenía dos bloques con ese mismo selector — uno con
+`display:flex; justify-content:space-between; padding-inline` y otro con
+`position:relative` — así que cada elemento llevaba puesta la mitad de las
+reglas del otro.
+
+El logo pasa a `.dashboard-wordmark`, que es lo que es. En este lado "brand"
+significa **la marca de un cliente**, así que el nombre se queda donde
+corresponde. Va contra la regla de nombres de CLAUDE.md §9 tener uno que no
+dice qué es el elemento a simple vista.
+
+**Prueba:** tres tests nuevos en `MultiBrandTest` — dos marcas se listan, una
+sola no dibuja el grupo, y el equipo de Breakfast tampoco. Suite: **728 passing,
+2236 assertions.** `npm run build` hecho. Sin migración ni cambio de env.
+
+### 2026-09-20 (cont.) — la marca actual, en negrita
+
+Primero puse una línea fija arriba del menú, «ESTÁS EN» + el nombre. **Era
+redundante y salió el mismo día**: la lista «Tus marcas» ya está ahí y sólo le
+faltaba decir cuál es la de ahora. Ahora la fila actual va **en negrita** y eso
+es todo — sin tinte de fondo, sin tick, sin línea aparte.
+
+⚠️ **Y no se pintaba.** El botón llevaba un `class="…"` literal **y** un
+`@ class([…])` al lado, que compila a un SEGUNDO atributo `class` — y un parser
+de HTML se queda con el primero y tira el resto en silencio. `is-current` no
+llegaba nunca al navegador. No falla nada: el atributo simplemente ya no existe
+para cuando algo puede leerlo. La clase condicional va DENTRO del único
+atributo.
+
+⚠️ **Y el test no lo cazaba.** Comprobaba con una expresión regular sobre el
+HTML crudo, donde `is-current` sí aparece — verde con la pantalla rota. Un test
+sobre marcado tiene que preguntar por el atributo que queda, no por el texto que
+se envió.
+
+El tick vuelve: `circle-check` en la actual, `circle-dot` en las demás. El peso
+solo es un marcador honesto pero callado, y el riel se escanea más que se lee.
+
+Barrido de `resources/views`: no hay ninguna otra etiqueta con los dos a la vez.
+
+Con una sola marca no hay lista y no hay nada que marcar, que es lo correcto:
+no hay de qué elegir.
+
+### ⚠️ Trampa 11, tres veces seguidas
+
+La página del portal reventó imprimiendo su propio código. Causa: escribí una
+etiqueta de componente con sus corchetes angulares dentro de un comentario `//`
+**en el argumento de una directiva** (`@vite(...)`). Un argumento de directiva
+no es una región PHP: Blade lo reemite, y su compilador de componentes ya había
+convertido esa etiqueta en un `@component()` de verdad en medio del array.
+
+Los dos arreglos siguientes repitieron la trampa:
+
+1. Escribí un apóstrofo en un comentario `//` dentro de ese mismo argumento.
+   PHP leyó el resto como una cadena → parse error.
+2. Escribí el nombre de la directiva de bloque PHP dentro de un comentario
+   `{{-- --}}` **explicando la trampa**. Abrió un bloque PHP real que se tragó la
+   asignación de `$brands` → `Undefined variable $brands`.
+
+**Lo que aguanta:** la explicación sale del argumento y se pone encima de la
+llamada, en un comentario Blade, con el argumento pelado. Los dos layouts así.
+
+Barrido de todo `resources/views`: los dos casos preexistentes
+(`admin/staff.blade.php`, `admin/clients/show.blade.php`) nombran `@if`/`@endif`
+y son inofensivos — esas necesitan su paréntesis para compilar. **Las
+peligrosas son las directivas de bloque, que no lo necesitan.** Está en la
+trampa 11 de CLAUDE.md con las dos variantes nuevas.
+
+---
+
+## 2026-09-21 — la flecha arriba sobrevive a una recarga
+
+**El síntoma.** Subir con ↑ recorría las preguntas enviadas, pero sólo las de
+esa pantalla: al recargar, la lista empezaba vacía otra vez. Es justo el momento
+en que hace más falta — se vuelve a una conversación para seguirla.
+
+**La causa está escrita en el propio módulo.** `assistant-composer.js` guardaba
+lo enviado en memoria «deliberadamente», razonando que el servidor ya reimprime
+el hilo en cada carga y que una segunda copia en el navegador sería una caché
+privada de lo que alguien preguntó. El razonamiento es bueno; la conclusión
+estaba a medias: si las preguntas ya están en pantalla, **léelas de ahí**.
+
+**Lo hecho.** `attachComposer()` devuelve ahora `seed(values)` además de
+`reset()`: vacía la lista, la rellena con lo que se le pasa (recortado, sin
+repetir la anterior, quedándose con las MÁS NUEVAS al pasar de 50), rehace las
+copias de trabajo y abandona el paseo dejando lo escrito como borrador. Nada se
+almacena: no hay `localStorage` en ninguna parte de esto.
+
+Cada panel lee sus propios turnos y los pasa:
+
+| panel | de dónde |
+|---|---|
+| dashboard y Brandy (`assistant.js`) | los `[data-assistant-message]` de `.assistant-message-user`, **antes** de que `renderReply()` los sustituya por nodos |
+| tablero de entregables (`process-assistant.js`) | los `<p>` del turno, unidos por línea en blanco — que es como el blade los partió |
+| Brand Egg (`egg-assistant.js`) | los `[data-egg-message]`, también antes del renderizador |
+
+⚠️ **El texto se toma SIEMPRE antes de formatear.** Después, el `textContent`
+del elemento ya es una aproximación: los saltos de párrafo desaparecen y los
+asteriscos que escribió una persona pueden haberse convertido en negrita. Lo
+que ↑ devuelve tiene que ser lo que se tecleó, carácter por carácter.
+
+⚠️ **Dos de los tres hilos no son de una persona.** El del tablero y el del Egg
+están keyeados por MARCA — todo el equipo escribe en ellos — así que los blades
+marcan `data-own` en el turno cuyo `user_id` es el de quien mira, y el selector
+lo exige. Recordar la pregunta de un compañero no sería un recuerdo. El del
+dashboard y el de Brandy van por `user_id`, así que ahí todo turno de persona es
+suyo por construcción y no hay nada que excluir.
+
+**Y al cambiar de conversación también.** `attachConversations()` ya aceptaba un
+`onLoad` que nadie pasaba; `assistant.js` lo pasa ahora y resiembra con los
+turnos de la conversación abierta. El hilo cambió, luego ↑ tiene que cambiar con
+él.
+
+Tocado: `assistant-composer.js`, `assistant.js`, `process-assistant.js`,
+`egg-assistant.js`, `components/admin/egg-assistant.blade.php`,
+`admin/clients/process.blade.php`, `admin/clients/create.blade.php`.
+**Necesita `npm run build`.** Sin migraciones.
+
+---
+
+## 2026-09-21 — el equipo de Breakfast no es miembro de una marca
+
+**El síntoma.** Un admin se agregó a sí mismo como usuario de una marca desde
+`/admin/clientes/{marca}` y después no pudo quitarse: cada intento devolvía
+**403**. La fila era irremovible desde la misma app que la creó.
+
+**Por qué se pudo agregar.** `StoreClientUserRequest` ya limitaba el selector de
+rol a los dos roles de cliente, y eso leía como suficiente. No lo era: **ese rol
+se aplica a una cuenta que se CREA**, y una dirección que ya existe se adjunta
+con el rol que ya tenía (ACC-01, «una cuenta que ya existe se agrega, no se
+duplica»). Así que escribir la propia dirección del equipo en ese formulario
+metía una cuenta `admin` en `brand_user`, pasando por una regla que parecía
+cubrirlo.
+
+**Por qué no se pudo quitar.** `destroy()` tenía `abort_if($user->is($request->user()), 403)`
+con el comentario «guard against an admin deleting themselves» — correcto sobre
+el BORRADO de la cuenta y equivocado sobre la FILA. Al ser uno mismo, todo
+intento era el 403.
+
+⚠️ **Y detrás había algo peor que el 403.** Si el adjuntado hubiera sido OTRO
+admin, el `destroy` sí pasaba — y entonces `if ($user->brands()->count() === 0)
+{ $user->delete(); }` **borraba la cuenta del equipo**. Quitar a un compañero de
+una marca lo sacaba del back office. Nadie lo disparó; estaba a un clic.
+
+### Lo hecho
+
+**1. Nada puede adjuntar una cuenta del equipo a una marca.** La regla vive
+donde se escribe la fila: `InviteUserToClient::attach()` lanza
+`InvalidArgumentException` si `$user->isBreakfast()`. Es el único embudo hacia
+`brand_user` — lo usan el alta de `/admin`, el alta de `/portal/equipo` y
+`accept()` de una invitación — así que la regla no puede saltarse por un camino
+nuevo. Falla cerrado y ruidoso: un no-op silencioso escondería el camino que la
+desconoce.
+
+**2. Los dos lados se enteran de cosas distintas, a propósito.**
+
+| lado | qué ve |
+|---|---|
+| `/admin` | un error de campo: «Esa dirección es de una cuenta del equipo de Breakfast. El equipo entra a todas las marcas por su rol, no hace falta agregarlo aquí.» |
+| `/portal/equipo` | **la misma frase que cualquier otra dirección conocida**, el mismo coste de bcrypt, y nada escrito |
+
+⚠️ **La asimetría es el punto.** Breakfast administra todas las cuentas, así que
+ahí no hay nada que ocultar. Pero decirle a una DUEÑA «esa dirección es del
+equipo de Breakfast» le responde exactamente lo que el item B existe para no
+responder: que esa dirección tiene cuenta aquí. Se pliega al mismo no-answer.
+**Y no se crea `BrandInvitation`**: una hecha ahí no podría aceptarse nunca
+—`accept()` pasa por `attach()`— y quedaría en la tabla como un correo que nadie
+puede contestar.
+
+**3. Desadjuntar deja de ser borrar.** En `Admin\ClientUserController::destroy()`
+la fila siempre se va; lo que se protege es la CUENTA, y hay dos que nunca se
+borran ahí: la propia (que es lo que el 403 protegía de verdad) y la de
+cualquiera que trabaje en Breakfast — una cuenta de equipo vive en `users.role`,
+no en la membresía, así que «no le quedan marcas» no dice nada sobre si debe
+existir. El mensaje también cambia para una cuenta de equipo: «Sigue entrando
+como equipo de Breakfast», porque «se quitó el acceso» afirma algo que esa fila
+nunca concedió.
+
+**4. El mismo guard en `Portal\TeamController::destroy()`.** Ahí ya nada puede
+adjuntar equipo, así que sólo puede dispararse con una fila escrita antes de esta
+regla. Es un guard, no un camino.
+
+**5. Y quitar a alguien de una marca dejó de borrar cuentas, punto.** El guard
+del punto 3 protegía la cuenta propia y la del equipo; mirando qué pasaba con
+las demás se vio que la línea entera tenía que irse:
+
+```php
+if ($user->brands()->count() === 0) { $user->delete(); }
+```
+
+⚠️ **`User` no tiene `SoftDeletes`** — `Client` sí, `User` no — así que era un
+borrado permanente, y las claves ajenas se llevaban por delante todo el historial:
+`assistant_messages`, `conversations`, `conversation_folders`, `user_files` y
+`passkeys` son `cascadeOnDelete`. La atribución en el resto quedaba en NULL
+(`checklist_ticks.checked_by`, `brand_assets.uploaded_by`, `meetings.created_by`,
+`brand_deliverables.updated_by`, `client_process_steps.completed_by`,
+`brand_eggs.approved_by`). `ai_usage_logs.user_id` sobrevive intacto: es columna
+indexada sin FK a propósito, así que el gasto histórico no se mueve.
+
+Dos razones:
+
+- **El botón no podía decir cuál de las dos cosas iba a hacer.** El mismo
+  diálogo, la misma frase, y que desadjuntara una fila o borrara a una persona
+  dependía de un conteo invisible desde la pantalla. **Una sola marca es el caso
+  normal, no el borde.**
+- **Era irreversible en una app donde el acto destructivo vecino no lo es.**
+  Archivar una MARCA es un soft delete y al restaurarla todos recuperan
+  exactamente lo que tenían; quitar a la última persona de una marca no se
+  recuperaba.
+
+⚠️ **Y había una versión peor, que apareció al preguntar «¿y si se restaura?».**
+`brands()` excluye marcas archivadas. Así que alguien con dos marcas, una
+archivada, **contaba como una** aunque tuviera dos filas en `brand_user`:
+quitarlo de la que quedaba daba `count() === 0` y borraba la cuenta — y
+restaurar la marca archivada restauraba una membresía apuntando a un usuario que
+ya no existía. Hay test.
+
+**Lo que pasa ahora:** se desadjunta y nada más. Un usuario cliente sin marca es
+un registro roto a propósito — `accessTo()` falla cerrado — así que queda
+**fuera, no borrado**, y `/portal` le sigue respondiendo 200 igual que al equipo
+de Breakfast, que tampoco tiene marcas (probado). Volver a agregarlo es el
+formulario de siempre: una dirección que ya tiene cuenta se adjunta, no se
+duplica (ACC-01).
+
+Borrar una cuenta de verdad deja de ser efecto secundario de editar una
+membresía. Si algún día se quiere, necesita su propia ruta, su propia frase y su
+propia confirmación.
+
+⚠️ **El mensaje del admin y el de la dueña dicen cosas distintas.** El admin ve
+«La cuenta sigue existiendo, pero ya no entra a ninguna marca»; la dueña ve la
+frase genérica de siempre. Decirle a ella que esa persona no entra a NINGUNA
+marca le cuenta que no está en ninguna OTRA marca, que no es asunto suyo — el
+mismo dato cruzado que el item B mantiene fuera del formulario de invitación.
+
+### Prueba
+
+Ocho casos nuevos en `AdminClientUserTest` y uno en `InviteWithConsentTest`:
+la dirección de un `admin` y la de un `equipo` rechazadas con error de campo; la
+acción lanzando aunque se la llame directamente; **el admin adjuntado quitándose
+a sí mismo** (el bug); una cuenta de equipo sobreviviendo al desadjuntado de su
+última marca; un usuario cliente en su última marca que queda **fuera y sin
+borrar** (con `accessTo()` en null), su `assistant_messages` intacto tras la
+operación, y el caso de la marca archivada descrito arriba, incluyendo que al
+restaurarla recupera la membresía. ⚠️ **Dos tests existentes afirmaban lo
+contrario** y se cambiaron: `an admin can remove a client user but not
+themselves` y el `it deletes the account when the brand removed was the last
+one` de `MultiBrandTest`, cuyo propio nombre decía «deletes». En el portal, las dos frases
+comparadas carácter a carácter con la dirección sustituida, más `BrandInvitation`
+en cero.
+
+⚠️ **Un detalle del test que costó un intento:** una sesión recorre todo el test,
+así que `session('status')` leído al final es siempre el del ÚLTIMO request. Hay
+que leer cada uno antes de la llamada siguiente.
+
+Suite completa: 738 pasando.
+
+Tocado: `app/Actions/InviteUserToClient.php`,
+`app/Http/Requests/StoreClientUserRequest.php`,
+`app/Http/Controllers/Admin/ClientUserController.php`,
+`app/Http/Controllers/Portal/TeamController.php`,
+`tests/Feature/AdminClientUserTest.php`,
+`tests/Feature/InviteWithConsentTest.php`.
+**Sin migraciones y sin `npm run build`.**
+
+⚠️ **Hay que limpiar la fila que ya está en producción a mano** — el arreglo
+impide crear nuevas, no borra las que existen. El comando está en la sesión;
+`brand_user` con un `users.role` de equipo es la consulta.
+
+### 2026-09-21 (cont.) — el checklist sale de la pantalla de marca
+
+El bloque «Checklist de implementación» de `/admin/clientes/{marca}` se quitó a
+pedido: la lista es de la marca, y una copia de sólo lectura en la pantalla de
+marca era un segundo sitio donde leer el mismo texto sin poder hacer nada con él.
+
+Se fue la `<section>`, `'checklist'` salió de la lista `:css` de la página (nada
+más ahí usaba esa hoja) y con ella las claves `checklist` y `ticks` del
+controlador más el `use App\Services\Checklist`. **`checklist_ticks` no se tocó**:
+se sigue escribiendo y sigue guardando quién marcó y cuándo, así que volver a
+mostrarlo es una vista, no una migración.
+
+⚠️ **Con esto la mitad «seguimiento» de SEG-05 ya no está en ninguna pantalla.**
+El informe beta pedía que Breakfast pudiera ver qué había marcado la marca y hoy
+no hay dónde. Si vuelve, su sitio es el tablero de entregables, junto al
+entregable, no la pantalla de marca.
+
+El test «Breakfast sees what the brand ticked, read-only» de `ChecklistTest`
+afirmaba justo lo que se quitó; ahora fija la retirada y que los ticks
+sobreviven. 14 pasando.
+
+⚠️ **Y queda abierto lo que se encontró mirándolo:** el texto del entregable
+llega como prosa con los subtítulos del toolkit pegados al final de la línea
+anterior, y `Checklist` sólo parte por saltos de línea (`/\R/`), así que diez
+párrafos corridos se vuelven diez casillas. La causa está arriba, en el `hint`
+de `DeliverableItem::ChecklistImplementacion`: es el único entregable cuyo texto
+se PARSEA y su hint no enseña la forma. Todos los demás sí («un hex con su rol»,
+«familia, pesos, uso y licencia»). Falta decir «una acción por línea».
+
+---
+
+## 2026-09-21 · Rediseño, pieza 1: la barra superior
+
+Breakfast mandó una referencia visual del portal y vamos una cosa a la vez. La
+primera es la **barra amarilla que cruza el ancho de la pantalla**: logo a la
+izquierda, pastilla del usuario a la derecha.
+
+**`<x-header-bar :home>` + `header-bar.css`.** Se dibuja en `/admin` y en
+`/portal`, así que no puede vivir en `admin.css` ni en `dashboard.css` — es la
+cuarta hoja de componente, junto a `conversations.css`, `permissions.css` y
+`checklist.css`. La diferencia con esas tres es que **no la nombra una página**:
+la nombran los dos layouts en su propio `@vite`, porque todas las pantallas de
+ambos lados la tienen. El prop `:home` existe porque el componente no sabe qué
+shell lo está dibujando y no lo adivina: `portal.home` de un lado,
+`admin.home` del otro.
+
+**No usa tokens de ningún shell.** Es mobiliario de marca, no superficie
+temada: plano amarillo, tipo negra, igual en claro y en oscuro — la misma razón
+por la que el riel era negro en los dos temas y nada dentro suyo se temaba. Así
+se esquiva de entrada la trampa de `permissions.css`, que se rompió por usar
+`--box-edge`, que sólo tenía un lado.
+
+⚠️ **`--header-bar-height` se declara en `:root` dentro de `header-bar.css`.**
+No es un token de espaciado de los prohibidos: es una medida que el archivo que
+dibuja la barra es el único que conoce, y que los dos shells tienen que restar.
+El riel y el panel de conversaciones son columnas pegajosas de alto de viewport;
+con una barra encima que nadie resta, **cada pantalla de la app scrollea
+exactamente el alto de la barra sobre nada**. Cambiado en cuatro sitios:
+`.admin-frame`, `.admin-sidebar`, `.dashboard-frame`, `.dashboard-sidebar` y
+`.conversations-panel` — `min-height: calc(100dvh - var(--header-bar-height))`
+y `top: var(--header-bar-height)` en las pegajosas, que si no esconden su propia
+cabecera detrás de la barra.
+
+⚠️ **El logo salió de los dos rieles.** `.admin-logo` ya no existe;
+`.dashboard-wordmark` se queda sólo con el botón de cerrar del slide-over y por
+eso ahora es `display: none` salvo bajo 900px, donde se alinea a la derecha. El
+mismo wordmark arriba en la barra y arriba en el riel es una marca dibujada dos
+veces en una pantalla. El comentario de la fila móvil de `admin.css` decía «el
+wordmark y la cuenta son el par que el riel de escritorio tiene en sus dos
+extremos» y dejó de ser cierto; está corregido.
+
+**La pastilla lleva chevron y menú.** Se dejó inerte en el primer pase —un
+chevron sin menú es mobiliario que promete un clic— y el mismo día se decidió
+qué va debajo: **tu cuenta y salir**. `details`/`summary`, el mismo mecanismo
+que la campana y el selector de marca del portal: ninguno de los dos shells
+lleva script para su mobiliario y el navegador regala el toggle, Escape y el
+foco. Usa `firstName()`, que ya existía y cuyo docblock cita literalmente
+«Hola, María»; si devuelve null imprime el nombre entero en vez de «Hola, ».
+
+⚠️ **Los dos controles se MOVIERON, no se agregaron.** Los dos rieles tenían su
+propio Salir, y en `/admin` la fila de la cuenta ERA el enlace a
+`/admin/cuenta`. Tenerlos también en la barra es el mismo reproche que se le
+hizo al logo: un control dibujado dos veces en una pantalla. Así que
+`.dashboard-logout` y `.admin-logout` se fueron de las hojas, y
+`.admin-account-link` —que era un `<a>` con subrayado en hover y
+`aria-current`— pasa a ser `.admin-account-who`, una etiqueta: el nombre ya no
+lleva a ningún lado, y las dos marcas se fueron con el ancla en vez de quedarse
+subrayando texto plano.
+
+**Lo que el riel conserva es lo que en la pastilla no cabe:** quién eres, qué
+eres y el tema. ⚠️ En `/portal` ese «qué eres» es el rol **en esta marca**
+(ACC-01), que no está escrito en ningún otro sitio de la pantalla — por eso el
+bloque no desapareció entero aunque la referencia dibuje el riel sin él.
+
+**Dos props, no una:** `:account` y `account-label`. La misma página se llama
+«Perfil» de un lado (`PortalSection::Perfil`) y «Cuenta» del otro
+(`/admin/cuenta`), y una pastilla que dijera «Cuenta» junto a un riel que dice
+«Perfil» son dos nombres para una página en una pantalla. El componente no sabe
+qué shell lo dibuja y sigue sin adivinarlo.
+
+Suite completa en verde: **738 pasando, 2268 aserciones.** `npm run build`
+hecho — `header-bar.css` está en el manifest.
+
+### Para el deploy
+
+Se suma a lo que ya estaba pendiente (ítem 5 y el Brand Egg). Sin migraciones.
+Sube `public/build/` entero, los dos layouts, el componente nuevo y las cuatro
+hojas tocadas (`header-bar.css` es nueva; `admin.css`, `dashboard.css` y
+`conversations.css` cambiaron), más `vite.config.js`.
+
+### Pieza 2: el riel se pone blanco, y `logo-2`
+
+**`logo-2.png` en vez de `logo.png`.** El primero es el wordmark negro pelado;
+el segundo lo lleva puesto sobre su sticker amarillo. La barra YA ES el plano
+amarillo, así que el sticker era un parche amarillo sobre amarillo con una
+línea alrededor.
+
+**Los dos rieles pasan de amarillo a blanco en tema claro** (`--rail-fill`),
+que es lo único que pedía la referencia: un riel amarillo debajo de una barra
+amarilla es un plano fingiendo ser dos. En oscuro el riel sigue negro, sin
+tocar.
+
+⚠️ **Y con eso `--rail-mark-*` es amarillo en los DOS temas.** La marca de la
+página actual era «el inverso del riel», así que cambiaba de color al cambiar
+de tema: café sobre riel amarillo en claro, amarillo sobre riel negro en
+oscuro. Ahora el riel claro es blanco y la página actual es amarilla en los
+dos — una regla menos que recordar, no una más.
+
+⚠️ **El avatar tuvo que salirse de ese token, y esa es la parte que no se ve.**
+`--rail-mark-*` pintaba dos cosas: la píldora de la página actual **y el disco
+del monograma**. El monograma se dibuja en sitios que no son el riel — la
+plantilla de staff, `/portal/equipo`, la pantalla de marca, tu propia cuenta y
+**cada turno de cada transcripción del asistente** (`x-turn-author`) — así que
+girar el token a amarillo/negro habría repintado los siete de golpe, en
+pantallas que nadie pidió tocar. Se parte en `--avatar-fill` / `--avatar-ink`,
+con **exactamente los valores que el avatar ya tenía** en claro y en oscuro: el
+disco no cambia en ningún sitio. Es la misma historia que `.dashboard-brand`
+llevando las reglas de `.dashboard-wordmark`: un nombre haciendo dos trabajos,
+y el día que los trabajos se separan hay que separarlo.
+
+Comentarios corregidos de paso, porque afirmaban lo contrario de lo que ahora
+es cierto: el de `conversations.css` decía «`--rail-fill` ES amarillo en claro»
+como razón para no escribir `--bkf-yellow` a mano (la razón sigue en pie, el
+hecho no), y el de `.admin-account-meta` seguía contando el botón de salir que
+se fue en la pieza 1.
+
+Suite completa en verde otra vez: **738 pasando.** `npm run build` hecho.
+
+### Pieza 3: el bloque de cuenta se va del riel entero
+
+Con la pastilla arriba, el bloque del pie del riel era la cuenta de la misma
+persona contestada dos veces en una pantalla. Se fue **completo de los dos
+rieles**: avatar, nombre, rol, tema y salir.
+
+**El tema se va al lado de la pastilla, en la barra.** Pedido así, y encaja: la
+referencia pone un icono justo ahí. ⚠️ **`x-theme-toggle` se dibuja UNA vez por
+página y ahora esa vez es esta** — el componente lleva su propio `<script>` en
+el cuerpo, así que un segundo en la misma pantalla ataría cada botón dos veces
+y un clic cambiaría el tema y lo volvería a cambiar.
+
+⚠️ **Y su hover estaba mal para esta barra.** `general.css` le da
+`--rail-hover` para que siga el plano que lo hospeda; ese token es blanco al 8%
+en oscuro, y esta barra es **amarilla en los dos temas**, así que el hover
+habría sido invisible la mitad del tiempo. Override en `header-bar.css` con una
+tinta negra, que se lee sobre amarillo en cualquier tema.
+
+**El nombre y el rol se suben al menú**, como cabecera no clicable. Es lo único
+que el riel tenía y la pastilla no, y ⚠️ **en `/portal` ese rol es el de la
+marca activa** (ACC-01, `brandRole()`), no el de la cuenta: la misma persona
+puede ser dueña de una marca y miembro de otra, y `users.role` le imprimiría
+«Miembro» mirando la marca que es suya. Lo calcula el layout y el componente
+sólo lo imprime.
+
+**Y de paso se arregló un bug que ya estaba vivo.** Dentro del
+`@media (max-width: 899px)` de `admin.css` había un `.admin-account-meta
+{ display: none }` **sin acotar al riel**, puesto para esconder nombre y rol en
+la fila móvil. Esa clase también la usa la tarjeta de `/admin/cuenta`, así que
+bajo 900px esa pantalla se quedaba sin el nombre ni el rol de quien la estaba
+mirando. La regla se fue con el resto del bloque; la clase sobrevive con un
+único usuario, que es esa tarjeta, y el comentario ya no habla del riel.
+
+Suite completa en verde: **738 pasando.** `npm run build` hecho.
+
+### Pieza 4: el riel de historial se queda amarillo
+
+El panel de conversaciones —la columna derecha— había seguido al riel de
+navegación a blanco sin que nadie lo pidiera: leía `--rail-fill`. Vuelve al
+amarillo que tenía.
+
+⚠️ **Y por eso necesita tokens propios, que es la parte que importa.** El panel
+leía `--rail-fill` **y `--rail-mark-*`**, y ese par describe ahora un plano
+blanco con una marca amarilla encima. Apuntado a un panel amarillo, la
+conversación actual habría quedado **amarilla sobre amarillo**: exactamente el
+fallo del que el propio archivo ya lleva una advertencia escrita, el que hizo
+que un hover pintado `--bkf-yellow` no pareciera hacer nada.
+
+`--history-fill`, `--history-mark-fill` y `--history-mark-ink`, definidos en
+**los dos shells** —un token que sólo tiene uno es como `permissions.css` salió
+desnudo en el lado admin— y con los valores que `--rail-mark-*` tenía antes:
+píldora café con oro encima, que es lo que se lee sobre amarillo. En oscuro los
+dos rieles vuelven a coincidir (negro con marca amarilla); sólo se separan en
+claro.
+
+**`--rail-hover` se queda compartido, a propósito.** Café al 12% se lee tanto
+sobre el amarillo de este panel como sobre el blanco del riel de navegación, y
+blanco al 8% se lee sobre el negro en que los dos se convierten en oscuro. Un
+token sigue cubriendo los dos planos; queda anotado en el archivo que si algún
+día el panel toma un relleno donde eso deje de ser cierto, hace falta un
+`--history-hover` al lado del par.
+
+⚠️ **De paso, una trampa nueva al editar CSS con reemplazos de texto:** se
+sustituyó el primer párrafo de un comentario por uno que cerraba con `*/`,
+cuando el comentario original seguía dos párrafos más abajo. El resto del texto
+quedó fuera del comentario y el build murió con
+`Invalid token in pseudo element` — un error de lightningcss que no nombra ni el
+archivo ni la línea. Si el build falla así, busca un `*/` de más.
+
+Suite completa en verde: **738 pasando.** `npm run build` hecho.
+
+### Pieza 5: el historial en pantalla angosta
+
+Dos cosas, y la primera era un bug de verdad.
+
+⚠️ **La «barra lateral vacía» al minimizar en móvil.** El
+`@media (max-width: 60rem)` volvía el frame a una columna con
+`.admin-frame:has(.conversations)`, pero **no nombraba
+`:has(.conversations.is-collapsed)`**, que es la regla de escritorio que pone
+tres columnas. `:has()` toma la especificidad de su argumento más específico,
+así que esa vale (0,3,0) contra (0,2,0) — y **un media query no aporta
+especificidad ninguna**. Resultado: en cuanto se minimizaba en un teléfono
+ganaba la regla ancha, el frame criaba una tercera pista y ahí quedaba un panel
+que acababa de esconder su propio contenido. Una barra lateral vacía,
+exactamente como se reportó, apretando la página contra lo que sobraba. El
+selector minimizado ahora está nombrado dentro del media query.
+
+**Minimizado por defecto en angosto, y con el título a la vista.** Minimizar en
+el riel de escritorio significa una tira vertical con sitio para un icono, y
+por eso esconde el título; en una banda de ancho completo sobra sitio al lado
+del botón, y **una barra que no dice nada es una barra que nadie sabe que se
+puede pulsar**. Así que en angosto el título vuelve y lo demás sigue oculto.
+
+⚠️ **El defecto depende del viewport; la elección recordada no.**
+`conversations.js` ahora arranca con `apply()` y no con `setOpen()`: el momento
+en que se guarda, «esto es un teléfono» se convierte en «esta persona eligió
+minimizado» y la seguiría a una ventana ancha que nadie pidió colapsar. Sólo el
+botón escribe en `localStorage`. ⚠️ Y el `60rem` está ahora en dos sitios —
+la hoja y el script—; están anotados el uno del otro, porque uno es CSS y el
+otro tiene que hacer una pregunta que CSS no contesta.
+
+Suite completa en verde: **738 pasando.** `npm run build` hecho.

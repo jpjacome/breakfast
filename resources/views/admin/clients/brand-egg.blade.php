@@ -35,7 +35,11 @@
 
 <x-layouts.app
     :title="$client->name.' · Brand Egg'"
-    :css="['brand-egg', 'admin-brand-egg', 'egg-assistant']"
+    {{-- ⚠️ assistant.css IS THE COMPOSER'S, and this screen renders one. It was
+         missing, so the field, the send button and the attachment chips fell
+         back to browser defaults while every other panel in the app looked
+         right — see the note at the top of egg-assistant.css. --}}
+    :css="['brand-egg', 'admin-brand-egg', 'assistant', 'egg-assistant']"
     :scripts="[
         'resources/js/brand-egg.js',
         'resources/js/egg-assistant.js',
@@ -63,29 +67,29 @@
     --}}
     <div class="brand-egg-work" data-egg-split-work>
 
-        <div class="brand-egg-talk">
-            <x-admin.egg-assistant :client="$client" :layers="$layers" />
-        </div>
-
         {{--
-            The line between the rows, and it moves.
+            The seam between the two panes, and it moves.
 
-            ⚠️ A CONTROL, SO IT TAKES THE KEYBOARD. Same rule the rings follow:
-            a thing that only answers a mouse is not a control. role="separator"
-            with tabindex, and brand-egg-split.js gives it the arrows, Home and
-            End — plus a double-click to put it back in the middle.
+            ⚠️ NOT A GRID ITEM. It is absolutely positioned over the seam, so it
+            takes part in no track sizing at all. Adding it as a third track is
+            what broke this layout the first time — the top pane computed to
+            height 0 and the agent panel was in the DOM, never on screen.
 
-            Outside the two-row media query it simply has nothing to separate,
-            and the CSS hides it there rather than leaving a draggable line on a
-            page that is one column.
+            ⚠️ A CONTROL, SO IT TAKES THE KEYBOARD, the same rule the rings
+            follow: arrows nudge, Home and End go to the extremes, double-click
+            puts it back to 50/50.
         --}}
         <div class="brand-egg-split"
              data-egg-split
              role="separator"
              aria-orientation="horizontal"
              aria-label="Repartir el alto entre la conversación y las capas"
-             aria-valuemin="0" aria-valuemax="100" aria-valuenow="50"
+             aria-valuemin="12" aria-valuemax="88" aria-valuenow="50"
              tabindex="0"></div>
+
+        <div class="brand-egg-talk">
+            <x-admin.egg-assistant :client="$client" :layers="$layers" />
+        </div>
 
         <div class="brand-egg-screen">
 

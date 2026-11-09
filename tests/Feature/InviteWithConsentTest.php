@@ -189,3 +189,39 @@ it('shows the invited person what they would be joining', function () {
         // Saying no has to be as easy as saying yes, or the consent is not one.
         ->assertSee('No, gracias', false);
 });
+
+/* --- a staff address, asked for by an owner -------------------------------- */
+
+it('gives an owner the same non-answer for a Breakfast address', function () {
+    /*
+     * ⚠️ THE MESSAGE MUST NOT NAME THE REASON. "Esa dirección es del equipo de
+     * Breakfast" is a true sentence that answers exactly the question this
+     * whole item exists to withhold — it tells the owner the address has an
+     * account here. So the staff case is folded into the same non-answer as
+     * every other known address, and only the ADMIN form says what is wrong
+     * (see AdminClientUserTest), because Breakfast administers every account.
+     */
+    $staff = User::factory()->admin()->create(['email' => 'jefa@breakfast.test']);
+
+    // ⚠️ Read each status BEFORE the next request: one session runs through
+    // the whole test, so a status fetched at the end is only ever the last one.
+    inviteAs($this->owner, 'jefa@breakfast.test');
+    $staffStatus = (string) session('status');
+
+    inviteAs($this->owner, 'nadie@nuevo.test');
+    $strangerStatus = (string) session('status');
+
+    expect($staffStatus)->toBe('Enviamos una invitación a jefa@breakfast.test.');
+
+    // Identical shape, not merely both successful.
+    expect(str_replace('jefa@breakfast.test', 'X', $staffStatus))
+        ->toBe(str_replace('nadie@nuevo.test', 'X', $strangerStatus));
+
+    // ⚠️ AND NOTHING IS WRITTEN. An invitation row here could never be
+    // accepted — accept() goes through attach(), which refuses staff — so it
+    // would sit in the table as a mail nobody can answer.
+    expect(BrandInvitation::where('email', 'jefa@breakfast.test')->count())->toBe(0)
+        ->and($staff->fresh()->brands)->toHaveCount(0);
+
+    Notification::assertNotSentTo($staff, BrandMembershipInvitation::class);
+});

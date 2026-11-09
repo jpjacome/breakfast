@@ -90,12 +90,23 @@ class TeamController extends Controller
     /**
      * Take someone off this brand.
      *
-     * ⚠️ DETACHES THE MEMBERSHIP, and deletes the account only when that was
-     * their last brand. With one account across several brands (ACC-01),
-     * deleting the row would take away access to brands this owner has nothing
-     * to do with — an owner of one brand must never be able to close somebody
-     * out of another. Keeping the account alive when it still has a brand is
-     * the whole difference, and it is invisible until the day somebody has two.
+     * ⚠️ DETACHES THE MEMBERSHIP AND NOTHING ELSE. With one account across
+     * several brands (ACC-01), deleting the row would take away access to
+     * brands this owner has nothing to do with — an owner of one brand must
+     * never be able to close somebody out of another.
+     *
+     * ⚠️ IT USED TO DELETE THE ACCOUNT when that was their last brand, and
+     * that is gone (2026-09-21) — see the long note in
+     * Admin\ClientUserController::destroy() for the whole reasoning. The short
+     * version: `User` has no SoftDeletes, so it was permanent and cascaded
+     * their entire history, and an owner clicking "quitar" cannot be asked to
+     * understand that the button means two different things depending on a
+     * count they cannot see.
+     *
+     * ⚠️ THE MESSAGE STAYS GENERIC, unlike the admin's. Telling an owner "ya no
+     * entra a ninguna marca" would tell them this person is in no OTHER brand,
+     * which is not their business — the same cross-brand fact that queued
+     * item B keeps out of the invite form.
      */
     public function destroy(Request $request, User $user): RedirectResponse
     {
@@ -104,10 +115,6 @@ class TeamController extends Controller
         $name = $user->name;
 
         $client->users()->detach($user->id);
-
-        if ($user->brands()->count() === 0) {
-            $user->delete();
-        }
 
         return back()->with('status', "Quitamos el acceso de {$name}.");
     }

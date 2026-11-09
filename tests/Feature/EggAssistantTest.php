@@ -7,9 +7,12 @@ use App\Enums\DeliverableItem;
 use App\Models\BrandEggMessage;
 use App\Models\Client;
 use App\Models\User;
+use App\Models\UserFile;
 use App\Services\BrandEgg\EggComposer;
 use App\Services\BrandEgg\LayerProgress;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 use function Pest\Laravel\actingAs;
 
@@ -55,7 +58,11 @@ it('answers a turn and hands back the checklist with it', function () {
         // ⚠️ The checklist travels with the reply. Accepting a card moves a
         // tick, and the tick is derived from brand_deliverables — so the screen
         // is handed the new reading rather than guessing from what she said.
-        ->assertJsonStructure(['reply', 'layer', 'checklist']);
+        // ⚠️ `target` is the entregable a card saves to, decided HERE and not by
+        // the model — the conversation is one entregable at a time and the
+        // checklist already knows which.
+        ->assertJsonStructure(['reply', 'layer', 'checklist', 'target'])
+        ->assertJsonPath('target', 'relato');
 });
 
 it('puts the checklist in the request, rendered from the database', function () {
@@ -69,10 +76,24 @@ it('puts the checklist in the request, rendered from the database', function () 
     Http::assertSent(function ($request) {
         $sent = json_encode($request->data(), JSON_UNESCAPED_UNICODE);
 
+        /*
+         * ⚠️ THE TURN IS A SPECIFICATION, AND THIS PINS ITS SHAPE. Written as
+         * prose it was read as suggestion: she invented a section, asked for an
+         * entregable from another one, and announced a section finished while
+         * the checklist said otherwise.
+         */
         return str_contains($sent, '✅ Relato de marca')
             && str_contains($sent, '⬜ Brand promise')
-            // And which one is next, so she does not have to work it out.
-            && str_contains($sent, 'El siguiente sin llenar es');
+            // The job first, before any context.
+            && str_contains($sent, 'TU TRABAJO EN ESTE MENSAJE')
+            && str_contains($sent, 'OBJETIVO: conseguir «Brand promise»')
+            // What that entregable actually asks for — without this she
+            // improvises a question from the label and then invents an
+            // entregable to put the answer in.
+            && str_contains($sent, '¿Qué puede esperar su cliente siempre')
+            && str_contains($sent, 'PROHIBIDO EN ESTE MENSAJE')
+            // And the five names, every turn, so a sixth cannot be invented.
+            && str_contains($sent, '2. Personalidad');
     });
 });
 
@@ -350,8 +371,20 @@ it('tells Brandy how to wrap a proposal, in ASCII', function () {
     $prompt = config('ai.egg_assistant_prompt');
 
     expect($prompt)
-        ->toContain('⟦guardar seccion=esencia item=relato⟧')
+        ->toContain('⟦guardar⟧')
         ->toContain('⟦/guardar⟧')
+        // ⚠️ AND NOTHING ELSE IN THE MARKER. She named the entregable herself
+        // once and produced `promesa` for `brand_promise` and `publico` for a
+        // section that does not exist — each a 404 behind a generic failure
+        // message. The server names the target; she has nothing to get wrong.
+        ->not->toContain('item=')
+        /*
+         * ⚠️ SHE IS NOT ASKED FOR THE SECTION AT ALL. She wrote
+         * `seccion=publico` once — not a section — and the save 404'd behind a
+         * generic "no se pudo guardar". The ring picker already knows which
+         * layer somebody is filling, so there is nothing here to get wrong.
+         */
+        ->not->toContain('seccion=')
         // ASCII keys, so an accent cannot break the parse.
         ->not->toContain('sección=')
         // And the rule that keeps her inside the section.
@@ -388,4 +421,37 @@ it('gives the client the purpose of each layer, not just its text', function () 
         // Straight from the enum, so the client's reading of a layer and
         // Breakfast's are the same words.
         ->assertSee(BrandEggLayer::Esencia->description(), false);
+});
+
+it('keeps a pasted image and sends it on the turn, never above it', function () {
+    /*
+     * ⚠️ The panel shipped with no way to attach anything, because paste, drop
+     * and the picker were inline in assistant.js rather than in a module
+     * anything else could import. They are assistant-files.js now.
+     */
+    Storage::fake('local');
+    fakeEggTurn('Lo veo.');
+
+    actingAs($this->admin)->post(route('admin.clients.egg.assistant', $this->client), [
+        'message' => '¿Qué ves acá?',
+        'layer' => BrandEggLayer::Esencia->value,
+        'files' => [UploadedFile::fake()->image('captura.png')],
+    ])->assertOk();
+
+    // Kept, in the PERSON's folder — what somebody pastes is theirs.
+    expect(UserFile::query()->sole()->user_id)->toBe($this->admin->id);
+
+    // And the turn recorded the name, never the bytes.
+    expect(BrandEggMessage::where('role', 'user')->sole()->attachments)
+        ->toBe(['captura.png']);
+
+    Http::assertSent(function ($request) {
+        $messages = $request->data()['messages'];
+
+        // ⚠️ ON THE LAST TURN. A file in the cacheable prefix is a new prefix
+        // every request, and a photo is the most expensive thing that could go
+        // there (CLAUDE.md §7).
+        return is_array(end($messages)['content'])
+            && is_string($messages[0]['content']);
+    });
 });

@@ -1,4 +1,6 @@
 import { attachComposer } from './assistant-composer.js';
+import { attachFiles } from './assistant-files.js';
+import { drawTurnAttachments } from './turn-attachments.js';
 import { renderReply } from './assistant-text.js';
 
 /*
@@ -19,14 +21,39 @@ import { renderReply } from './assistant-text.js';
  * assistant-text.js says so: this is a language model's text.
  */
 
-const OPEN = /⟦guardar([^⟧]*)⟧/;
+/*
+ * ⚠️ FORGIVING ON PURPOSE. The strict form is ⟦guardar⟧…⟦/guardar⟧, and she has
+ * also written ⟦guardar Una persona activa…⟦/guardar⟧ — the text running
+ * straight on with no closing bracket on the opening tag. A parser that only
+ * accepted the strict form dropped that to plain prose and no card appeared, so
+ * a save that looked offered simply was not.
+ *
+ * So: `⟦guardar` plus an optional `⟧`, and everything up to `⟦/guardar⟧` is the
+ * proposal. Nothing inside is read as an instruction — the entregable comes
+ * from the server and the section from the ring picker.
+ */
+const OPEN = /⟦guardar⟧?/;
 const CLOSE = '⟦/guardar⟧';
+
+console.info('[brand-egg] egg-assistant.js loaded');
 
 const panel = document.querySelector('[data-egg-assistant]');
 
 if (panel) {
     const endpoint = panel.dataset.endpoint;
     const saveTemplate = panel.dataset.saveEndpoint;
+    const layerTemplate = panel.dataset.layerEndpoint;
+
+    /**
+     * The entregable a card saves to, as the SERVER last reported it.
+     *
+     * ⚠️ NEVER READ OFF THE MARKER. She named it herself once and produced
+     * `promesa` for `brand_promise` and `publico` for a section that does not
+     * exist — each a 404 the person read as "no se pudo guardar". The turn tells
+     * her to ask about exactly one entregable, so which one a proposal belongs
+     * to is a fact the server already holds. It comes back with every reply.
+     */
+    let target = null;
     const thread = panel.querySelector('[data-egg-thread]');
     const checklist = panel.querySelector('[data-egg-checklist]');
     const form = panel.querySelector('[data-egg-form]');
@@ -34,6 +61,18 @@ if (panel) {
     const token = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
     const composer = attachComposer(field, form);
+
+    let busy = false;
+
+    /*
+     * ⚠️ THE SAME MODULE THE OTHER PANELS USE. Paste, drop and the picker were
+     * inline in assistant.js, so this panel shipped with no way to attach
+     * anything — see assistant-files.js.
+     */
+    const files = attachFiles(panel, field, {
+        busy: () => busy,
+        say: (message) => addTurn('assistant', message),
+    });
 
     /** Which ring is selected. It decides where an answer is allowed to land. */
     const currentLayer = () =>
@@ -64,11 +103,23 @@ if (panel) {
 
             if (before.trim()) parts.push({ kind: 'text', text: before });
 
+            /*
+             * ⚠️ TOLERANT OF QUOTES, AND IT HAS TO BE. The prompt asks for
+             * `seccion=esencia`, and a model writes `seccion="esencia"` often
+             * enough that a parser which only accepts the bare form leaves the
+             * attribute undefined — the URL then keeps its __LAYER__
+             * placeholder, 404s, and the card says "no se pudo guardar" with no
+             * hint as to why. Single quotes, double quotes or none.
+             */
+            /*
+             * ⚠️ THE MARKER CARRIES NOTHING BUT THE TEXT. Any attributes she
+             * writes anyway are read and then ignored: the entregable comes
+             * from the server's `target`, and the section from the ring picker.
+             * She cannot name either, so she cannot get either wrong.
+             */
             parts.push({
                 kind: 'card',
-                attrs: Object.fromEntries(
-                    [...open[1].matchAll(/(\w+)=([\w-]+)/g)].map((m) => [m[1], m[2]]),
-                ),
+                attrs: { item: target },
                 text: after.slice(0, end).trim(),
             });
 
@@ -78,6 +129,20 @@ if (panel) {
         if (rest.trim()) parts.push({ kind: 'text', text: rest });
 
         return parts;
+    };
+
+    /**
+     * The entregable's own name, for the line that tells Brandy to carry on.
+     *
+     * Read off the checklist she was just sent rather than kept in a second
+     * list here — the enum's labels live on the server and a copy of them in
+     * this file is a vocabulary that drifts.
+     */
+    const label = (item) => {
+        const text = checklist.textContent ?? '';
+        const found = text.split('\n').find((line) => line.toLowerCase().includes(item));
+
+        return found?.replace(/[✅⬜➖]/g, '').split('·')[0].trim() || item;
     };
 
     /** One saved-or-not proposal, as buttons a person clicks. */
@@ -106,10 +171,21 @@ if (panel) {
         const save = async (toLayer, toItem) => {
             actions.querySelectorAll('button').forEach((b) => (b.disabled = true));
 
+            /*
+             * ⚠️ THE SELECTED RING, ALWAYS. Not "when she omits it" — she is not
+             * asked for the section at all any more. She wrote `seccion=publico`
+             * once, which is not a section, and the save 404'd. The ring picker
+             * is the one thing on this screen that cannot be wrong about which
+             * layer somebody is filling.
+             */
+            const section = currentLayer();
+
+            console.info('[brand-egg] save clicked', { section, toItem, toLayer, attrs });
+
             try {
                 if (toItem) {
                     const url = saveTemplate
-                        .replace('__LAYER__', attrs.seccion)
+                        .replace('__LAYER__', section)
                         .replace('__ITEM__', toItem);
 
                     const response = await fetch(url, {
@@ -122,35 +198,83 @@ if (panel) {
                         body: JSON.stringify({ texto: body.value }),
                     });
 
-                    if (!response.ok) throw new Error('save failed');
+                    console.info('[brand-egg] PATCH', url, response.status);
+
+                    if (!response.ok) throw new Error(`save failed ${response.status}`);
 
                     const data = await response.json();
                     if (data.checklist) renderReply(checklist, data.checklist);
                 }
 
                 if (toLayer) {
-                    // The layer's own textarea is on this same screen — the
-                    // card fills it rather than posting, so the person still
-                    // presses Guardar on the layer they are about to change.
-                    const target = document.querySelector(
+                    /*
+                     * ⚠️ IT REALLY SAVES. This used to only fill the layer's
+                     * textarea and leave somebody to press Guardar — so "En los
+                     * dos" wrote the entregable and quietly did nothing to the
+                     * Egg. A button that says it saves has to save.
+                     *
+                     * The route answers with a redirect, like every other admin
+                     * write; the status is all this needs.
+                     */
+                    const layerResponse = await fetch(
+                        layerTemplate.replace('__LAYER__', section),
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': token,
+                                Accept: 'application/json',
+                            },
+                            // Laravel reads the method from the payload for a
+                            // route declared PUT — the same spoof the form does.
+                            body: JSON.stringify({ _method: 'PUT', text: body.value }),
+                        },
+                    );
+
+                    if (!layerResponse.ok) throw new Error('layer save failed');
+
+                    // And the screen catches up, so the layer beside the panel
+                    // is not still showing yesterday's text.
+                    const field = document.querySelector(
                         `[data-brand-egg-layer-input="${attrs.seccion}"]`,
                     );
 
-                    if (target) {
-                        target.value = body.value;
-                        target.dispatchEvent(new Event('input', { bubbles: true }));
-                        target.closest('section')?.scrollIntoView({ block: 'center' });
+                    if (field) {
+                        field.value = body.value;
+
+                        const shown = field.closest('section')?.querySelector('[data-brand-egg-text]');
+
+                        if (shown) shown.textContent = body.value;
                     }
                 }
 
-                done(
-                    toLayer && toItem
-                        ? 'Guardado en el entregable, y puesto en el Brand Egg para que lo revises.'
-                        : toItem
-                          ? 'Guardado en el entregable.'
-                          : 'Puesto en el Brand Egg para que lo revises.',
+                const said = toLayer && toItem
+                    ? 'Guardado en el entregable, y puesto en el Brand Egg para que lo revises.'
+                    : toItem
+                      ? 'Guardado en el entregable.'
+                      : 'Puesto en el Brand Egg para que lo revises.';
+
+                done(said);
+
+                /*
+                 * ⚠️ AND SHE CARRIES ON. The save is not the end of the turn —
+                 * the next question is. Echo is off because the person did not
+                 * type this: the card said what it was doing, and a line
+                 * appearing in the transcript as though they had typed
+                 * "guardado" would be putting words in their mouth.
+                 */
+                sendTurn(
+                    toItem
+                        ? `Guardado en «${label(toItem)}». Sigue.`
+                        : 'Guardado en el Brand Egg. Sigue.',
+                    { echo: false },
                 );
-            } catch {
+            } catch (error) {
+                // ⚠️ The reason goes to the console. "No se pudo guardar" on its
+                // own sent somebody hunting through a Laravel log that had
+                // nothing in it, because a 404 dies before the app's handler.
+                console.error('[brand-egg] save failed', { section, toItem, attrs, error });
+
                 actions.querySelectorAll('button').forEach((b) => (b.disabled = false));
                 done('No se pudo guardar. Vuelve a intentarlo.');
             }
@@ -167,15 +291,18 @@ if (panel) {
             actions.append(b);
         };
 
+        // Whatever the server said was on the table when it sent this reply.
+        const item = attrs.item ?? null;
+
         /*
          * ⚠️ "En los dos" IS FIRST BECAUSE IT IS THE COMMON CASE — what they
          * just said genuinely is the entregable AND material for the section.
          * It is still a choice: nothing saves without a click.
          */
-        if (attrs.item) {
-            button('En los dos', true, () => save(true, attrs.item));
+        if (item) {
+            button('En los dos', true, () => save(true, item));
             button('Sólo en el Brand Egg', false, () => save(true, null));
-            button('Sólo en el entregable', false, () => save(false, attrs.item));
+            button('Sólo en el entregable', false, () => save(false, item));
         } else {
             button('Guardar en el Brand Egg', true, () => save(true, null));
         }
@@ -187,13 +314,14 @@ if (panel) {
         return wrap;
     };
 
-    const addTurn = (who, text) => {
+    const addTurn = (who, text, carried = []) => {
         const row = document.createElement('div');
         row.className = `egg-turn egg-turn-${who}`;
 
         if (who === 'assistant') {
             parse(text).forEach((part) => {
                 if (part.kind === 'card') {
+                    console.info('[brand-egg] card parsed', part.attrs);
                     row.append(card(part));
 
                     return;
@@ -205,11 +333,31 @@ if (panel) {
             });
         } else {
             row.textContent = text;
+
+            // What this turn carried, drawn the same way as on every other
+            // panel — see turn-attachments.js.
+            if (carried.length) {
+                drawTurnAttachments(row, carried.map((file) => file.name));
+            }
         }
 
         thread.append(row);
         row.scrollIntoView({ block: 'nearest' });
     };
+
+    /*
+     * What Up recalls in the composer, read before the renderer below replaces
+     * these spans with nodes — until it does, one holds exactly the characters
+     * that were typed.
+     *
+     * ⚠️ ONLY THIS PERSON'S OWN TURNS. The Egg's thread is keyed on the brand,
+     * not on a user: building one is team work, so somebody else's question is
+     * printed here and is not something you sent. The server marks yours.
+     */
+    composer.seed(
+        [...thread.querySelectorAll('.egg-turn-user[data-own] [data-egg-message]')]
+            .map((node) => node.textContent),
+    );
 
     // The server-rendered history goes through the same renderer, so a turn
     // read today looks like the same turn read tomorrow (CLAUDE.md §7).
@@ -239,30 +387,58 @@ if (panel) {
         node.replaceWith(rendered);
     });
 
-    form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-
-        const message = field.value.trim();
-
-        if (!message) return;
-
-        addTurn('user', message);
-        composer.reset();
+    /**
+     * One turn, and the only thing that talks to the endpoint.
+     *
+     * ⚠️ ACCEPTING A CARD CALLS THIS TOO. Without it the conversation dead-ends
+     * on the card: the entregable is saved, the tick moves, and Brandy sits
+     * there with nothing to say until somebody types — which reads as her
+     * having lost the thread at the exact moment she was most useful.
+     */
+    const sendTurn = async (message, { echo = true } = {}) => {
+        if (echo) addTurn('user', message, files.files());
 
         const waiting = document.createElement('div');
         waiting.className = 'egg-turn egg-turn-assistant egg-turn-waiting';
         waiting.textContent = 'Pensando…';
         thread.append(waiting);
+        waiting.scrollIntoView({ block: 'nearest' });
+
+        const carrying = files.files();
+
+        busy = true;
 
         try {
+            /*
+             * ⚠️ MULTIPART ONLY WHEN THERE IS SOMETHING TO CARRY. A typed turn
+             * is the common case by a long way, and FormData on every one of
+             * them would send the whole conversation as form fields for no
+             * reason. JSON otherwise, exactly as before.
+             */
+            const body = carrying.length === 0
+                ? JSON.stringify({ message, layer: currentLayer() })
+                : (() => {
+                    const form = new FormData();
+                    form.append('message', message);
+
+                    if (currentLayer()) form.append('layer', currentLayer());
+
+                    carrying.forEach((file) => form.append('files[]', file));
+
+                    return form;
+                })();
+
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    // ⚠️ NO Content-Type FOR FormData. Setting it by hand drops
+                    // the boundary the browser would have added, and every file
+                    // arrives empty.
+                    ...(carrying.length === 0 ? { 'Content-Type': 'application/json' } : {}),
                     'X-CSRF-TOKEN': token,
                     Accept: 'application/json',
                 },
-                body: JSON.stringify({ message, layer: currentLayer() }),
+                body,
             });
 
             const data = await response.json();
@@ -276,11 +452,30 @@ if (panel) {
 
             if (data.checklist) renderReply(checklist, data.checklist);
 
+            // ⚠️ SET BEFORE THE TURN IS DRAWN. The cards in this reply are for
+            // the entregable the server says is on the table, and they are
+            // built while addTurn() runs.
+            target = data.target ?? null;
+
             addTurn('assistant', data.reply);
         } catch {
             waiting.remove();
             addTurn('assistant', 'No se pudo contactar al asistente.');
+        } finally {
+            busy = false;
+            files.clear();
         }
+    };
+
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+
+        const message = field.value.trim();
+
+        if (!message) return;
+
+        composer.reset();
+        sendTurn(message);
     });
 
     // Switching rings asks for that section's checklist without spending a turn.

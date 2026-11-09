@@ -11,6 +11,24 @@
     'css' => null,
     'scripts' => [],
     /*
+     * $conversations: the conversations route for this side, on a page that
+     *           carries an assistant. Given, the history panel becomes a second
+     *           full-height column between the rail and the content — see
+     *           conversations.css.
+     *
+     *           ⚠️ IT IS A LAYOUT COLUMN AND NOT PART OF THE ASSISTANT, which is
+     *           the whole reason it is a prop here rather than markup inside the
+     *           panel. Inside the page it could only ever be as tall as the page's
+     *           own content, and the list of a year's conversations is taller than
+     *           that.
+     *
+     *           ⚠️ AND IT ONLY BELONGS WHERE AN ASSISTANT IS. conversations.js
+     *           renders a conversation INTO [data-assistant-thread]; on a screen
+     *           with no assistant every row in it would be a click that does
+     *           nothing. Pass it from those pages only.
+     */
+    'conversations' => null,
+    /*
      * A page name shown in the topbar, after the brand.
      *
      * ⚠️ FOR A PAGE THAT HAS NO ROOM FOR A HEADING, which today is the Brand
@@ -46,13 +64,48 @@
     <x-theme-boot />
 
     {{-- One @vite call, never two: calling it twice emits the dev client
-         twice. Same contract as <x-layouts.app>. --}}
+         twice. Same contract as the admin layout. --}}
+    {{--
+        ⚠️ THE CONVERSATIONS PROP BRINGS ITS OWN STYLESHEET. Asking for the
+        history rail and forgetting to name it in :css would draw it as raw
+        HTML down the side of the screen, which is exactly how permissions.css
+        broke — so the prop carries the file rather than trusting every page.
+
+        ⚠️ AND THE EXPLANATION LIVES OUT HERE, ABOVE THE CALL. A directive
+        argument is not a raw PHP region: Blade re-emits it, so a line comment
+        inside it takes an apostrophe as the start of a string, and a component
+        tag written with angle brackets is compiled into a real component. Both
+        turn this page into a parse error or a printout of its own source.
+        Trap 11, twice over. Keep the argument bare.
+    --}}
     @vite(array_merge([
         'resources/css/general.css',
         'resources/css/dashboard.css',
-        ...array_map(fn ($name) => "resources/css/{$name}.css", array_filter((array) $css)),
+        'resources/css/header-bar.css',
+        ...array_map(
+            fn ($name) => "resources/css/{$name}.css",
+            array_unique(array_filter([...(array) $css, $conversations ? 'conversations' : null])),
+        ),
     ], $scripts))
 </head>
+@php
+    /*
+     * The brands this person can switch between — ACC-01/02.
+     *
+     * ⚠️ RESOLVED ONCE, HERE, because two places draw it now: the rail's own
+     * list and the topbar's quick picker. Queried twice it would be two
+     * queries per request that can disagree after a membership changes
+     * mid-session.
+     *
+     * Breakfast staff get none. They can open /portal — the rail prints
+     * "Breakfast" where a brand's name goes — but they are in no brand, so a
+     * switcher would be a control with nothing to switch.
+     */
+    $brands = $user->isBreakfast()
+        ? collect()
+        : $user->brands()->orderBy('name')->get();
+@endphp
+
 <body class="dashboard">
 
 <a href="#contenido" class="skip-link">Saltar al contenido</a>
@@ -60,14 +113,32 @@
 {{-- Checkbox toggle, same no-JavaScript pattern as the public navbar. --}}
 <input type="checkbox" id="sidebar-toggle" class="dashboard-toggle" hidden>
 
+{{-- ⚠️ ABOVE THE FRAME, NOT INSIDE IT. It spans the rail and the content
+     alike, and the frame is the two-column grid underneath it. Its height is
+     --header-bar-height, which is what the columns below subtract from the
+     viewport. --}}
+{{-- ⚠️ THE ROLE IS THE ONE IN THE ACTIVE BRAND, not on the account (ACC-01).
+     The same person can own one brand and be a member of another, so
+     users.role would print "Miembro" to somebody looking at the brand they
+     own. Breakfast staff are in no brand at all and fall back to theirs. --}}
+<x-header-bar :home="route('portal.home')"
+              :account="route('portal.perfil')"
+              account-label="Perfil"
+              :role-label="$user->brandRole()?->label() ?? $user->role->label()" />
+
 <div class="dashboard-frame">
 
     <aside class="dashboard-sidebar">
 
-        <div class="dashboard-brand">
-            <a href="{{ route('portal.home') }}" aria-label="Portal Breakfast">
-                <img src="{{ asset('img/logo.png') }}" alt="Breakfast" width="795" height="139">
-            </a>
+        {{-- ⚠️ THE LOGO IS NOT HERE ANY MORE — it is in the header bar above
+             the frame, and the same wordmark at the top of the bar and at the
+             top of the rail is one mark drawn twice on one screen.
+
+             What is left is the close button, which belongs to the rail rather
+             than to the logo: it only exists in the slide-over, where the rail
+             is the whole screen and has to be dismissable. The block keeps its
+             name because the stylesheet lays it out. --}}
+        <div class="dashboard-wordmark">
             <label for="sidebar-toggle" class="dashboard-close">
                 <span class="screen-reader-only">Cerrar menú</span>
                 <x-tabler-x aria-hidden="true" />
@@ -87,6 +158,62 @@
             Breakfast writes a brand, the brand reads it — so an eye on all of
             them marked nothing apart from anything else.
         --}}
+        {{--
+            THEIR BRANDS, above the sections — ACC-01.
+
+            ⚠️ IT IS THE MENU'S JOB TO SAY THEY HAVE MORE THAN ONE. The topbar
+            has had a picker since ACC-02, but a picker is a control you have
+            to already suspect is there: it looks like a label until you click
+            it. Somebody who owns two brands and never noticed has half a
+            portal they do not know about, and this is the list that tells them.
+
+            ⚠️ ONE BRAND, NO LIST. A menu group holding a single row that
+            reloads the page you are on is furniture. Breakfast staff get none
+            either — they are in no brand.
+
+            Plain forms, no JavaScript: switching is a POST because it changes
+            what the session is about, and this side ships no script for the
+            rail.
+        --}}
+        @if ($brands->count() > 1)
+            <nav class="dashboard-brands" aria-label="Tus marcas">
+                <p class="dashboard-brands-title">Tus marcas</p>
+
+                @foreach ($brands as $brand)
+                    @php $isHere = $brand->is($user->activeBrand()); @endphp
+
+                    <form method="POST" action="{{ route('portal.brand.switch', $brand) }}">
+                        @csrf
+                        {{--
+                            ⚠️ ONE class ATTRIBUTE, NOT TWO. This had a literal
+                            class="…" AND a @ class([…]) beside it, which
+                            compiles to a SECOND class attribute — and an HTML
+                            parser keeps the first and silently drops the rest,
+                            so `is-current` never reached the browser and the
+                            current brand was never marked. Nothing errors: the
+                            attribute is simply gone by the time anything can
+                            read it. The conditional class belongs INSIDE the
+                            one attribute.
+                        --}}
+                        <button type="submit"
+                                class="dashboard-nav-link dashboard-brands-link {{ $isHere ? 'is-current' : '' }}"
+                                @if ($isHere) aria-current="true" @endif>
+                            {{-- A tick on the one you are in, a dot on the
+                                 rest. Weight alone is a fair marker but a
+                                 quiet one, and the rail is scanned rather than
+                                 read. --}}
+                            @if ($isHere)
+                                <x-tabler-circle-check aria-hidden="true" />
+                            @else
+                                <x-tabler-circle-dot aria-hidden="true" />
+                            @endif
+                            <span>{{ $brand->name }}</span>
+                        </button>
+                    </form>
+                @endforeach
+            </nav>
+        @endif
+
         <nav class="dashboard-nav" aria-label="Portal">
 
             {{-- The dashboard itself, which is not a PortalSection: it is
@@ -112,27 +239,11 @@
             @endforeach
         </nav>
 
-        <div class="dashboard-account">
-            <span class="dashboard-avatar" aria-hidden="true">{{ $user->initials() }}</span>
-            <span class="dashboard-account-meta">
-                <b>{{ $user->name }}</b>
-                {{--
-                    ⚠️ The role IN THIS BRAND, not on the account (ACC-01). The
-                    same person can own one brand and be a member of another,
-                    so users.role cannot answer this any more — it would print
-                    "Miembro" to somebody looking at the brand they own.
-                --}}
-                <span>{{ $user->brandRole()?->label() ?? $user->role->label() }}</span>
-            </span>
-            <x-theme-toggle />
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="dashboard-logout">
-                    <span class="screen-reader-only">Salir</span>
-                    <x-tabler-logout aria-hidden="true" />
-                </button>
-            </form>
-        </div>
+        {{-- ⚠️ THE ACCOUNT BLOCK IS GONE FROM HERE. It was avatar, name,
+             role, theme and salir at the foot of the rail; all five are the
+             pill in the header bar now. Keeping both meant the same person's
+             account answered twice on one screen, and the role line — the one
+             thing the pill did not carry — moved up with the rest. --}}
 
     </aside>
 
@@ -154,8 +265,6 @@
                 it — the portal ships no JavaScript for this, and the browser
                 gives us the toggle, Escape and focus handling for free.
             --}}
-            @php $brands = $user->isBreakfast() ? collect() : $user->brands()->orderBy('name')->get(); @endphp
-
             @if ($brands->count() > 1)
                 <details class="dashboard-brand">
                     <summary>
@@ -264,6 +373,19 @@
         </main>
 
     </div>
+
+    {{-- ----------------------------------------------------------------
+         The history panel, where the page asked for one — a rail down the
+         RIGHT edge, full height like the navigation on the left.
+
+         ⚠️ LAST IN THE SOURCE, not placed by a grid column. On a narrow screen
+         the frame drops to one column and DOM order is what decides where this
+         lands; the stylesheet pulls it back above the content there, because a
+         history below a long dashboard is a history nobody scrolls to.
+         ---------------------------------------------------------------- --}}
+    @if ($conversations)
+        <x-conversations-panel :base="$conversations" />
+    @endif
 
     {{-- Tapping the dimmed page closes the menu on small screens. --}}
     <label for="sidebar-toggle" class="dashboard-scrim"></label>

@@ -5,27 +5,6 @@ import { bunny } from 'laravel-vite-plugin/fonts';
 export default defineConfig({
     plugins: [
         laravel({
-            /*
-             * ⚠️ `npm run dev` MUST SERVE OVER TLS HERE, or it serves nothing.
-             *
-             * The site is https://breakfast.test (Herd), and without this the
-             * dev server comes up on http://localhost:5173 — so every script
-             * and stylesheet it injects is mixed active content and the browser
-             * blocks all of it. The page then loads with no CSS and no JS,
-             * which looks like the dev server being broken rather than the
-             * browser refusing it.
-             *
-             * detectTls finds Herd's own certificate for this host
-             * (~/.config/herd/config/valet/Certificates/breakfast.test.*), so
-             * there is nothing to generate and nothing to trust by hand.
-             *
-             * ⚠️ DEV ONLY. `npm run build` never reads this, so it cannot
-             * affect what ships — and `public/hot` is what makes Laravel prefer
-             * the dev server at all. Delete that file and the built manifest
-             * takes over again.
-             */
-            detectTls: 'breakfast.test',
-
             // orb-demo.js is its own entry on purpose: app.js is the public
             // site's GSAP bundle, and three.js has no business shipping to
             // someone reading the podcast page.
@@ -43,6 +22,11 @@ export default defineConfig({
                 'resources/css/egg-assistant.css',
                 // Component stylesheets, not pages': these render in BOTH
                 // shells, so neither shell's file can own them.
+                //
+                // The yellow bar across the top of both shells. Loaded by the
+                // two layouts themselves rather than named by a page, because
+                // every screen on both sides draws it.
+                'resources/css/header-bar.css',
                 'resources/css/permissions.css',
                 // Rendered in both shells, like permissions.css — see its header.
                 'resources/css/checklist.css',
@@ -53,6 +37,10 @@ export default defineConfig({
                 // component one above, the way admin-brand-egg.css is.
                 'resources/css/portal-brand-egg.css',
                 'resources/css/assistant.css',
+                // The history side panel and its meter — rendered in BOTH
+                // shells, so it is a component stylesheet named by each page
+                // that draws it, never part of either shell's own file.
+                'resources/css/conversations.css',
                 'resources/css/meetings.css',
                 'resources/css/staff.css',
                 'resources/css/account.css',
@@ -140,6 +128,11 @@ export default defineConfig({
         },
     },
     server: {
+        /* ⚠️ THIS OBJECT MUST STAY THE ONLY `server` KEY. There were briefly two
+           and the second silently replaced the first, so a host set above was
+           thrown away with no error and the dev server kept binding to [::1]. */
+        host: 'localhost',
+
         watch: {
             // public/** is served as-is and never needs HMR. It is ignored
             // because this project sits inside OneDrive: OneDrive locks files

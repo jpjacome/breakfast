@@ -48,7 +48,10 @@
         greeting="¿Qué marca vamos a crear hoy?">
 
         @foreach ($conversation as $turn)
-            <div class="assistant-message assistant-message-{{ $turn->isFromAssistant() ? 'assistant' : 'user' }}">
+            {{-- data-own: the composer's Up key recalls what YOU sent, and on a
+                 shared thread that is a question the markup has to answer. --}}
+            <div class="assistant-message assistant-message-{{ $turn->isFromAssistant() ? 'assistant' : 'user' }}"
+                 @if ($turn->user_id === auth()->id()) data-own @endif>
                 {{-- A shared thread: several people write into it, so every turn
                      says whose it is. See x-turn-author. --}}
                 <x-turn-author :author="$turn->author" :assistant="$turn->isFromAssistant()" />

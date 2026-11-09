@@ -31,6 +31,7 @@ class BrandEggMessage extends Model
         'layer',
         'proposals',
         'questions',
+        'attachments',
     ];
 
     protected function casts(): array
@@ -39,6 +40,8 @@ class BrandEggMessage extends Model
             'layer' => BrandEggLayer::class,
             'proposals' => 'array',
             'questions' => 'array',
+            // Names only — see the migration.
+            'attachments' => 'array',
         ];
     }
 

@@ -42,7 +42,10 @@
         :greeting="$client->name">
 
         @foreach ($client->onboardingMessages as $turn)
-            <div class="assistant-message assistant-message-{{ $turn->isFromAssistant() ? 'assistant' : 'user' }}">
+            {{-- data-own: the composer's Up key recalls what YOU sent, and on a
+                 shared thread that is a question the markup has to answer. --}}
+            <div class="assistant-message assistant-message-{{ $turn->isFromAssistant() ? 'assistant' : 'user' }}"
+                 @if ($turn->user_id === auth()->id()) data-own @endif>
                 {{-- A shared thread: several people write into it, so every turn
                      says whose it is. See x-turn-author. --}}
                 <x-turn-author :author="$turn->author" :assistant="$turn->isFromAssistant()" />
@@ -70,90 +73,10 @@
         </div>
     </div>
 
-    {{-- ================================================================
-         The three steps
-         ================================================================ --}}
-    <section class="process-steps" aria-label="Pasos del proceso">
-
-        <header class="process-steps-head">
-            <h3 class="admin-heading">el proceso</h3>
-            <p class="admin-hint">
-                {{ $completed }} de {{ ProcessStep::count() }} pasos completos.
-                Un paso se cierra cuando tú lo dices — no depende de los entregables.
-            </p>
-        </header>
-
-        <ol class="process-step-cards">
-            @foreach (ProcessStep::cases() as $step)
-                @php
-                    $record = $client->stepRecord($step);
-                    $isRunning = $record?->isRunning() ?? false;
-                    $isComplete = $record?->isComplete() ?? false;
-                @endphp
-
-                <li class="process-step
-                           @if($isComplete) process-step-done @elseif($isRunning) process-step-live @endif">
-
-                    <p class="process-step-number admin-numbers">
-                        {{ $step->number() }}<span>/{{ ProcessStep::count() }}</span>
-                    </p>
-
-                    <h4 class="process-step-name">
-                        <x-dynamic-component :component="'tabler-'.$step->icon()" aria-hidden="true" />
-                        {{ $step->label() }}
-                    </h4>
-
-                    <p class="process-step-note">{{ $step->description() }}</p>
-
-                    <p class="process-step-state">
-                        @if ($isComplete)
-                            Completo el {{ $record->completed_at->translatedFormat('j \d\e F \d\e Y') }}
-                            @if ($record->completedBy) · {{ $record->completedBy->name }} @endif
-                        @elseif ($isRunning)
-                            En curso desde el {{ $record->started_at->translatedFormat('j \d\e F \d\e Y') }}
-                        @else
-                            Sin empezar
-                        @endif
-                    </p>
-
-                    <form method="POST" action="{{ route('admin.clients.process.step', $client) }}"
-                          class="process-step-actions">
-                        @csrf
-                        <input type="hidden" name="step" value="{{ $step->value }}">
-
-                        @if ($isComplete)
-                            <button type="submit" name="action" value="reabrir"
-                                    class="admin-button admin-button-ghost admin-button-sm">
-                                Reabrir
-                            </button>
-                        @elseif ($isRunning)
-                            <button type="submit" name="action" value="completar"
-                                    class="admin-button admin-button-primary admin-button-sm">
-                                Marcar completo
-                            </button>
-                        @elseif ($current !== null)
-                            {{-- Disabled rather than hidden, and said why: an
-                                 admin who clicks this anyway would just get the
-                                 same sentence back as a flash message, one
-                                 click later. Only one step may run at a time —
-                                 see AdvanceProcessStep. --}}
-                            <button type="button" class="admin-button admin-button-secondary admin-button-sm"
-                                    disabled title="Cierra «{{ $current->label() }}» primero.">
-                                Iniciar paso
-                            </button>
-                        @else
-                            <button type="submit" name="action" value="iniciar"
-                                    class="admin-button admin-button-secondary admin-button-sm">
-                                Iniciar paso
-                            </button>
-                        @endif
-                    </form>
-
-                </li>
-            @endforeach
-        </ol>
-
-    </section>
+    {{-- ⚠️ THE THREE STEPS ARE NOT HERE ANY MORE (2026-09-17). They are on
+         the brand page, where "where is this project" is the question being
+         asked — this board is the 48 entregables and the brand's folder, which
+         is a different one. See <x-admin.process-steps>. --}}
 
     {{-- ================================================================
          The brand's folder

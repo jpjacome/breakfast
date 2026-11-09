@@ -37,6 +37,10 @@
         ->values();
 @endphp
 
+{{-- ⚠️ THE HISTORY PANEL IS NOT HERE. It used to wrap this section in a
+     two-column grid, which made it exactly as tall as the assistant — and the
+     list of a year's conversations is taller than that. It is a column of
+     <x-layouts.app> now, passed by the page as :conversations. --}}
 <section class="assistant {{ $compact ? 'assistant-compact' : '' }}"
          data-assistant
          data-endpoint="{{ route('admin.assistant') }}">
@@ -127,5 +131,9 @@
             @endforeach
         </select>
     </form>
+
+    {{-- Under the composer, where somebody already is when they wonder whether
+         she still remembers the beginning. --}}
+    <x-conversation-meter />
 
 </section>

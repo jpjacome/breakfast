@@ -62,16 +62,53 @@
 
   /* The rail is a plane apart from the page, so it gets its own fill, its own
      hover tint and its own focus colour rather than borrowing the page's.
-     --rail-mark is whatever has to sit ON the rail and still be seen: the
-     current page's pill, the avatar. It is always the rail's inverse, which is
-     the whole reason it is a token — flip the rail and both follow.
+
+     ⚠️ WHITE, NOT YELLOW (2026-09-21). The yellow moved up to the header bar,
+     and a yellow rail under a yellow bar is one plane pretending to be two.
+     --rail-mark is what has to sit ON the rail and still be seen — the current
+     page's pill — and it is now YELLOW IN BOTH THEMES, which is simpler than
+     it was: the mark used to be the rail's inverse and therefore changed
+     colour when the theme flipped, and now the current page is yellow whether
+     the rail is white or black.
+
+     ⚠️ THE AVATAR IS NO LONGER ONE OF THESE, see --avatar-* below.
 
      The focus ring needs nothing of its own: --accent is black here and yellow
      in dark, which is the opposite of the rail either way. */
-  --rail-fill: var(--bkf-yellow);
+  --rail-fill: var(--bkf-white);
   --rail-hover: color-mix(in srgb, var(--bkf-brown) 12%, transparent);
-  --rail-mark-fill: var(--bkf-brown);
-  --rail-mark-ink: var(--bkf-yellow);
+  --rail-mark-fill: var(--bkf-yellow);
+  --rail-mark-ink: var(--bkf-black);
+
+  /* The monogram disc.
+
+     ⚠️ IT USED TO BE --rail-mark-*, AND IT IS DRAWN IN SIX PLACES THAT ARE NOT
+     THE RAIL — the staff roster, the brand page, your own account and every
+     turn in an assistant transcript (x-turn-author). It only ever borrowed the
+     rail's inverse because that happened to be a dark disc with gold on it;
+     the day the rail turned white and its mark turned yellow, one token doing
+     two jobs would have repainted all six. Same story as .dashboard-brand
+     wearing .dashboard-wordmark's rules. These values are what the avatar has
+     always been. */
+  --avatar-fill: var(--bkf-brown);
+  --avatar-ink: var(--bkf-yellow);
+
+  /* The HISTORY rail, down the right edge — conversations.css.
+
+     ⚠️ IT DID NOT FOLLOW THE NAVIGATION RAIL TO WHITE. It stays the yellow it
+     has always been, which is why it needs a pair of its own: it used to read
+     --rail-fill and --rail-mark-*, and those two now describe a white plane
+     with a yellow mark on it. Pointed at a yellow panel, that mark is yellow
+     on yellow — the exact failure the hover in that file already carries a
+     warning about.
+
+     So this pair is what --rail-mark-* USED to be: a dark pill with gold on
+     it, which is what reads on yellow. Defined in BOTH shells, because the
+     panel is drawn on both and a token only one of them has is how
+     permissions.css rendered naked on the admin side. */
+  --history-fill: var(--bkf-yellow);
+  --history-mark-fill: var(--bkf-brown);
+  --history-mark-ink: var(--bkf-yellow);
 
   /* The client's initials, as a tile. */
   --tile-fill: var(--bkf-brown);
@@ -131,12 +168,25 @@
   --good: color-mix(in srgb, var(--bkf-green) 45%, var(--bkf-off-white));
   --bad: color-mix(in srgb, var(--bkf-red) 55%, var(--bkf-off-white));
 
-  /* Pure black, so the rail stays flat while the panels beside it lift — and
-     the mark inverts with it, back to yellow on black. */
+  /* Pure black, so the rail stays flat while the panels beside it lift. The
+     mark does not invert with it any more — yellow marks the current page in
+     both themes now that the light rail is white. */
   --rail-fill: var(--bkf-black);
   --rail-hover: rgba(255, 255, 255, .08);
   --rail-mark-fill: var(--bkf-yellow);
   --rail-mark-ink: var(--bkf-black);
+
+  /* Unchanged by the white rail — over black the disc inverts, the way it
+     always has. */
+  --avatar-fill: var(--bkf-yellow);
+  --avatar-ink: var(--bkf-black);
+
+  /* Black like everything else here, and the mark inverts to gold — which is
+     what the navigation rail's mark does in this theme too. The two rails only
+     part company in the light theme. */
+  --history-fill: var(--bkf-black);
+  --history-mark-fill: var(--bkf-yellow);
+  --history-mark-ink: var(--bkf-black);
 
   /* Coffee rather than black: a black square on a black page is a hole. */
   --tile-fill: var(--bkf-brown);
@@ -186,11 +236,15 @@
 .admin a { color: inherit; text-decoration: none; }
 .admin :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
+/* ⚠️ THE VIEWPORT MINUS THE HEADER BAR, not the viewport. The bar sits above
+   this grid and is sticky, so a frame a full viewport tall makes every screen
+   on this side scroll by exactly the height of the bar with nothing under it.
+   --header-bar-height comes from header-bar.css, which is the file that draws
+   it and therefore the only one that knows how tall it is. */
 .admin-frame {
   display: grid;
   grid-template-columns: var(--rail) minmax(0, 1fr);
-  min-height: 100vh;
-  min-height: 100dvh;
+  min-height: calc(100dvh - var(--header-bar-height));
 }
 
 /* --- rail ----------------------------------------------------------------
@@ -211,14 +265,16 @@
   background: var(--rail-fill);
   border-right: 1px solid var(--rule);
   position: sticky;
-  top: 0;
-  height: 100vh;
-  height: 100dvh;
+  /* Under the bar rather than under the top of the window — the bar is sticky
+     too, so a rail stuck at 0 would scroll its own top behind it. */
+  top: var(--header-bar-height);
+  height: calc(100dvh - var(--header-bar-height));
   overflow-y: auto;
 }
 
-.admin-logo { padding-inline: .5rem; }
-.admin-logo img { width: 124px; height: auto; }
+/* .admin-logo is gone: the wordmark moved to the header bar above the frame,
+   and the same mark at the top of the bar and the top of the rail is one mark
+   drawn twice on one screen. */
 
 .admin-nav { display: flex; flex-direction: column; gap: 2px; }
 
@@ -256,35 +312,9 @@
   color: var(--rail-mark-ink);
 }
 
-.admin-account {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  gap: .625rem;
-  padding-top: .75rem;
-  border-top: 1px solid var(--rule);
-}
-
-/* The account row is the way into /admin/cuenta. It takes the row's own layout
-   so wrapping the avatar and the name in a link changes nothing on the page,
-   and it marks itself with an underline rather than a fill: a background would
-   hug the text tightly in a row built on gaps, not padding. */
-.admin .admin-account-link {
-  display: flex;
-  align-items: center;
-  gap: .625rem;
-  flex: 1;
-  min-width: 0;
-}
-.admin .admin-account-link:hover b,
-.admin .admin-account-link[aria-current="page"] b {
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-/* Also used on the client page, away from the rail — the rail's inverse is a
-   black disc with gold initials in light, which is the same pairing the
-   monogram tiles already use there. */
+/* ⚠️ DRAWN IN SIX PLACES THAT ARE NOT THE RAIL, which is why it has its own
+   pair of tokens rather than the rail's mark — see --avatar-* . A dark disc
+   with gold initials in light, the same pairing the monogram tiles use. */
 .admin-avatar {
   display: grid;
   place-items: center;
@@ -293,15 +323,16 @@
   flex: none;
   /* A circle is a shape, not a radius — it does not take the one radius. */
   border-radius: 50%;
-  background: var(--rail-mark-fill);
-  color: var(--rail-mark-ink);
+  background: var(--avatar-fill);
+  color: var(--avatar-ink);
   font-size: .75rem;
   font-weight: 700;
 }
 
-/* min-width: 0 so a long name ellipses instead of widening the rail. Both
-   lines ellipse: the row also carries the theme toggle and the logout button,
-   so there is not enough width left for either to wrap. */
+/* ⚠️ THIS IS NOT THE RAIL'S ANY MORE. The rail's account block moved to the
+   header bar; what still draws a name over a role is the card on /admin/cuenta
+   and nothing else, so the ellipsing is for a narrow card rather than a narrow
+   rail. */
 .admin-account-meta { display: grid; min-width: 0; flex: 1; }
 .admin-account-meta b,
 .admin-account-meta span {
@@ -311,22 +342,6 @@
 }
 .admin-account-meta b { font-size: .85rem; font-weight: 500; }
 .admin-account-meta span { font-size: .7rem; color: var(--ink-quiet); }
-
-.admin-logout {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  flex: none;
-  border: 0;
-  border-radius: var(--border-radius);
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  transition: background var(--dur) var(--ease);
-}
-.admin-logout:hover { background: var(--rail-hover); }
-.admin-logout svg { width: 20px; height: 20px; }
 
 /* --- content column ------------------------------------------------------ */
 
@@ -950,13 +965,11 @@
   /* Horizontal strip above the content rather than a slide-over: the admin
      nav is five entries, so it fits and needs no toggle.
 
-     TWO ROWS, and the order is deliberate. The wordmark and the account
-     controls are the same pair the desktop rail has at its two ends, so on a
-     phone they take one line between them — logo left, avatar/theme/logout
-     right — and the nav gets the full width of the line below rather than
-     being squeezed against them. Left to plain wrapping, the five links broke
-     mid-row and pushed the account onto a line of its own with nothing beside
-     it. */
+     TWO ROWS, and the order is deliberate. The account controls take the first
+     line on their own — the wordmark that used to share it with them is in the
+     header bar now — and the nav gets the full width of the line below rather
+     than being squeezed against them. Left to plain wrapping, the five links
+     broke mid-row and pushed the account onto a line of its own anyway. */
   .admin-sidebar {
     position: static;
     height: auto;
@@ -970,16 +983,6 @@
     padding: 1rem var(--pad);
   }
 
-  .admin-logo { order: 1; padding-inline: 0; }
-
-  .admin-account {
-    order: 2;
-    margin-top: 0;
-    margin-left: auto;
-    padding-top: 0;
-    border-top: 0;
-  }
-
   /* flex-basis: 100% is what forces the break — the nav cannot share a line
      with anything, so it always starts the second one. */
   .admin-nav {
@@ -990,11 +993,6 @@
     align-items: center;
     gap: 2px .25rem;
   }
-
-  /* The name and role are the account row's flexible half; with them hidden
-     the link is three icons wide and must not stretch to fill the line. */
-  .admin-account-meta { display: none; }
-  .admin .admin-account-link { flex: none; }
 }
 
 

@@ -35,6 +35,10 @@ class AdminAssistantRequest extends FormRequest
             // question, and typing one as well defeats recording it.
             'question' => [$this->hasFile('files') ? 'nullable' : 'required', 'string', 'max:2000'],
             'brand' => ['nullable', 'string', 'max:120'],
+            // Which conversation this belongs to — item 5. Only a hint: the
+            // controller resolves it through ActiveConversation, which 404s on
+            // an id that is not this person's.
+            'conversation' => ['nullable', 'integer'],
             ...$this->fileRules(),
         ];
     }

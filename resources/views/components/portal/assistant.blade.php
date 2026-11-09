@@ -38,6 +38,9 @@
         ->values();
 @endphp
 
+{{-- ⚠️ THE HISTORY PANEL IS NOT HERE — it is a column of <x-layouts.portal>,
+     passed by the page as :conversations, so it is as tall as the window
+     rather than as tall as this panel. --}}
 <section class="assistant"
          data-assistant
          data-endpoint="{{ route('portal.assistant') }}">
@@ -103,5 +106,7 @@
             </button>
         </div>
     </form>
+
+    <x-conversation-meter />
 
 </section>

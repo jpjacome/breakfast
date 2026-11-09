@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests;
 
 use App\Enums\BrandEggLayer;
+use App\Http\Requests\Concerns\AcceptsAssistantFiles;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -23,6 +24,10 @@ use Illuminate\Validation\Rule;
  */
 class EggAssistantRequest extends FormRequest
 {
+    // The same file rules the other three assistants use — one list of what may
+    // be attached anywhere, so a PDF that works on the dashboard works here.
+    use AcceptsAssistantFiles;
+
     /** Behind auth, 'breakfast' and 'covers-client' already. */
     public function authorize(): bool
     {
@@ -39,6 +44,7 @@ class EggAssistantRequest extends FormRequest
             // ring. Forcing one would make her pick a layer in order to say
             // something general — see the migration's note on the column.
             'layer' => ['nullable', Rule::enum(BrandEggLayer::class)],
+            ...$this->fileRules(),
         ];
     }
 

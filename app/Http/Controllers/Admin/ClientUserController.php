@@ -109,23 +109,69 @@ class ClientUserController extends Controller
      * their last brand — see the same reasoning in Portal\TeamController. A
      * person removed from one brand keeps the others, and keeps the password
      * they already set.
+     *
+     * ⚠️ DETACHING IS NOT DELETING, AND CONFLATING THEM MADE THIS ROUTE REFUSE
+     * THE ONE CASE IT WAS NEEDED FOR. The guard here used to be a flat 403 on
+     * yourself, written against account deletion — correct about that, and
+     * wrong about the row. Staff could be attached to a brand
+     * (StoreClientUserRequest lets nothing do that now), and an admin who
+     * attached their own address then could not take it off again: every
+     * attempt was their own id, so every attempt was the 403. The membership
+     * was unremovable through the app that created it.
+     *
+     * ⚠️ AND NOTHING HERE DELETES AN ACCOUNT ANY MORE (2026-09-21). This route
+     * used to end with `if ($user->brands()->count() === 0) { $user->delete(); }`,
+     * so taking somebody off their ONLY brand destroyed the account — and
+     * `User` has no SoftDeletes, so it was permanent, and the foreign keys took
+     * their whole Brandy history with it: `assistant_messages`,
+     * `conversations`, `conversation_folders`, `user_files` and `passkeys` all
+     * cascade. Attribution elsewhere went to NULL (`checklist_ticks.checked_by`,
+     * `brand_assets.uploaded_by`, `meetings.created_by` and the rest).
+     *
+     * Two reasons that had to go:
+     *
+     *   · the button could not say which it would do. Same dialog, same
+     *     wording, and whether it detached a row or erased a person depended
+     *     on a count nobody looking at the screen could see — and one brand is
+     *     the common case, not the edge case.
+     *   · it was irreversible in an app where the neighbouring destructive act
+     *     is not. Archiving a BRAND is a soft delete and restores everybody's
+     *     access exactly; removing the last person from one was unrecoverable.
+     *
+     * So this route detaches, full stop. A client user in no brand is a broken
+     * record on purpose — `accessTo()` fails closed on it — so they are locked
+     * out rather than erased, and `/portal` still answers them 200 the way it
+     * answers Breakfast staff, who carry no brands either. Re-adding them is
+     * the ordinary add-user form: an address that already has an account is
+     * attached, not duplicated (ACC-01).
+     *
+     * Deleting an account for good is deliberately not a side effect of a
+     * membership edit. If it is ever wanted it needs its own route, its own
+     * wording and its own confirmation.
      */
     public function destroy(Request $request, Client $client, User $user): RedirectResponse
     {
         $this->authorizeMembership($client, $user);
 
-        // Guard against an admin deleting themselves via a crafted URL.
-        abort_if($user->is($request->user()), 403);
-
         $name = $user->name;
 
         $client->users()->detach($user->id);
 
-        if ($user->brands()->count() === 0) {
-            $user->delete();
-        }
+        // Asked AFTER the detach: "does this leave them with nothing" is a
+        // question about the state we just created.
+        $stranded = ! $user->isBreakfast() && $user->brands()->count() === 0;
 
-        return back()->with('status', "Se quitó el acceso de {$name}.");
+        return back()->with('status', match (true) {
+            // Nothing changed about what staff can reach — they reach every
+            // brand by role — so "se quitó el acceso" would claim something
+            // this row never granted.
+            $user->isBreakfast() => "Quitamos a {$name} de la lista de esta marca. Sigue entrando como equipo de Breakfast.",
+            // Say that the account survived and that it now reaches nothing,
+            // because otherwise the only way to find out is for the person to
+            // try to sign in.
+            $stranded => "Se quitó el acceso de {$name}. La cuenta sigue existiendo, pero ya no entra a ninguna marca.",
+            default => "Se quitó el acceso de {$name}.",
+        });
     }
 
     /**

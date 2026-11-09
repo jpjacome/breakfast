@@ -64,6 +64,17 @@ return new class extends Migration
             // What it asked, so a reload shows the question that is waiting.
             $table->json('questions')->nullable();
 
+            /*
+             * The filenames a turn carried.
+             *
+             * ⚠️ NAMES, NEVER BYTES — the same rule the other two message
+             * tables follow. An earlier turn replays its files by name;
+             * re-inlining a screenshot on every later question would multiply a
+             * conversation's cost by the size of its first image (CLAUDE.md §7).
+             * The file itself is kept in the person's own folder.
+             */
+            $table->json('attachments')->nullable();
+
             $table->timestamps();
 
             // Every read is "this brand's thread, oldest first".

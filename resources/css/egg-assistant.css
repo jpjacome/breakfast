@@ -62,8 +62,27 @@
 
 /* ------------------------------------------------------------ the checklist */
 
+/*
+   The six entregables of the section being filled.
+
+   ⚠️ A ROW, NOT A LIST. Stacked it was six lines of vertical space in a pane
+   that is half a screen — and it is a STATUS, read at a glance, not something
+   anybody works down item by item. The marks carry the meaning, so the bullets
+   went with the stacking.
+*/
 .egg-assistant-checklist { font-size: .8rem; }
-.egg-assistant-checklist ul { margin: 0; padding-left: 1.1rem; display: grid; gap: .15rem; }
+
+.egg-assistant-checklist ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  /* Tight rows, generous columns: it should read as one line that happens to
+     wrap, not as a grid of chips. */
+  gap: .2rem 1rem;
+}
+
 .egg-assistant-checklist:empty { display: none; }
 
 /* --------------------------------------------------------------- the thread */
@@ -138,13 +157,14 @@
 
 /* ------------------------------------------------------------- the composer */
 
-.egg-assistant-ask {
-    display: flex;
-    align-items: flex-end;
-    gap: .35rem;
-}
+/*
+   ⚠️ THERE ARE NO COMPOSER RULES HERE ANY MORE, AND THAT IS THE POINT.
 
-.egg-assistant-ask textarea {
-    flex: 1;
-    resize: none;
-}
+   This file carried its own .egg-assistant-ask, so the field and the send
+   button on this one screen were a second implementation of something three
+   other panels already share — and they did not match. The markup now uses
+   assistant.css's classes and the screen loads that file.
+
+   If the composer needs to change, it changes there, for all four panels at
+   once. A fourth copy is how they drift.
+*/

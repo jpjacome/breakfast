@@ -10,6 +10,7 @@ use App\Models\BrandEggMessage;
 use App\Models\Client;
 use App\Models\User;
 use App\Services\Ai\Contracts\LlmClient;
+use App\Services\Ai\Data\Attachment;
 use App\Services\Ai\Data\Message;
 use App\Services\Ai\Exceptions\LlmException;
 use App\Services\Ai\UsageRecorder;
@@ -58,12 +59,23 @@ final class EggAssistant
      *
      * @throws LlmException the caller turns it into a message a person can read
      */
-    public function answer(Client $client, User $user, string $question, ?BrandEggLayer $layer): array
-    {
+    public function answer(
+        Client $client,
+        User $user,
+        string $question,
+        ?BrandEggLayer $layer,
+        array $attachments = [],
+    ): array {
+        /*
+         * ⚠️ FILES RIDE ON THE LAST TURN, NEVER ABOVE IT. One in the cacheable
+         * prefix is a new prefix every request, and a photo is the most
+         * expensive thing that could go there (CLAUDE.md §7). The same rule the
+         * other three assistants follow.
+         */
         $messages = [
             Message::cacheableSystem((string) config('ai.egg_assistant_prompt')),
             ...$this->thread($client, $layer),
-            Message::user($this->turn($client, $layer, $question)),
+            Message::userWithAttachments($this->turn($client, $layer, $question), $attachments),
         ];
 
         try {
@@ -94,7 +106,7 @@ final class EggAssistant
 
         $reply = trim($response->content);
 
-        $this->remember($client, $user, $question, $reply, $layer);
+        $this->remember($client, $user, $question, $reply, $layer, $attachments);
 
         return ['reply' => $reply, 'layer' => $layer];
     }
@@ -132,41 +144,124 @@ final class EggAssistant
      * wrongly ticked entregable is a small lie about whether the brand's
      * promise exists — the one error this app exists to make impossible.
      */
+    /**
+     * The brief for this turn: the objectives of the section, which one is on
+     * the table, and what is forbidden.
+     *
+     * ⚠️ IT IS A SPECIFICATION, NOT CONTEXT. Written as prose it was read as
+     * suggestion: she invented a section that does not exist, asked for an
+     * entregable belonging to another one, and announced a section finished
+     * while the checklist said otherwise. Everything here is stated once,
+     * unambiguously, in the order it has to be obeyed.
+     *
+     * ⚠️ THE OBJECTIVES COME FROM THE ENUM, not from her. Without a written
+     * objective per entregable she improvises a question from the LABEL —
+     * "Brand promise" is not a question — and then invents somewhere to put the
+     * answer. See BrandEggLayer::objective().
+     */
     private function turn(Client $client, ?BrandEggLayer $layer, string $question): string
     {
-        $lines = ['Marca: '.$client->name];
+        if ($layer === null) {
+            return implode("\n", [
+                'Marca: '.$client->name,
+                '',
+                'Las cinco secciones del Brand Egg, en orden, y qué va en cada una:',
+                $this->sectionNames(),
+                '',
+                'Todavía no están trabajando en una sección concreta. Si preguntan por dónde '
+                    .'empezar, la respuesta es la sección 1.',
+                '',
+                'MENSAJE DEL EQUIPO:',
+                trim($question),
+            ]);
+        }
 
-        if ($layer !== null) {
-            $progress = LayerProgress::for($client, $layer);
+        $progress = LayerProgress::for($client, $layer);
+        $next = $progress->next();
 
-            $lines[] = 'Capa '.$layer->ring().' de 5: '.$layer->label();
-            $lines[] = $layer->description();
-            $lines[] = '';
-            $lines[] = $layer->isInventory()
-                // No entregable feeds layer 4 — it IS the list of files. Saying
-                // so stops her asking for entregables that do not apply.
-                ? 'Esta capa no se escribe: es el inventario de archivos de la marca.'
-                : "Entregables de esta capa:\n".$progress->toMarkdown();
+        $lines = [];
 
-            if (! $layer->isInventory()) {
-                $next = $progress->next();
+        // 1. The job, before any context at all.
+        $lines[] = '=== TU TRABAJO EN ESTE MENSAJE ===';
 
-                $lines[] = '';
-                $lines[] = $next === null
-                    ? 'No falta ninguno. Puedes cerrar la capa.'
-                    : 'El siguiente sin llenar es: '.$next->label()
-                        .($next->isRequired() ? ' (obligatorio).' : ' (opcional).');
-            }
+        if ($layer->isInventory()) {
+            $lines[] = 'Esta sección no se escribe: es el inventario de archivos de la marca.';
+        } elseif ($next === null) {
+            $lines[] = 'No falta ningún entregable en esta sección. Puedes proponer cerrarla.';
         } else {
-            // A turn about no layer in particular — "¿por dónde empezamos?".
-            $lines[] = 'Todavía no están trabajando en una capa concreta.';
+            $lines[] = 'OBJETIVO: conseguir «'.$next->label().'».';
+            $lines[] = 'QUÉ ES: '.(BrandEggLayer::objective($next) ?? $next->label());
+            $lines[] = 'CÓMO: si todavía no te lo han respondido, pregúntalo. Si ya te lo '
+                .'respondieron, devuélveselo en una frase y envuélvelo en ⟦guardar⟧…⟦/guardar⟧.';
+            $lines[] = '';
+            $lines[] = 'PROHIBIDO EN ESTE MENSAJE:';
+            $lines[] = '- Preguntar tú por otra cosa: la pregunta que hagas es ésta.';
+            $lines[] = '- Decir que esta sección está lista, resumirla o proponer pasar a otra.';
+            $lines[] = '- Nombrar secciones o entregables que no estén en esta lista.';
+            $lines[] = '- Repetir lo que dijiste en tu mensaje anterior.';
+            $lines[] = '';
+            // ⚠️ THE LINE ABOVE GOVERNS WHAT SHE ASKS, NOT WHETHER SHE ANSWERS.
+            // Without this she read "no preguntes por otra cosa" as licence to
+            // ignore the team: asked whether an image could be filed as an
+            // asset, she answered "eso va en Brand Assets y aquí estamos
+            // armando la yema" and went straight back to her question. The
+            // objective is why she asks, never a reason to leave somebody
+            // unanswered.
+            $lines[] = 'Si el equipo te dijo o preguntó otra cosa, contéstala primero en una '
+                .'línea y sigue con el objetivo en el mismo mensaje. Contestar no es cambiar '
+                .'de objetivo.';
+            $lines[] = 'Y si lo que te dijeron es trabajo de OTRA sección, dilo, nombra cuál y '
+                .'ofréceles cambiarse. Ellos la cambian arriba; tú no puedes.';
+        }
+
+        // 2. Where we are.
+        $lines[] = '';
+        $lines[] = '=== DÓNDE ESTAMOS ===';
+        $lines[] = 'Marca: '.$client->name;
+        $lines[] = 'Sección '.$layer->ring().' de 5: '.$layer->label();
+        $lines[] = $layer->description();
+        $lines[] = '';
+        $lines[] = 'Las cinco secciones, en orden, y qué va en cada una:';
+        $lines[] = $this->sectionNames();
+
+        // 3. The objectives of this section, and their state.
+        if (! $layer->isInventory()) {
+            $lines[] = '';
+            $lines[] = '=== OBJETIVOS DE ESTA SECCIÓN ===';
+            $lines[] = 'Estado leído de la base de datos. Es el único que cuenta: lo que hayas '
+                .'propuesto tú no está guardado hasta que una persona hace clic.';
+            $lines[] = $progress->toMarkdown();
         }
 
         $lines[] = '';
-        $lines[] = 'MENSAJE DEL EQUIPO:';
+        $lines[] = '=== MENSAJE DEL EQUIPO ===';
         $lines[] = trim($question);
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * The five sections, named the same way every turn so none gets invented —
+     * and each with what belongs in it.
+     *
+     * ⚠️ THE DESCRIPTIONS ARE WHAT LET HER SEE SHE IS IN THE WRONG SECTION.
+     * With names alone she could not tell that "¿agrego esta imagen?" is
+     * section 4's business, so she read it as an interruption to section 1 and
+     * refused it. A person doing this work moves between rings constantly; the
+     * assistant has to recognise that and offer to move, not hold the line.
+     *
+     * ⚠️ FROM THE ENUM, never typed into the prompt. It is the same bytes for
+     * every brand and would be cheaper in block 1, but a copy in a config file
+     * drifts the day a label changes and nothing would fail — the map would
+     * just quietly describe an app that no longer exists.
+     */
+    private function sectionNames(): string
+    {
+        return collect(BrandEggLayer::cases())
+            ->map(fn (BrandEggLayer $layer) => '- '.$layer->ring().'. '
+                .$layer->label().' — '.$layer->description())
+            ->implode('
+');
     }
 
     /**
@@ -184,6 +279,7 @@ final class EggAssistant
         string $question,
         string $reply,
         ?BrandEggLayer $layer,
+        array $attachments = [],
     ): void {
         BrandEggMessage::create([
             'client_id' => $client->id,
@@ -191,6 +287,13 @@ final class EggAssistant
             'role' => 'user',
             'body' => $question,
             'layer' => $layer,
+            // ⚠️ NAMES, NEVER BYTES. An earlier turn replays its files by name;
+            // re-inlining a screenshot on every later question would multiply a
+            // conversation's cost by the size of its first image.
+            'attachments' => array_map(
+                static fn (Attachment $file): string => $file->filename,
+                $attachments,
+            ) ?: null,
         ]);
 
         BrandEggMessage::create([

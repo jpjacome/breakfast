@@ -18,6 +18,8 @@ use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\BrandAssetController;
 use App\Http\Controllers\BrandEggMapController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\ConversationFolderController;
 use App\Http\Controllers\Portal\AssistantController as PortalAssistantController;
 use App\Http\Controllers\Portal\BrandAssetController as PortalBrandAssetController;
 use App\Http\Controllers\Portal\BrandController as PortalBrandController;
@@ -30,6 +32,8 @@ use App\Http\Controllers\Portal\NotificationController;
 use App\Http\Controllers\Portal\ProfileController as PortalProfileController;
 use App\Http\Controllers\Portal\TeamController;
 use App\Http\Controllers\UserFileController;
+use App\Models\AssistantMessage;
+use Illuminate\Routing\Route as RouteInstance;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -105,10 +109,56 @@ Route::middleware('auth')
 // with a {client} in them, so every brand-scoped route added later is guarded
 // the day it is written rather than when somebody remembers. Equipo members
 // see only the brands they were put on; Admins reach all of them.
+/*
+|--------------------------------------------------------------------------
+| The history panel's routes — item 5
+|--------------------------------------------------------------------------
+|
+| The same seven endpoints on both sides of the app, registered by this closure
+| so there is one copy of them rather than two that can drift apart.
+|
+| ⚠️ THE SURFACE IS A ROUTE DEFAULT, never something the browser posts. Every
+| action in ConversationController is scoped by it, so a surface read from the
+| request body would be the one field somebody could change to read Breakfast's
+| dashboard history from a client's session. The route says which side it is,
+| because the route is already inside the group whose middleware decided that.
+|
+| ⚠️ `defaults()` IS PER ROUTE, not on the group registrar — Laravel has no
+| group-level equivalent, which is why this is a closure and not a `->defaults()`
+| beside `->prefix()`.
+|
+| ⚠️ ONLY `resumir` CARRIES THE AI GATES. Renaming a conversation is a database
+| write; that one calls the provider, so it takes both the throttle and
+| 'ai-turn' like every other AI surface (CLAUDE.md §7).
+*/
+$conversationRoutes = function (string $surface): void {
+    $on = fn (RouteInstance $route): RouteInstance => $route->defaults('surface', $surface);
+
+    Route::prefix('conversaciones')->name('conversations.')->group(function () use ($on) {
+        $on(Route::get('/', [ConversationController::class, 'index'])->name('index'));
+        $on(Route::post('/', [ConversationController::class, 'store'])->name('store'));
+
+        $on(Route::get('{conversation}', [ConversationController::class, 'show'])->name('show'));
+        $on(Route::patch('{conversation}', [ConversationController::class, 'update'])->name('update'));
+        $on(Route::delete('{conversation}', [ConversationController::class, 'destroy'])->name('destroy'));
+
+        $on(
+            Route::post('{conversation}/resumir', [ConversationController::class, 'summarise'])
+                ->middleware(['throttle:10,1', 'ai-turn'])
+                ->name('summarise')
+        );
+        $on(Route::patch('{conversation}/resumen', [ConversationController::class, 'rewriteSummary'])->name('summary'));
+
+        $on(Route::post('carpetas', [ConversationFolderController::class, 'store'])->name('folders.store'));
+        $on(Route::patch('carpetas/{folder}', [ConversationFolderController::class, 'update'])->name('folders.update'));
+        $on(Route::delete('carpetas/{folder}', [ConversationFolderController::class, 'destroy'])->name('folders.destroy'));
+    });
+};
+
 Route::middleware(['auth', 'breakfast', 'covers-client'])
     ->prefix('admin')
     ->name('admin.')
-    ->group(function () {
+    ->group(function () use ($conversationRoutes) {
         Route::get('/', DashboardController::class)->name('home');
 
         // The dashboard assistant — every brand at once, read from the
@@ -117,6 +167,9 @@ Route::middleware(['auth', 'breakfast', 'covers-client'])
         Route::post('asistente', AdminAssistantController::class)
             ->middleware(['throttle:20,1', 'ai-turn'])
             ->name('assistant');
+
+        // The history panel, on the dashboard's side.
+        $conversationRoutes(AssistantMessage::SURFACE_ADMIN);
 
         // Design test bench for the assistant orb. Goes away with the orb's
         // own view once it is mounted in the assistant panel.
@@ -329,7 +382,7 @@ Route::middleware(['auth', 'breakfast', 'covers-client'])
 | stays as it is.
 */
 
-Route::middleware(['auth'])->prefix('portal')->name('portal.')->group(function () {
+Route::middleware(['auth'])->prefix('portal')->name('portal.')->group(function () use ($conversationRoutes) {
 
     Route::view('/', 'portal.home')->name('home');
 
@@ -359,6 +412,9 @@ Route::middleware(['auth'])->prefix('portal')->name('portal.')->group(function (
     Route::post('/asistente', PortalAssistantController::class)
         ->middleware(['throttle:20,1', 'ai-turn'])
         ->name('assistant');
+
+    // The same panel, scoped to the brand they are working in.
+    $conversationRoutes(AssistantMessage::SURFACE_PORTAL);
 
     // Everybody has an inbox: what lands in it was already filtered by who
     // could see the thing it is about, so there is no section gate here.

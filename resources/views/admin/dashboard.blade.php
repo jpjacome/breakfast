@@ -16,7 +16,10 @@
     use Illuminate\Support\Number;
 @endphp
 
+{{-- :conversations gives this screen the history rail. It belongs on a page
+     with an assistant and nowhere else — see the layout's docblock. --}}
 <x-layouts.app title="Inicio" heading="inicio" :css="['assistant', 'attachments']"
+               :conversations="route('admin.conversations.index')"
                :scripts="['resources/js/assistant.js', 'resources/js/lightbox.js']">
 
     <x-slot:actions>

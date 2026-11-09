@@ -21,12 +21,30 @@ beforeEach(function () {
 */
 
 test('the screen opens for a brand that has never been worked on', function () {
+    /*
+     * ⚠️ THE THREE STEPS ARE NOT ON THIS SCREEN ANY MORE (2026-09-17). This
+     * board is the 48 entregables and the brand's folder; "where is this
+     * project" is a different question and it is answered on the brand page.
+     * See <x-admin.process-steps>.
+     */
     actingAs($this->admin)
         ->get(route('admin.clients.process.edit', $this->client))
         ->assertOk()
-        ->assertSee('Proceso y entregables')
+        ->assertSee('los entregables')
+        ->assertSee('Arquetipos de marca')
+        ->assertDontSee('Iniciar paso');
+});
+
+test('the three steps are on the brand page instead', function () {
+    actingAs($this->admin)
+        ->get(route('admin.clients.show', $this->client))
+        ->assertOk()
+        ->assertSee('el proceso')
         ->assertSee('Identidad de marca')
-        ->assertSee('Sin empezar');
+        ->assertSee('Sin empezar')
+        // ⚠️ And the page reads coarse to fine: proceso, then the Egg, then the
+        // 48. Breakfast's order, 2026-09-17.
+        ->assertSeeInOrder(['el proceso', 'brand egg', 'los entregables']);
 });
 
 test('all 48 entregables are on the page', function () {
@@ -393,7 +411,9 @@ test('the process screen disables Iniciar paso on the other cards while one runs
     ]);
 
     actingAs($this->admin)
-        ->get(route('admin.clients.process.edit', $this->client))
+        // ⚠️ THE BRAND PAGE, not the board: the three steps moved there on
+        // 2026-09-17. See <x-admin.process-steps>.
+        ->get(route('admin.clients.show', $this->client))
         ->assertOk()
         // An admin who clicked it anyway would only get the same sentence
         // back as a flash message, one request later.

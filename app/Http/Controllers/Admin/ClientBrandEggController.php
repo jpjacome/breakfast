@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\KeepAssistantAttachments;
 use App\Enums\BrandEggLayer;
 use App\Enums\DeliverableItem;
 use App\Http\Controllers\Controller;
@@ -20,6 +21,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * The Brand Egg — the admin side of it.
@@ -46,6 +48,7 @@ class ClientBrandEggController extends Controller
     public function __construct(
         private readonly EggComposer $composer,
         private readonly EggAssistant $assistant,
+        private readonly KeepAssistantAttachments $keep,
     ) {}
 
     /**
@@ -64,12 +67,24 @@ class ClientBrandEggController extends Controller
     {
         $layer = $request->layer();
 
+        /*
+         * ⚠️ KEPT BEFORE THE ANSWER, and kept even if the answer fails. The
+         * bytes are already on this server and the turn has been paid for;
+         * losing the file because the provider was down would mean attaching it
+         * again. Same order as the other three panels.
+         *
+         * It lands in the PERSON'S folder, not the brand's — what somebody
+         * pastes is theirs (queued item A).
+         */
+        $this->keep->handle($request->user(), array_values((array) $request->file('files', [])));
+
         try {
             $answer = $this->assistant->answer(
                 $client,
                 $request->user(),
                 (string) $request->validated('message'),
                 $layer,
+                $request->attachments(),
             );
         } catch (LlmException $e) {
             // What a person may be told when a turn fails — never the
@@ -78,12 +93,33 @@ class ClientBrandEggController extends Controller
             return response()->json(['error' => AssistantFailure::message($e, forStaff: true)], 502);
         }
 
+        /*
+         * ⚠️ THE SERVER DECIDES WHICH ENTREGABLE A CARD SAVES TO. NOT HER.
+         *
+         * She used to name it in the marker and she got it wrong both ways it
+         * can be got wrong: `promesa` for a column called `brand_promise`, and
+         * `publico` for a section that does not exist. Each one 404'd behind
+         * "no se pudo guardar" with nothing in the log, because an unknown key
+         * dies in route binding before the app runs.
+         *
+         * There is nothing to ask her for. The conversation is one entregable
+         * at a time — the turn she was just sent says "pregunta SÓLO por X" —
+         * so the entregable a card belongs to is whatever the checklist says
+         * is next. Read from `sources()` against `brand_deliverables`, which is
+         * the same place the tick comes from.
+         *
+         * If nothing is next — the layer is settled, or it is the inventory —
+         * the card can only be accepted into the Egg, and that is correct.
+         */
+        $progress = $layer !== null && ! $layer->isInventory()
+            ? LayerProgress::for($client->fresh(), $layer)
+            : null;
+
         return response()->json([
             'reply' => $answer['reply'],
             'layer' => $layer?->value,
-            'checklist' => $layer === null || $layer->isInventory()
-                ? null
-                : LayerProgress::for($client->fresh(), $layer)->toMarkdown(),
+            'checklist' => $progress?->toMarkdown(),
+            'target' => $progress?->next()?->value,
         ]);
     }
 
@@ -123,9 +159,26 @@ class ClientBrandEggController extends Controller
         BrandEggLayer $layer,
         DeliverableItem $item,
     ): JsonResponse {
-        // Fail closed. 404 rather than 422: an entregable this section does not
-        // read is not a bad value, it is a route that does not exist here.
-        abort_unless(in_array($item, $layer->sources(), true), 404);
+        /*
+         * Fail closed. 404 rather than 422: an entregable this section does not
+         * read is not a bad value, it is a route that does not exist here.
+         *
+         * ⚠️ AND IT SAYS SO IN THE LOG FIRST. Laravel does not report
+         * HttpException — which is right for the internet and wrong for a route
+         * only this app's own fetch() calls, because the panel then shows "no se
+         * pudo guardar" and laravel.log has nothing in it. Same silence trap 5
+         * documents, with a different number on it.
+         */
+        if (! in_array($item, $layer->sources(), true)) {
+            Log::warning('Brand Egg: entregable refused for this section', [
+                'client' => $client->slug,
+                'layer' => $layer->value,
+                'item' => $item->value,
+                'reads' => array_map(fn (DeliverableItem $i) => $i->value, $layer->sources()),
+            ]);
+
+            abort(404);
+        }
 
         $text = trim((string) $request->input('texto'));
 

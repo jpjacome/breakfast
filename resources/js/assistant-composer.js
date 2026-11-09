@@ -122,10 +122,10 @@ export function attachComposer(field, form) {
      * to say so. `index === null` means "in the live draft" rather than a
      * position in the list.
      *
-     * In memory only, deliberately. The thread above is re-rendered by the
-     * server on every load, so the questions are still on screen after a
-     * reload; persisting a second copy in the browser would be a private cache
-     * of what somebody asked, kept for nothing the page needs.
+     * In memory only, deliberately — and seeded from the thread on screen by
+     * seed() below, not from browser storage. Persisting a second copy would be
+     * a private cache of what somebody asked, outliving the session that made
+     * it and kept for nothing the page does not already have.
      */
     const entries = [];
     const working = [];
@@ -201,6 +201,48 @@ export function attachComposer(field, form) {
     });
 
     return {
+        /**
+         * Load the questions sent before this page existed, oldest first.
+         *
+         * ⚠️ THE SOURCE IS THE THREAD ON SCREEN, NEVER THE BROWSER. Until this
+         * existed the list started empty on every load, so Up did nothing at
+         * exactly the moment it is most useful — you come back to a
+         * conversation to carry on with it. The fix is not localStorage: the
+         * server already prints what was said, so the panels read their own
+         * turns out of the thread and hand them here. Nothing is stored that
+         * the page cannot see anyway.
+         *
+         * Called again when the history panel opens another conversation — the
+         * thread changed, so what Up walks back through changed with it. The
+         * walk is abandoned rather than carried across: standing on turn three
+         * of a conversation nobody is looking at any more is a position with no
+         * meaning. Whatever is in the box stays, and becomes the draft.
+         */
+        seed(values) {
+            entries.length = 0;
+
+            for (const value of values ?? []) {
+                const text = value.trim();
+
+                // The same rule reset() applies: a question asked twice running
+                // is one entry, or getting past it costs two Ups.
+                if (text === '' || text === entries[entries.length - 1]) continue;
+
+                entries.push(text);
+            }
+
+            // Keep the NEWEST, which is the end of the list — a thread longer
+            // than the cap would otherwise recall its oldest questions and
+            // none of the recent ones.
+            if (entries.length > MAX_HISTORY) entries.splice(0, entries.length - MAX_HISTORY);
+
+            working.length = 0;
+            working.push(...entries);
+
+            index = null;
+            draft = field.value;
+        },
+
         /**
          * Clear the box after a send, and remember what was in it.
          *

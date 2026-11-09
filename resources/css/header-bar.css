@@ -1,0 +1,174 @@
+/* ==========================================================================
+   HEADER BAR — the yellow strip across the top of /admin and /portal.
+
+   A COMPONENT STYLESHEET, not a shell's. The bar is drawn in both shells, so
+   neither admin.css nor dashboard.css can hold it — the same rule that put
+   permissions.css and conversations.css in files of their own, and the same
+   trap: a rule in here may only use tokens BOTH shells define, or it renders
+   naked on one side.
+
+   It sidesteps that almost entirely by being brand furniture rather than
+   themed surface: yellow plane, black type, in light and in dark alike. The
+   wordmark sticker carries on either, which is why one asset has always been
+   enough for both rails.
+   ========================================================================== */
+
+/*
+   ⚠️ THE HEIGHT IS A TOKEN BECAUSE THE SHELLS NEED IT AND THIS FILE KNOWS IT.
+   Both frames hang a full-height column beside the content — the rail, and the
+   conversations panel — sized off the viewport. With a bar above them, full
+   height is the viewport MINUS this bar; get it wrong and every screen in the
+   app scrolls by exactly the amount that is wrong. One number, declared where
+   it is drawn, read where it is subtracted.
+*/
+:root { --header-bar-height: 72px; }
+
+.header-bar {
+  position: sticky;
+  top: 0;
+  /* Above the rail, which is the tallest thing it has to stay in front of. */
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  height: var(--header-bar-height);
+  padding-inline: clamp(1rem, 3vw, 2rem);
+  background: var(--bkf-yellow);
+  color: var(--bkf-black);
+}
+
+.header-bar-logo img { width: 200px; height: auto; }
+
+/* The right-hand end: the theme switch, then the pill. */
+.header-bar-controls {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+/* ⚠️ THE TOGGLE'S OWN HOVER IS --rail-hover, WHICH IS WRONG ON THIS BAR.
+   general.css gives it the hosting rail's tint so it follows whatever plane it
+   sits on — and that tint is white-on-black in the dark theme, while this bar
+   is yellow in BOTH themes. It would have been an invisible hover half the
+   time. A black tint instead, which reads on yellow either way. */
+.header-bar .theme-toggle:hover {
+  background: color-mix(in srgb, var(--bkf-black) 12%, transparent);
+}
+
+/* The pill, and the menu under it — who you are, your account and the way out.
+
+   A details/summary, the same mechanism the bell and the brand picker use in
+   the portal shell: no script, and Escape and focus come from the browser. */
+.header-bar-user { position: relative; }
+
+/* White plane on the yellow, the one radius, the one border width — the same
+   construction as every other boxed thing in the app, rather than a shape of
+   its own. */
+.header-bar-user summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  padding: .3rem 1rem .3rem .3rem;
+  border: var(--border-width) solid var(--bkf-black);
+  border-radius: var(--border-radius);
+  background: var(--bkf-white);
+  font-size: .9rem;
+  white-space: nowrap;
+}
+
+/* Both spellings. A summary given display:flex keeps its marker in Chrome, and
+   ::-webkit-details-marker alone does not reach it. */
+.header-bar-user summary::marker { content: ''; }
+.header-bar-user summary::-webkit-details-marker { display: none; }
+
+.header-bar-chevron { width: 16px; height: 16px; }
+.header-bar-user[open] .header-bar-chevron { transform: rotate(180deg); }
+
+/* Same construction as the popovers in the portal topbar — same radius,
+   border, padding and shadow. Two menus in one product that disagreed about
+   their proportions would read as two different components.
+
+   ⚠️ IT TAKES NO THEME TOKEN. This file is drawn in both shells, so a
+   var(--surface) here would render naked on whichever side does not define it
+   — the way permissions.css did with --box-edge. The bar is brand furniture:
+   white plane, black keyline, the same in light and dark. */
+.header-bar-menu {
+  position: absolute;
+  top: calc(100% + .5rem);
+  right: 0;
+  z-index: 10;
+  width: max-content;
+  min-width: 11rem;
+  display: grid;
+  gap: .25rem;
+  padding: .5rem;
+  border: var(--border-width) solid var(--bkf-black);
+  border-radius: var(--border-radius);
+  background: var(--bkf-white);
+  box-shadow: 0 12px 32px rgb(0 0 0 / .18);
+}
+
+/* Who the menu is about. The whole name, not the greeting on the pill, and
+   under it what you ARE — on /portal the role in the brand you are looking at.
+   It is the one thing in here that is not a control, so it is the one thing
+   with no hover and no pointer. */
+.header-bar-who {
+  display: grid;
+  margin: 0;
+  padding: .5rem .875rem .625rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--bkf-black) 15%, transparent);
+  margin-bottom: .25rem;
+}
+
+.header-bar-who b { font-size: .875rem; font-weight: 500; }
+.header-bar-who span { font-size: .7rem; color: color-mix(in srgb, var(--bkf-black) 62%, transparent); }
+
+/* The link and the logout button are one row, written once: a form button and
+   an anchor that look different in the same menu read as two kinds of thing,
+   and they are not — they are both "leave this page for that one". */
+.header-bar-menu a,
+.header-bar-menu button {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  width: 100%;
+  padding: .625rem .875rem;
+  border: 0;
+  border-radius: var(--border-radius);
+  background: none;
+  color: var(--bkf-black);
+  font: inherit;
+  font-size: .875rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.header-bar-menu a:hover,
+.header-bar-menu button:hover { background: var(--bkf-yellow-100); }
+.header-bar-menu svg { width: 18px; height: 18px; flex: none; }
+
+.header-bar-avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  /* A circle is a shape, not a radius — it does not take the one radius. The
+     same 34px the rail's avatar is, so the two read as one person. */
+  border-radius: 50%;
+  background: var(--bkf-black);
+  color: var(--bkf-yellow);
+}
+
+.header-bar-avatar svg { width: 18px; height: 18px; }
+
+/* The name goes on a phone before the pill does: an avatar alone still says
+   who is signed in, and the greeting is the part that costs the width. */
+@media (max-width: 480px) {
+  .header-bar-greeting { display: none; }
+  .header-bar-user summary { padding-right: .5rem; }
+  .header-bar-logo img { width: 112px; }
+}

@@ -9,12 +9,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\PortalAssistantRequest;
 use App\Models\AssistantMessage;
 use App\Models\Client;
+use App\Models\Conversation;
 use App\Models\User;
+use App\Services\Ai\ActiveConversation;
 use App\Services\Ai\AssistantFailure;
 use App\Services\Ai\BrandAssistant;
 use App\Services\Ai\BrandContextRepository;
+use App\Services\Ai\ConversationReferences;
 use App\Services\Ai\Data\Message;
 use App\Services\Ai\Exceptions\LlmException;
+use App\Services\Ai\SummarisesConversations;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -42,6 +46,9 @@ class AssistantController extends Controller
         private readonly BrandAssistant $assistant,
         private readonly BrandContextRepository $context,
         private readonly KeepAssistantAttachments $keep,
+        private readonly ActiveConversation $conversations,
+        private readonly SummarisesConversations $summariser,
+        private readonly ConversationReferences $references,
     ) {}
 
     public function __invoke(PortalAssistantRequest $request): JsonResponse
@@ -72,12 +79,37 @@ class AssistantController extends Controller
             return response()->json(['error' => $e->getMessage()], 422);
         }
 
+        /*
+         * ⚠️ RESOLVED BEFORE THE ANSWER, so a bad id costs nothing — and
+         * SCOPED TO THE ACTIVE BRAND. An id belonging to this person's OTHER
+         * brand is a 404 here, which is the same rule the thread already
+         * followed: without it, switching brands and continuing would replay
+         * one brand's turns into the other's prompt (ACC-01).
+         */
+        $conversation = $this->conversations->for(
+            $user,
+            AssistantMessage::SURFACE_PORTAL,
+            $client,
+            $request->validated('conversation'),
+        );
+
         try {
             $response = $this->assistant->answer(
                 context: $this->context->for($client),
-                question: $question,
+                // ⚠️ The referenced conversations ride on the question and are
+                // NOT remembered with it: remember() below gets the raw one, so
+                // the transcript shows what the client typed rather than a
+                // digest they never wrote — and so it is not replayed, and
+                // re-paid for, on every later turn.
+                question: $question.($this->references->digest(
+                    $user,
+                    AssistantMessage::SURFACE_PORTAL,
+                    $client->id,
+                    $question,
+                    $conversation,
+                ) ?? ''),
                 userId: $user->id,
-                history: $this->history($user, $client),
+                history: $this->history($user, $client, $conversation),
                 attachments: $attachments,
                 speaker: $user->firstName(),
             );
@@ -118,9 +150,20 @@ class AssistantController extends Controller
             $response->content,
             $request->attachmentNames(),
             array_map(fn ($asset) => $asset->id, $kept),
+            $conversation,
         );
 
-        return response()->json(['reply' => $response->content]);
+        // ⚠️ AFTER THE ANSWER AND IT NEVER THROWS: folding the old part up is a
+        // second paid call, and a hiccup in it must not turn an answer the
+        // client is already looking at into a 502.
+        $conversation->noteActivity();
+        $this->summariser->handle($conversation);
+
+        return response()->json([
+            'reply' => $response->content,
+            'conversation' => $conversation->id,
+            'title' => $conversation->fresh()->title,
+        ]);
     }
 
     /**
@@ -132,18 +175,38 @@ class AssistantController extends Controller
      *
      * @return array<int, Message>
      */
-    private function history(User $user, Client $client): array
+    private function history(User $user, Client $client, ?Conversation $conversation = null): array
     {
-        return AssistantMessage::query()
-            // ⚠️ Scoped to the brand. One account can be in several (ACC-01),
-            // and an unscoped thread would replay brand A's turns into brand
-            // B's prompt — see AssistantMessage::scopeThread().
-            ->thread($user->id, AssistantMessage::SURFACE_PORTAL, clientId: $client->id)
-            ->get()
-            ->reverse()
+        /*
+         * ⚠️ THE CONVERSATION DECIDES WHAT IS REPLAYED, not a count of rows —
+         * item 5. replayable() returns everything since the summary, and the
+         * summary carries the beginning, so a long afternoon is no longer
+         * silently truncated at twenty turns.
+         *
+         * The scopeThread() path stays for a turn from a page that has not been
+         * reloaded since the panel shipped. It is scoped to the brand for the
+         * reason it always was: one account can be in several (ACC-01), and an
+         * unscoped thread replays brand A's turns into brand B's prompt.
+         */
+        $turns = $conversation !== null
+            ? $conversation->replayable()
+            : AssistantMessage::query()
+                ->thread($user->id, AssistantMessage::SURFACE_PORTAL, clientId: $client->id)
+                ->get()
+                ->reverse();
+
+        $history = $turns
             ->map(fn (AssistantMessage $m): Message => $m->toLlmMessage())
             ->values()
             ->all();
+
+        $summary = trim((string) $conversation?->summary);
+
+        return $summary === ''
+            ? $history
+            : [Message::user('Resumen de lo anterior en esta conversación:'.'
+
+'.$summary), ...$history];
     }
 
     /**
@@ -162,9 +225,14 @@ class AssistantController extends Controller
         string $answer,
         array $files = [],
         array $assetIds = [],
+        ?Conversation $conversation = null,
     ): void {
+        $conversation?->titleFrom($question);
+
         foreach ([['user', $question], ['assistant', $answer]] as [$role, $body]) {
             AssistantMessage::create([
+                // Which conversation this turn belongs to — item 5.
+                'conversation_id' => $conversation?->id,
                 'user_id' => $user->id,
                 'surface' => AssistantMessage::SURFACE_PORTAL,
                 'role' => $role,

@@ -7,9 +7,12 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\KeepAssistantAttachments;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminAssistantRequest;
+use App\Models\AssistantMessage;
 use App\Models\Client;
+use App\Services\Ai\ActiveConversation;
 use App\Services\Ai\AdminAssistant;
 use App\Services\Ai\AssistantFailure;
+use App\Services\Ai\ConversationReferences;
 use App\Services\Ai\Exceptions\LlmException;
 use Illuminate\Http\JsonResponse;
 
@@ -28,6 +31,8 @@ class AdminAssistantController extends Controller
     public function __construct(
         private readonly AdminAssistant $assistant,
         private readonly KeepAssistantAttachments $keep,
+        private readonly ActiveConversation $conversations,
+        private readonly ConversationReferences $references,
     ) {}
 
     public function __invoke(AdminAssistantRequest $request): JsonResponse
@@ -55,6 +60,22 @@ class AdminAssistantController extends Controller
             return response()->json(['error' => $e->getMessage()], 422);
         }
 
+        /*
+         * ⚠️ RESOLVED BEFORE THE ANSWER, so a bad id costs nothing. This is the
+         * one field of the request somebody could hand-post at another
+         * person's thread, and ActiveConversation 404s rather than falling back
+         * — checking it after a paid call would mean paying for the refusal.
+         *
+         * ⚠️ NO BRAND IS PASSED, deliberately. The dashboard's conversation
+         * crosses brands; the dropdown says what THIS question is about, not
+         * which thread it belongs to.
+         */
+        $conversation = $this->conversations->for(
+            $user,
+            AssistantMessage::SURFACE_ADMIN,
+            requested: $validated['conversation'] ?? null,
+        );
+
         // Kept BEFORE the answer, and kept even if the answer fails: the bytes
         // are already on this server, the turn has already been paid for, and
         // losing the file because the provider was down would mean uploading it
@@ -78,6 +99,17 @@ class AdminAssistantController extends Controller
                 $attachments,
                 $request->attachmentNames(),
                 array_map(fn ($asset) => $asset->id, $kept),
+                $conversation,
+                // Anything the question pointed at with #conv-N, resolved
+                // through the same ownership check as the panel itself — an id
+                // that is not theirs is dropped in silence, never refused.
+                $this->references->digest(
+                    $user,
+                    AssistantMessage::SURFACE_ADMIN,
+                    null,
+                    (string) ($validated['question'] ?? ''),
+                    $conversation,
+                ),
             );
         } catch (LlmException $e) {
             report($e);
@@ -91,6 +123,11 @@ class AdminAssistantController extends Controller
         return response()->json([
             'reply' => $response->content,
             'brand' => $client?->name,
+            // The panel needs both back: the id because a first question may
+            // have just created the conversation, and the title because it was
+            // written from that same question.
+            'conversation' => $conversation->id,
+            'title' => $conversation->fresh()->title,
         ]);
     }
 }

@@ -157,6 +157,63 @@ enum BrandEggLayer: string
     }
 
     /**
+     * What each entregable of this Egg actually asks for, in one line.
+     *
+     * THE OBJECTIVES OF A SECTION, WRITTEN DOWN. Without these the assistant
+     * improvises the question from the entregable's LABEL, and "Brand promise"
+     * is not a question — so she invents one, and then invents an entregable to
+     * put the answer in. Every drift seen on 2026-09-17 started here.
+     *
+     * ⚠️ ONE DEFINITION PER ENTREGABLE, NOT PER LAYER. `valores` feeds sections
+     * 1, 2 and 5 and means the same thing in all three; asking for it
+     * differently depending on the ring would make the same column hold three
+     * different questions' answers.
+     *
+     * ⚠️ THESE ARE THE QUESTIONS FROM docs/brand-egg.md §14.4–14.7, and that is
+     * where they were argued out. Change them there first, or the plan stops
+     * describing the app.
+     *
+     * Null for anything this Egg does not read.
+     */
+    public static function objective(DeliverableItem $item): ?string
+    {
+        return match ($item) {
+            DeliverableItem::Relato => '¿De dónde nace esta marca? No la empresa: la marca. '
+                .'¿Qué pasó para que alguien decidiera que tenía que existir?',
+
+            DeliverableItem::BrandPromise => '¿Qué puede esperar su cliente siempre, cada vez? '
+                .'Eso es lo que promete. Una frase, sin adjetivos.',
+
+            DeliverableItem::BrandStatement => '¿Cómo se presenta la marca en dos líneas? '
+                .'Qué es, para quién, y por qué importa.',
+
+            DeliverableItem::Valores => '¿Cuáles son las tres o cuatro cosas que esta marca no '
+                .'negocia, ni cuando cuestan dinero?',
+
+            DeliverableItem::Manifesto => '¿Hay algo que esta marca defienda y diría en voz alta? '
+                .'Es opcional: si no lo hay, se salta y no pasa nada.',
+
+            DeliverableItem::Claim => '¿Ya usan alguna frase para cerrar? Es opcional. Si no la '
+                .'hay, propón tres a partir de lo que ya está escrito y que elijan ellos.',
+
+            DeliverableItem::Arquetipos => 'Propón dos o tres arquetipos que encajen con el relato '
+                .'y los valores, con tu razonamiento — y que elijan ellos. Es un vocabulario '
+                .'cerrado: tú propones, ellos deciden.',
+
+            DeliverableItem::Publicos => '¿A quién le cambia el día esta marca? Una persona '
+                .'concreta, no un segmento: qué hace un martes, qué le preocupa.',
+
+            DeliverableItem::Insight => '¿Qué le molesta HOY a esa persona, que esta marca '
+                .'resuelve? Una tensión, no una necesidad.',
+
+            DeliverableItem::LookAndFeel => '¿Cómo se ve el mundo de esta marca? No los colores '
+                .'todavía: la sensación. ¿Luminoso o en penumbra? ¿Limpio o cargado?',
+
+            default => null,
+        };
+    }
+
+    /**
      * Whether this layer is an INVENTORY rather than a paragraph.
      *
      * ⚠️ EXACTLY ONE LAYER IS, and it changes what the layer physically is.

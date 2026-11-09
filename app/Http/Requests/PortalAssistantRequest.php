@@ -37,6 +37,10 @@ class PortalAssistantRequest extends FormRequest
             // question, and asking somebody to type one as well defeats the
             // point of recording it.
             'question' => [$this->hasFile('files') ? 'nullable' : 'required', 'string', 'max:1000'],
+            // Which conversation this belongs to — item 5. Only a hint: the
+            // controller resolves it through ActiveConversation, which 404s on
+            // an id that is not this person's, or is another brand's.
+            'conversation' => ['nullable', 'integer'],
             ...$this->fileRules(),
         ];
     }

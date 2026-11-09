@@ -12,6 +12,7 @@ use App\Notifications\ClientInvitation;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 
 /**
  * Create an account on a brand and send its owner the link to set a password.
@@ -55,6 +56,41 @@ class InviteUserToClient
         $existing = User::where('email', $email)->first();
 
         if ($existing !== null) {
+            /*
+             * ⚠️ A STAFF ADDRESS IS REFUSED, AND THE TWO SIDES ARE TOLD
+             * DIFFERENT THINGS ON PURPOSE.
+             *
+             * Breakfast administers every account, so the admin form says
+             * plainly what is wrong — StoreClientUserRequest turns it into a
+             * field error before this runs, and attach() throws if anything
+             * else tries.
+             *
+             * An OWNER gets the same non-answer as every other known address:
+             * the identical sentence, the same bcrypt cost, nothing written. A
+             * message naming the Breakfast team would say "this address has an
+             * account", which is the one fact invitePending() exists to
+             * withhold. No invitation row either — one made here could never be
+             * accepted, because accept() goes through attach() too, so it would
+             * sit in the table as a mail nobody can answer.
+             */
+            if ($existing->isBreakfast()) {
+                if ($withConsent) {
+                    $this->equaliseTiming();
+
+                    return [
+                        'user' => null,
+                        'password' => null,
+                        'delivered' => false,
+                        'existed' => true,
+                        'pending' => true,
+                    ];
+                }
+
+                throw new InvalidArgumentException(
+                    "No se puede agregar a {$existing->email} a una marca: es una cuenta del equipo de Breakfast."
+                );
+            }
+
             /*
              * ⚠️ A BRAND OWNER MAY NOT ATTACH SOMEBODY — queued item B.
              *
@@ -228,6 +264,34 @@ class InviteUserToClient
         BrandRole|UserRole $role,
         array $permissions = [],
     ): void {
+        /*
+         * ⚠️ BREAKFAST STAFF ARE NOT BRAND MEMBERS, AND THIS IS THE ONE PLACE
+         * THAT CAN ACTUALLY STOP IT.
+         *
+         * `users.role` says which SIDE of the app you are on; `brand_user` says
+         * what you are in one brand (CLAUDE.md §5). A staff row in the pivot
+         * makes the two contradict each other, which is the one thing that
+         * model is built to prevent — and it is not harmless:
+         *
+         *   · staff reach every brand by role, so the membership grants nothing
+         *     and only adds a row that looks like a permission
+         *   · they show up in the brand's own team list on /portal/equipo,
+         *     where a client sees Breakfast staff listed as their people
+         *   · both destroy() methods used to delete an account whose last
+         *     brand was detached, so removing the row deleted the staff account
+         *
+         * Fails closed and loudly. The two callers are guarded upstream —
+         * StoreClientUserRequest rejects the address with a field error, and
+         * handle() never reaches a pending invitation for one — so getting here
+         * means a path that was written without knowing the rule, and a silent
+         * no-op would hide it.
+         */
+        if ($user->isBreakfast()) {
+            throw new InvalidArgumentException(
+                "No se puede agregar a {$user->email} a una marca: es una cuenta del equipo de Breakfast."
+            );
+        }
+
         $user->brands()->syncWithoutDetaching([
             $client->id => [
                 'role' => $this->brandRole($role)->value,

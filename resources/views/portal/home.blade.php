@@ -31,6 +31,7 @@
 @endphp
 
 <x-layouts.portal title="Inicio" :css="['assistant', 'attachments']"
+                  :conversations="route('portal.conversations.index')"
                   :scripts="['resources/js/assistant.js', 'resources/js/lightbox.js']">
 
     {{--

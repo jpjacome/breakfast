@@ -1,43 +1,50 @@
 /*
- * Dragging the line between the two rows of the admin's Brand Egg screen.
+ * Dragging the seam between the two panes of the admin's Brand Egg screen.
  *
- * The screen is the conversation over the drawing and the layers, and how much
- * of the page each deserves depends on what you are doing: filling a layer with
- * Brandy wants the top, reading the five paragraphs back wants the bottom.
- * Rather than guess, the line moves.
+ * How much of the page each pane deserves depends on what you are doing:
+ * filling a layer with Brandy wants the top, reading the five paragraphs back
+ * wants the bottom. Rather than guess, the seam moves.
  *
- * ⚠️ IT SETS ONE CUSTOM PROPERTY AND NOTHING ELSE. The grid is
- * `var(--egg-split, 1fr) auto minmax(0, 1fr)` — the top row takes the value,
- * the handle takes its own height, and the bottom takes what is left. So the
- * default with no property set is the 1fr/1fr the stylesheet already described,
- * and this file never has to know what the layout is when nobody has dragged.
+ * ⚠️ PERCENTAGES, NOT PIXELS, AND THAT IS THE WHOLE DESIGN. One number moves
+ * and the other is 100 minus it. A percentage survives a window resize by
+ * itself — a pixel height remembered on a tall monitor is most of the page on
+ * a laptop, and keeping it proportional would mean storing a fraction and
+ * recomputing on every resize. The browser already does that for us.
  *
- * ⚠️ STORED AS A FRACTION, APPLIED AS PIXELS. A pixel height remembered on a
- * tall monitor is most of the page on a laptop; a fraction is the same
- * proportion on both. localStorage because it is a per-viewer convenience —
- * exactly the case CLAUDE.md allows it for — and every read and write is
- * wrapped, because a private window throws rather than returning null.
+ * ⚠️ THE STYLESHEET'S DEFAULT IS NEVER TOUCHED. It says `50% 50%`; this file
+ * only ever writes an inline `grid-template-rows`, and removing that inline
+ * style hands the layout straight back. So a bug in here cannot change what
+ * the screen looks like before anybody drags — which is exactly how the first
+ * attempt at this went wrong: it altered the tracks themselves and the top
+ * pane computed to height 0.
  *
- * ⚠️ IT IS A CONTROL, SO IT TAKES THE KEYBOARD. Same rule the rings follow: a
- * thing that only answers a mouse is not a control. role="separator" with
- * aria-valuenow, and the arrows move it.
+ * ⚠️ THE HANDLE IS NOT A GRID ITEM. It is absolutely positioned over the seam,
+ * so it takes part in no track sizing at all. A third track was what broke the
+ * layout last time.
+ *
+ * ⚠️ HALF THE GAP COMES OFF EACH TRACK. Percentages resolve against the
+ * container's full height and ignore `gap`, so a plain `50% 50%` overflows by
+ * exactly the gap and the bottom pane hangs past the fold.
  */
 
 const KEY = 'breakfast-egg-split';
 
-/** How little either row may be left with. Below this neither is usable. */
-const MIN = 140;
+/** How close to an edge the seam may get, in percent. Below this a pane is a strip. */
+const MIN = 12;
 
 /** What an arrow key is worth. Small enough to aim, big enough to be felt. */
-const STEP = 24;
+const STEP = 4;
+
+/** Half of the `gap: 1rem` between the panes, in rem. */
+const HALF_GAP = 0.5;
 
 const work = document.querySelector('[data-egg-split-work]');
 const handle = document.querySelector('[data-egg-split]');
 
 if (work && handle) {
-    const store = (fraction) => {
+    const store = (top) => {
         try {
-            localStorage.setItem(KEY, String(fraction));
+            localStorage.setItem(KEY, String(top));
         } catch {
             // Private window, or site data blocked. The split still works for
             // this page; it just will not be remembered.
@@ -54,33 +61,25 @@ if (work && handle) {
         }
     };
 
-    /** The room the two rows share, once the handle has taken its own. */
-    const span = () => work.clientHeight - handle.offsetHeight;
+    /** Where the seam sits now, as a percentage of the pane area. */
+    let top = stored() ?? 50;
 
-    const apply = (top, { remember = true } = {}) => {
-        const room = span();
+    const apply = (next, { remember = true } = {}) => {
+        top = Math.min(Math.max(next, MIN), 100 - MIN);
 
-        if (room < MIN * 2) return;
+        work.style.gridTemplateRows =
+            `calc(${top}% - ${HALF_GAP}rem) calc(${100 - top}% - ${HALF_GAP}rem)`;
 
-        const clamped = Math.min(Math.max(top, MIN), room - MIN);
+        handle.style.top = `${top}%`;
+        handle.setAttribute('aria-valuenow', String(Math.round(top)));
 
-        work.style.setProperty('--egg-split', `${clamped}px`);
-        handle.setAttribute('aria-valuenow', String(Math.round((clamped / room) * 100)));
-
-        if (remember) store(clamped / room);
+        if (remember) store(top);
     };
 
-    /** Put the remembered split back, and keep it proportional on resize. */
-    const restore = () => {
-        const fraction = stored();
-
-        if (fraction === null) return;
-
-        apply(span() * fraction, { remember: false });
-    };
-
-    restore();
-    window.addEventListener('resize', restore);
+    // Only if something was remembered. With nothing stored the stylesheet's
+    // own 50% 50% stands and no inline style is written at all.
+    if (stored() !== null) apply(top, { remember: false });
+    else handle.style.top = '50%';
 
     // --- dragging ---------------------------------------------------------
 
@@ -98,7 +97,11 @@ if (work && handle) {
     handle.addEventListener('pointermove', (event) => {
         if (!dragging) return;
 
-        apply(event.clientY - work.getBoundingClientRect().top - handle.offsetHeight / 2);
+        const box = work.getBoundingClientRect();
+
+        if (box.height === 0) return;
+
+        apply(((event.clientY - box.top) / box.height) * 100);
     });
 
     const stop = (event) => {
@@ -114,25 +117,20 @@ if (work && handle) {
 
     // --- the keyboard -----------------------------------------------------
 
+    // It is a control, so it takes the keyboard — the same rule the rings
+    // follow. A thing that only answers a mouse is not a control.
     handle.addEventListener('keydown', (event) => {
         const move = {
             ArrowUp: -STEP,
             ArrowDown: STEP,
-            // Home and End go to the extremes, which is where somebody wanting
-            // "just the conversation" or "just the layers" is actually headed.
-            Home: -Infinity,
-            End: Infinity,
+            Home: -100,
+            End: 100,
         }[event.key];
 
         if (move === undefined) return;
 
         event.preventDefault();
-
-        const current = Number.parseFloat(
-            getComputedStyle(work).getPropertyValue('--egg-split'),
-        ) || span() / 2;
-
-        apply(Number.isFinite(move) ? current + move : (move < 0 ? 0 : span()));
+        apply(top + move);
     });
 
     // Double-click puts it back, which is faster than dragging to the middle
@@ -144,7 +142,9 @@ if (work && handle) {
             // See store().
         }
 
-        work.style.removeProperty('--egg-split');
+        top = 50;
+        work.style.removeProperty('grid-template-rows');
+        handle.style.top = '50%';
         handle.setAttribute('aria-valuenow', '50');
     });
 }

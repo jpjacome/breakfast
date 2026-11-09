@@ -6,6 +6,7 @@ namespace App\Services\Ai;
 
 use App\Models\AssistantMessage;
 use App\Models\Client;
+use App\Models\Conversation;
 use App\Models\User;
 use App\Services\Ai\Admin\AdminContextBuilder;
 use App\Services\Ai\Concerns\FinishesTruncatedAnswers;
@@ -38,6 +39,7 @@ final class AdminAssistant
         private readonly LlmClient $client,
         private readonly AdminContextBuilder $builder,
         private readonly UsageRecorder $usage,
+        private readonly SummarisesConversations $summariser,
     ) {}
 
     /**
@@ -55,12 +57,22 @@ final class AdminAssistant
         array $attachments = [],
         array $attachmentNames = [],
         array $attachmentIds = [],
+        ?Conversation $conversation = null,
+        ?string $references = null,
     ): LlmResponse {
+        /*
+         * ⚠️ THE REFERENCED CONVERSATIONS RIDE ON THE QUESTION AND ARE NOT
+         * REMEMBERED WITH IT. remember() below is given the RAW question, so
+         * the transcript shows what the person typed — "retoma #conv-12" —
+         * rather than four thousand characters of another conversation they
+         * never wrote. Storing the digest would also replay it verbatim on
+         * every later turn, paying for the same block again and again.
+         */
         $messages = $this->builder->forQuestion(
             $user,
-            $question,
+            $question.($references ?? ''),
             $client,
-            $this->history($user),
+            $this->history($user, $conversation),
             $attachments,
         );
 
@@ -106,7 +118,28 @@ final class AdminAssistant
             operation: 'admin-question',
         );
 
-        $this->remember($user, $question, $response->content, $client, $attachmentNames, $attachmentIds);
+        $this->remember(
+            $user,
+            $question,
+            $response->content,
+            $client,
+            $attachmentNames,
+            $attachmentIds,
+            $conversation,
+        );
+
+        /*
+         * ⚠️ AFTER THE ANSWER, NEVER BEFORE, AND IT NEVER THROWS. Folding the
+         * old part up is a second paid call; doing it first would make a person
+         * wait twice for one question, and a provider hiccup in it would turn
+         * an answer they have already been charged for into a 500. A
+         * conversation that fails to fold simply stays long and tries again on
+         * the next turn — see SummarisesConversations.
+         */
+        if ($conversation !== null) {
+            $conversation->noteActivity();
+            $this->summariser->handle($conversation);
+        }
 
         return $response;
     }
@@ -121,15 +154,43 @@ final class AdminAssistant
      *
      * @return array<int, Message>
      */
-    private function history(User $user): array
+    private function history(User $user, ?Conversation $conversation = null): array
     {
-        return AssistantMessage::query()
-            ->thread($user->id, AssistantMessage::SURFACE_ADMIN)
-            ->get()
-            ->reverse()
+        /*
+         * ⚠️ THE CONVERSATION DECIDES WHAT IS REPLAYED, not a count of rows.
+         * scopeThread() returns this person's last twenty turns whatever
+         * conversation they belong to, which is what item 5 objects to: opening
+         * a new conversation used to carry the previous one's turns into it,
+         * and past twenty the beginning was dropped with nothing said.
+         * replayable() returns everything since the summary, and the summary
+         * carries the rest — so nothing is forgotten, it is carried
+         * differently.
+         *
+         * The old path stays for a turn that arrives with no conversation,
+         * which is every turn from a page that has not been reloaded since the
+         * panel shipped.
+         */
+        $turns = $conversation !== null
+            ? $conversation->replayable()
+            : AssistantMessage::query()
+                ->thread($user->id, AssistantMessage::SURFACE_ADMIN)
+                ->get()
+                ->reverse();
+
+        $history = $turns
             ->map(fn (AssistantMessage $m): Message => $m->toLlmMessage())
             ->values()
             ->all();
+
+        // The folded-up part, ahead of the turns it precedes. It is the model's
+        // memory of the beginning and reads as one more thing that was said.
+        $summary = trim((string) $conversation?->summary);
+
+        return $summary === ''
+            ? $history
+            : [Message::user('Resumen de lo anterior en esta conversación:'.'
+
+'.$summary), ...$history];
     }
 
     /**
@@ -146,9 +207,15 @@ final class AdminAssistant
         ?Client $client,
         array $files = [],
         array $assetIds = [],
+        ?Conversation $conversation = null,
     ): void {
+        $conversation?->titleFrom($question);
+
         foreach ([['user', $question], ['assistant', $answer]] as [$role, $body]) {
             AssistantMessage::create([
+                // Which conversation this turn belongs to — item 5. Null only
+                // for a turn posted by a page that predates the panel.
+                'conversation_id' => $conversation?->id,
                 'user_id' => $user->id,
                 'surface' => AssistantMessage::SURFACE_ADMIN,
                 'role' => $role,

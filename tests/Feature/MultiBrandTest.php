@@ -282,7 +282,7 @@ it('removes a person from one brand without closing them out of the other', func
         ->and($member->fresh()->brands->pluck('name')->all())->toBe(['Bruma']);
 });
 
-it('deletes the account when the brand removed was the last one', function () {
+it('locks the account out when the brand removed was the last one, and keeps it', function () {
     $client = Client::factory()->create();
 
     $owner = User::factory()->clientOwner($client->id, ['estrategia' => 'read'])->create();
@@ -291,7 +291,21 @@ it('deletes the account when the brand removed was the last one', function () {
 
     actingAs($owner)->delete(route('portal.equipo.destroy', $member));
 
-    expect(User::find($member->id))->toBeNull();
+    /*
+     * ⚠️ THIS TEST ASSERTED `toBeNull()` UNTIL 2026-09-21, and its own name
+     * said "deletes the account". Removal used to end in `$user->delete()`
+     * when no brands were left — permanent, because `User` has no SoftDeletes,
+     * and it cascaded their whole history. An owner clicking "quitar" cannot
+     * be asked to know that the button means two different things depending
+     * on a count they cannot see.
+     *
+     * Now it detaches, full stop: no brand means `accessTo()` fails closed, so
+     * they are locked out rather than erased, and re-adding them restores what
+     * they had.
+     */
+    expect(User::find($member->id))->not->toBeNull()
+        ->and($member->fresh()->brands)->toHaveCount(0)
+        ->and($member->fresh()->accessTo(PortalSection::Estrategia))->toBeNull();
 });
 
 /* -------------------------------------------------------------------------
@@ -386,4 +400,70 @@ it('grants owner-only sections from the membership role', function () {
         ->and($user->isBrandOwner($bruma))->toBeFalse()
         ->and($user->accessTo(PortalSection::Equipo, $alea))->toBe(AccessLevel::Write)
         ->and($user->accessTo(PortalSection::Equipo, $bruma))->toBeNull();
+});
+
+/*
+|--------------------------------------------------------------------------
+| The menu says you have more than one — 2026-09-20
+|--------------------------------------------------------------------------
+| ⚠️ THE TOPBAR PICKER WAS NOT ENOUGH, and that is the point of these two. A
+| picker looks like a label until somebody clicks it, so an account in two
+| brands could go on using one and never learn the other was there. The rail
+| lists them, which is the part of the screen people actually read.
+*/
+
+it('lists every brand in the rail when there is more than one', function () {
+    [$user, $alea, $bruma] = personInTwoBrands();
+
+    actingAs($user)
+        ->get(route('portal.home'))
+        ->assertOk()
+        ->assertSee('Tus marcas')
+        ->assertSee($alea->name)
+        ->assertSee($bruma->name);
+});
+
+/**
+ * ⚠️ ONE BRAND, NO GROUP. A menu section holding a single row that reloads the
+ * page you are already on is furniture, and it would appear for every ordinary
+ * client in the portal — which is most of them.
+ */
+it('draws no brand group for somebody with a single brand', function () {
+    $brand = Client::factory()->create(['name' => 'Sola']);
+    $user = User::factory()->create(['role' => UserRole::ClienteOwner]);
+
+    $user->brands()->attach($brand->id, [
+        'role' => BrandRole::Owner->value,
+        'permissions' => json_encode((object) ['estrategia' => 'read']),
+    ]);
+
+    actingAs($user)
+        ->get(route('portal.home'))
+        ->assertOk()
+        ->assertDontSee('Tus marcas');
+});
+
+/** Breakfast staff can open /portal and are in no brand at all. */
+it('draws no brand group for Breakfast staff', function () {
+    actingAs(User::factory()->admin()->create())
+        ->get(route('portal.home'))
+        ->assertOk()
+        ->assertDontSee('Tus marcas');
+});
+
+/**
+ * ⚠️ THE BOLD ROW IS THE ONLY THING THAT SAYS WHICH BRAND YOU ARE IN. There is
+ * no separate "estás en" line — it was added on 2026-09-20 and taken out the
+ * same day as redundant with this. So if `is-current` ever stops being
+ * rendered, nothing on the screen answers the question.
+ */
+it('marks the brand you switched to as the current one', function () {
+    [$user, $alea, $bruma] = personInTwoBrands();
+
+    actingAs($user)->post(route('portal.brand.switch', $bruma))->assertRedirect();
+
+    // Both names are on the page — the list holds them — so the assertion has
+    // to be about the MARK, not about a name being present.
+    expect(actingAs($user)->get(route('portal.home'))->assertOk()->getContent())
+        ->toMatch('/is-current[^>]*>.*?'.preg_quote($bruma->name, '/').'/s');
 });

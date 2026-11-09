@@ -57,14 +57,51 @@
   --danger: var(--bkf-red);
 
   /* The rail is a plane apart from the page, so it gets its own fill and its
-     own hover tint rather than borrowing the page's. --rail-mark is whatever
-     has to sit ON the rail and still be seen — the current page's pill, the
-     avatar — and is always the rail's inverse, so flipping the rail carries
-     both with it. */
-  --rail-fill: var(--bkf-yellow);
+     own hover tint rather than borrowing the page's.
+
+     ⚠️ WHITE, NOT YELLOW (2026-09-21). The yellow moved up to the header bar,
+     and a yellow rail under a yellow bar is one plane pretending to be two.
+     --rail-mark is what has to sit ON the rail and still be seen — the current
+     page's pill — and it is now YELLOW IN BOTH THEMES, which is simpler than
+     it was: the mark used to be the rail's inverse and therefore changed
+     colour when the theme flipped, and now the current page is yellow whether
+     the rail is white or black.
+
+     ⚠️ THE AVATAR IS NO LONGER ONE OF THESE, see --avatar-* below. */
+  --rail-fill: var(--bkf-white);
   --rail-hover: color-mix(in srgb, var(--bkf-brown) 12%, transparent);
-  --rail-mark-fill: var(--bkf-brown);
-  --rail-mark-ink: var(--bkf-yellow);
+  --rail-mark-fill: var(--bkf-yellow);
+  --rail-mark-ink: var(--bkf-black);
+
+  /* The monogram disc.
+
+     ⚠️ IT USED TO BE --rail-mark-*, AND IT IS DRAWN IN SEVEN PLACES THAT ARE
+     NOT THE RAIL — the staff roster, /portal/equipo, the brand page, your own
+     account and every turn in an assistant transcript. It only ever borrowed
+     the rail's inverse because that happened to be a dark disc with gold on
+     it; the day the rail turned white and its mark turned yellow, one token
+     doing two jobs would have repainted all seven. Same story as
+     .dashboard-brand wearing .dashboard-wordmark's rules. These values are
+     what the avatar has always been. */
+  --avatar-fill: var(--bkf-brown);
+  --avatar-ink: var(--bkf-yellow);
+
+  /* The HISTORY rail, down the right edge — conversations.css.
+
+     ⚠️ IT DID NOT FOLLOW THE NAVIGATION RAIL TO WHITE. It stays the yellow it
+     has always been, which is why it needs a pair of its own: it used to read
+     --rail-fill and --rail-mark-*, and those two now describe a white plane
+     with a yellow mark on it. Pointed at a yellow panel, that mark is yellow
+     on yellow — the exact failure the hover in that file already carries a
+     warning about.
+
+     So this pair is what --rail-mark-* USED to be: a dark pill with gold on
+     it, which is what reads on yellow. Defined in BOTH shells, because the
+     panel is drawn on both and a token only one of them has is how
+     permissions.css rendered naked on the admin side. */
+  --history-fill: var(--bkf-yellow);
+  --history-mark-fill: var(--bkf-brown);
+  --history-mark-ink: var(--bkf-yellow);
 
   /* A flash message is a filled plane, so it carries its own pair. */
   --note-fill: var(--bkf-brown);
@@ -122,6 +159,18 @@
   --rail-mark-fill: var(--bkf-yellow);
   --rail-mark-ink: var(--bkf-black);
 
+  /* Unchanged by the white rail — over black the disc inverts, the way it
+     always has. */
+  --avatar-fill: var(--bkf-yellow);
+  --avatar-ink: var(--bkf-black);
+
+  /* Black like everything else here, and the mark inverts to gold — which is
+     what the navigation rail's mark does in this theme too. The two rails only
+     part company in the light theme. */
+  --history-fill: var(--bkf-black);
+  --history-mark-fill: var(--bkf-yellow);
+  --history-mark-ink: var(--bkf-black);
+
   /* Black on black would vanish, so the note inverts to the yellow plane. */
   --note-fill: var(--bkf-yellow);
   --note-ink: var(--bkf-black);
@@ -150,11 +199,15 @@
    size is ever set. One rule covers every icon on the surface. */
 .dashboard svg { width: 20px; height: 20px; flex: none; }
 
+/* ⚠️ THE VIEWPORT MINUS THE HEADER BAR, not the viewport. The bar sits above
+   this grid and is sticky, so a frame a full viewport tall makes every screen
+   in the portal scroll by exactly the height of the bar with nothing under it.
+   --header-bar-height comes from header-bar.css, which is the file that draws
+   it and therefore the only one that knows how tall it is. */
 .dashboard-frame {
   display: grid;
   grid-template-columns: var(--rail) minmax(0, 1fr);
-  min-height: 100vh;
-  min-height: 100dvh;
+  min-height: calc(100dvh - var(--header-bar-height));
 }
 
 /* --- rail ----------------------------------------------------------------
@@ -176,21 +229,23 @@
   background: var(--rail-fill);
   border-right: 1px solid var(--rule);
   position: sticky;
-  top: 0;
-  height: 100vh;
-  height: 100dvh;
+  /* Under the bar rather than under the top of the window — the bar is sticky
+     too, so a rail stuck at 0 would scroll its own top behind it. */
+  top: var(--header-bar-height);
+  height: calc(100dvh - var(--header-bar-height));
   overflow-y: auto;
 }
 
-.dashboard-brand {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding-inline: .5rem;
-}
+/* What used to hold the Breakfast logo at the top of the rail. The logo moved
+   to the header bar above the frame; all this carries now is the close button,
+   so it exists only where that button does — in the slide-over — and is gone
+   at desk sizes rather than sitting there as an empty row.
 
-.dashboard-brand img { width: 132px; height: auto; }
+   ⚠️ IT WAS CALLED .dashboard-brand, and so was the brand picker in the topbar
+   — one name on two unrelated elements, so the picker inherited this flex box
+   and this block inherited the picker's `position: relative`. On this side
+   "brand" means a CLIENT'S brand; the logo is a wordmark. */
+.dashboard-wordmark { display: none; }
 
 /* Only exists in the slide-over; hidden at desk sizes by the rule further down. */
 .dashboard-close { display: none; cursor: pointer; }
@@ -215,17 +270,55 @@
   color: var(--rail-mark-ink);
 }
 
-.dashboard-account {
-  margin-top: auto;
+/* --- their brands, above the sections — ACC-01 ---------------------------
+   Only drawn when there is more than one, so there is no single-row state to
+   style. The group sits above .dashboard-nav and is separated by a rule rather
+   than by space: two unlabelled stacks of links a gap apart read as one list
+   with an odd hole in it.
+   ------------------------------------------------------------------------- */
+
+.dashboard-brands {
   display: flex;
-  align-items: center;
-  gap: .625rem;
-  padding: .75rem;
-  border-top: 1px solid var(--rule);
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: .75rem;
+  border-bottom: 1px solid var(--rule);
 }
 
-/* Also used on /portal/equipo, away from the rail — the rail's inverse there
-   is a black disc with gold initials, which reads on a white card too. */
+.dashboard-brands-title {
+  margin: 0 0 .25rem;
+  padding-inline: .75rem;
+  font-size: .75rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--ink-quiet);
+}
+
+/* A button, not a link: switching is a POST, because it changes what the
+   session is about. It has to sit in the rail as though it were a link. */
+.dashboard-brands-link {
+  width: 100%;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: .95rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The one you are in, and this is the ONLY thing that says so.
+
+   ⚠️ `is-current`, not [aria-current="page"]. The brand you are in is not a
+   PAGE you are on — every section belongs to it — so it carries
+   aria-current="true" instead, which that selector does not match. */
+.dashboard-brands-link.is-current {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* ⚠️ ALSO DRAWN AWAY FROM THE RAIL — /portal/equipo — which is why it has its
+   own pair of tokens rather than the rail's mark, see --avatar-* . A dark disc
+   with gold initials, which reads on a white card as well as on the rail. */
 .dashboard-avatar {
   display: grid;
   place-items: center;
@@ -234,8 +327,8 @@
   flex: none;
   /* A circle is a shape, not a radius — it does not take the one radius. */
   border-radius: 50%;
-  background: var(--rail-mark-fill);
-  color: var(--rail-mark-ink);
+  background: var(--avatar-fill);
+  color: var(--avatar-ink);
   font-size: .75rem;
   font-weight: 700;
 }
@@ -243,31 +336,6 @@
 /* min-width: 0 so a long name ellipses instead of widening the rail. Both
    lines ellipse: the row also carries the theme toggle and the logout button,
    so there is not enough width left for either to wrap. */
-.dashboard-account-meta { display: grid; min-width: 0; flex: 1; }
-.dashboard-account-meta b,
-.dashboard-account-meta > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.dashboard-account-meta b { font-size: .875rem; font-weight: 500; }
-.dashboard-account-meta > span { font-size: .7rem; color: var(--ink-quiet); }
-
-.dashboard-logout {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  flex: none;
-  border: 0;
-  border-radius: var(--border-radius);
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  transition: background var(--dur) var(--ease);
-}
-.dashboard-logout:hover { background: var(--rail-hover); }
-
 /* --- content column ------------------------------------------------------ */
 
 .dashboard-column { display: flex; flex-direction: column; min-width: 0; }
@@ -614,6 +682,14 @@
 
   .dashboard-burger,
   .dashboard-close { display: grid; place-items: center; width: 44px; height: 44px; }
+
+  /* The close button alone, pushed to the rail's own right edge — where the
+     logo used to end and where a thumb reaching across the slide-over lands. */
+  .dashboard-wordmark {
+    display: flex;
+    justify-content: flex-end;
+    padding-inline: .5rem;
+  }
 
   .dashboard-sidebar {
     position: fixed;

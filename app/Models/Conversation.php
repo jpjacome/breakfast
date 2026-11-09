@@ -69,6 +69,42 @@ class Conversation extends Model
     }
 
     /**
+     * Whether this conversation is that person's to read, continue or rename.
+     *
+     * ⚠️ ALL THREE QUESTIONS AT ONCE, and every one of them fails closed. The
+     * owner is the obvious one; the surface stops a dashboard id being posted
+     * to Brandy's endpoint, where it would replay Breakfast's portfolio turns
+     * into a client's prompt; and the brand stops one brand's thread being
+     * continued while another is selected (ACC-01). A soft-deleted row is
+     * already excluded by the global scope.
+     *
+     * ⚠️ `$clientId` IS COMPARED EXACTLY, null included. A dashboard
+     * conversation is stored with none, so passing a brand in must not match
+     * one — that is the check, not an oversight.
+     */
+    public function isReachableBy(?User $user, string $surface, ?int $clientId = null): bool
+    {
+        return $user !== null
+            && $user->getKey() === $this->user_id
+            && $surface === $this->surface
+            && $clientId === $this->client_id;
+    }
+
+    /**
+     * Say that something happened in it.
+     *
+     * ⚠️ THE PANEL IS ORDERED BY `updated_at` AND NOTHING ELSE TOUCHES IT.
+     * Turns are rows in another table, so answering a question changes nothing
+     * on this row — without this call the history would be sorted by when each
+     * conversation was STARTED, and the one being used right now would sink
+     * down the list as older ones were opened.
+     */
+    public function noteActivity(): void
+    {
+        $this->forceFill(['updated_at' => now()])->save();
+    }
+
+    /**
      * This person's conversations on this surface, newest activity first.
      *
      * ⚠️ `$client` SCOPES THE PORTAL AND MUST NOT SCOPE THE DASHBOARD. Brandy's

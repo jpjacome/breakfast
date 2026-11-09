@@ -4,6 +4,7 @@ import { recordingSupported, startRecording } from './assistant-recorder.js';
 import { renderReply } from './assistant-text.js';
 import { explain, explainNetwork, handleSignedOut } from './assistant-error.js';
 import { attachComposer } from './assistant-composer.js';
+import { attachConversations } from './conversations.js';
 
 /**
  * The assistant on the Breakfast home screen — every brand at once.
@@ -70,15 +71,53 @@ if (root) {
      * Then jump to the end: a thread that opens at the top makes somebody
      * scroll to find out where they left off.
      */
+    const sent = [];
+
     for (const line of thread.querySelectorAll('[data-assistant-message]')) {
+        /*
+         * What Up recalls, taken here and nowhere else: this span still holds
+         * exactly the characters that were typed, and renderReply is about to
+         * replace it with nodes that only approximate them.
+         *
+         * Every non-assistant turn in this thread is this person's own — it is
+         * keyed on user_id — so there is nobody else's question to exclude.
+         */
+        if (line.closest('.assistant-message-user')) sent.push(line.textContent);
+
         renderReply(line, line.textContent);
     }
 
     thread.scrollTop = thread.scrollHeight;
 
+    /*
+     * The history side panel — item 5.
+     *
+     * ⚠️ IT OWNS THE THREAD'S CONTENTS WHEN A CONVERSATION IS OPENED, and this
+     * module owns them the rest of the time. One element, two writers, which is
+     * why the panel is handed the element rather than finding it: there is one
+     * place that says which thread this is.
+     *
+     * Null when the screen has no panel — every assistant surface that has not
+     * been given one keeps working exactly as before, posting no conversation
+     * and being answered in whichever one the server resolves.
+     */
+    const conversations = attachConversations({
+        root,
+        thread,
+        // Opening another conversation replaces the thread, so the questions
+        // Up walks back through have to be replaced with it.
+        onLoad: (data) => composer.seed(
+            data.messages.filter((turn) => turn.role !== 'assistant').map((turn) => turn.body),
+        ),
+    });
+
     // Auto-growing box, Enter to send, Shift+Enter for a new line — and none
     // of it on a phone, where Return breaks the line. See assistant-composer.js.
     const composer = attachComposer(input, form);
+
+    // The conversation the server just printed, so Up works on a reload and
+    // not only on the questions asked since. See assistant-composer.js.
+    composer.seed(sent);
 
     const endpoint = root.dataset.endpoint;
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
@@ -100,6 +139,15 @@ if (root) {
        the process board.
        ------------------------------------------------------------------ */
 
+    /*
+     * ⚠️ THE PASTE / DROP / PICKER HANDLING NOW LIVES IN assistant-files.js.
+     *
+     * It was inline here, which meant the Brand Egg's panel had nothing to
+     * import and shipped with no way to attach anything at all. This copy is
+     * kept for now so this working panel is not disturbed mid-flight; the next
+     * pass over this file should delete it and call attachFiles() instead, and
+     * the two must not be allowed to drift in the meantime.
+     */
     const MAX_FILES = 2;
     const attached = [];
 
@@ -302,11 +350,17 @@ if (root) {
              */
             const body = files.length ? new FormData() : null;
 
+            // Which conversation this belongs to. Null on the first question
+            // of a session, and the server answers with the id it resolved —
+            // see noteReply() below.
+            const conversation = conversations?.currentId() ?? null;
+
             if (body) {
                 body.append('question', question);
                 // Empty value is "Todas las marcas" — the default, and the
                 // mode most questions arrive in.
                 if (brand?.value) body.append('brand', brand.value);
+                if (conversation) body.append('conversation', conversation);
                 files.forEach((file) => body.append('files[]', file));
             }
 
@@ -317,7 +371,11 @@ if (root) {
                     'X-CSRF-TOKEN': csrf,
                     Accept: 'application/json',
                 },
-                body: body ?? JSON.stringify({ question, brand: brand?.value || null }),
+                body: body ?? JSON.stringify({
+                    question,
+                    brand: brand?.value || null,
+                    conversation,
+                }),
             });
 
             const data = await response.json().catch(() => ({}));
@@ -335,6 +393,14 @@ if (root) {
 
             orb?.setState('respondiendo');
             say('assistant', data.reply || 'No obtuve respuesta.');
+
+            /*
+             * ⚠️ THE SERVER SAYS WHERE THE TURN WENT, not the browser. A first
+             * question may have just created the conversation, and it is the
+             * same question that named it — so the panel learns both from the
+             * reply rather than guessing either.
+             */
+            conversations?.noteReply(data.conversation);
         } catch (error) {
             restore(question, files, {
                 errorLine: say('assistant', explainNetwork()),

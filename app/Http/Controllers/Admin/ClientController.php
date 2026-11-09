@@ -11,7 +11,6 @@ use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
 use App\Models\BrandDeliverables;
 use App\Models\Client;
-use App\Services\Checklist;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -241,10 +240,6 @@ class ClientController extends Controller
             // so nobody ticks "avisar" for an audience of nobody and assumes
             // the client was told.
             'audience' => $client->meetingAudience()->count(),
-            // SEG-05. Read-only here: the text is Breakfast's, the ticks are
-            // the brand's, and this side only watches them.
-            'checklist' => Checklist::for($client->deliverablesOrNew()),
-            'ticks' => $client->checklistTicks()->with('checkedBy')->get()->keyBy('item_key'),
         ]);
     }
 }

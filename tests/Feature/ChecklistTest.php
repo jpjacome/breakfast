@@ -217,7 +217,12 @@ test('a tick against a deleted line survives the line coming back', function () 
 
 /* --- the other side -------------------------------------------------------- */
 
-test('Breakfast sees what the brand ticked, read-only', function () {
+test('the brand screen does not show the checklist at all', function () {
+    // It was here as the "seguimiento" half of SEG-05 and was removed on
+    // 2026-09-21: the list is the brand's to work through, and a read-only copy
+    // of it on the brand screen was a second place to read the same text
+    // without being able to do anything about it. The TICKS are still stored
+    // and still attributed — nothing about checklist_ticks changed.
     actingAs($this->owner)->post(route('portal.estrategia.checklist'), [
         'items' => [keyFor('Publicar el manual de marca')],
     ]);
@@ -227,10 +232,8 @@ test('Breakfast sees what the brand ticked, read-only', function () {
     actingAs($admin)
         ->get(route('admin.clients.show', $this->client))
         ->assertOk()
-        ->assertSee('Checklist de implementación')
-        ->assertSee('Publicar el manual de marca')
-        // Who ticked it — the "seguimiento" the report asked for.
-        ->assertSee($this->owner->firstName())
-        // No checkboxes on this side: the ticks are the client's to make.
-        ->assertDontSee('name="items[]"', escape: false);
+        ->assertDontSee('Publicar el manual de marca');
+
+    // The tick itself is untouched — only the screen that displayed it is gone.
+    expect($this->client->checklistTicks()->count())->toBe(1);
 });
